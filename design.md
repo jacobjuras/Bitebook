@@ -183,6 +183,41 @@ Planned entries retain the quantities selected when they were created, even if t
 
 When an already-eaten MealEntry has `affectsStock` enabled, changing an ingredient quantity applies only the stock difference. Deleting the entry restores the stock it consumed. Future entries do not affect stock until their scheduled time passes.
 
+#### Meal Entry
+
+A Meal Entry represents one Food or saved Meal that the user plans or logs at a particular time. Logging a saved Meal copies its default ingredients into the etnry, allowing the user to change quantities for that occurrence without changing the saved Meal.
+
+```
+type MealEntrySource = {
+  type: "food" | "meal";           // Type of pantry item that was logged
+  id: string;                      // ID of the original Food or Meal
+  name: string;                    // Historical snapshot of its displayed name
+};
+
+type Preparation = "homePrepared" | "preparedElsewhere";
+
+type MealEntry = {
+  id: string;                      // Globally unique UUID
+  userId: string;                  // Cognito identifier of the user who owns the entry
+  source: MealEntrySource;         // Food or saved Meal used to create the entry
+  ingredients: LoggedIngredient[]; // Exact Foods and quantities for this occurrence
+  scheduledAt: string;             // UTC timestamp when the entry is considered eaten
+  preparation: Preparation;        // Classification used by the Locked In statistic
+  affectsStock: boolean;           // Whether this entry consumes pantry stock
+  stockAppliedAt?: string;         // When its stock reduction was successfully applied
+  createdAt: string;               // UTC timestamp recording when the entry was created
+  updatedAt: string;               // UTC timestamp recording when the entry was last edited
+};
+```
+
+Logging a food creates a MealEntry containing one LoggedIngredient. Logging a saved Meal creates a MealEntry containing copies of all its default ingredients. The source preserves whether the user originally logged a Food or Meal, while ingredients records exactly what was consumed.
+
+An entry with a future scheduledAt value is considered planned until that time passes. Once the scheduled time passes, it is automatically considered eaten; Bitebook does not store a separate planned or eaten status.
+
+When affectsStock is enabled, Bitebook validates and reduces stock at the scheduled time. stockAppliedAt records that the reduction completed, preventing the same entry from reducing stock more than once. Editing or deleting an entry whose stock was already applie adjusts or restores the appropriate quantities. MealEntry nutrition is calculated from its LoggedIngredient snapshots rather than stored separately.
+
+CalendarMeal records are calculated by gruoping nearby MealEntry records. They do not replace or modify the underlying entities.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
