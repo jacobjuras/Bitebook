@@ -51,8 +51,9 @@ The Reports view will allow the user to view breakdowns of their eating habits. 
 The Me view allows the user to configure their personal information, such as name, login credentials (if applicable), goal caloric intake, etc.
 
 ## Technical Design
-#### Web/PWA Framework
-Bitebook will use React with TypeScript, built using Vite. React Router will provide client-side navigation, and vite-plugin-pwa will provide the web app manifest and service-worker foundation. The frontend will build into static files and communicate with a separate backend through APIs.
+#### Mobile Application Framework
+
+Bitebook will use React Native with TypeScript through Expo. A single application project will build the iOS and Android apps, with platform-specific components used where their user experiences differ. Expo Router will provide navigation, while Expo modules will provide native capabilities such as camera access and iOS Liquid Glass effects.
 
 #### Backend and APIs
 Bitebook will use TypeScript AWS Lambda functions behind an Amazon API Gateway HTTP API. The frontend will communicate with the backend through REST-style JSON endpoints. Backend functions will enforce business rules, authorize access to user data, access persistent storage, and integrate with external services.
