@@ -162,6 +162,27 @@ type NutritionFacts = {
 
 All values are non-negative and represent one `servingSize` of the associated food. Calories is the only required field. An omitted value means the nutrient is unknown, while zero meants it is known to be absent. USDA results will be converted into Bitebook's field names and units before being saved. Bitebook will not persist USDA nutrient identifiers or raw provider responses. Additional micronutrients can be added to the supported union later without changing existing Food records.
 
+#### Meal Templates and Logged Entries
+
+A saved Meal is a reusable template containing default Foods and quantities. Logging or planning a Meal creates a MealEntry with its own copy of those ingredients. The user can change a copied quantity for one MealEntry without changing the saved Meal or its defaults.
+
+```
+type Ingredient = {
+  foodId: string;
+  quantity: Quantity;             // Default quantity for one serving of the Meal
+};
+
+type LoggedIngredient = Ingredient & {
+  foodSnapshot: Pick<Food, "name" | "servingSize" | "nutritionFacts">;
+};
+```
+
+The Pantry uses a Meal's default ingredient quantities when calculating its availability. When a MealEntry is saved, Bitebook validates stock and calculates nutrition using that entry's actual quantities. One-off quantity changes therefore affect only that entry's nutrition, stock usage, and reports.
+
+Planned entries retain the quantities selected when they were created, even if the saved Meal is later edited. MealEntry ingredient snapshots also preserve historical names, serving sizes, and nutrition facts so later Food or Meal edits do not rewrite history. These snapshots will be embedded directly in the MealEntry rather than stored as separate DynamoDB records.
+
+When an already-eaten MealEntry has `affectsStock` enabled, changing an ingredient quantity applies only the stock difference. Deleting the entry restores the stock it consumed. Future entries do not affect stock until their scheduled time passes.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
