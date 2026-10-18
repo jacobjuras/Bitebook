@@ -78,7 +78,26 @@ Bitebook will initially be online-first. The service worker will cache the appli
 When connectivity is lost, the app will preserve the currently displayed screen, disable operations that require the backend, and explain that it is offline. After reconnecting, it will fetch the current server state. Offline write queues, conflict resolution, and multi-device data merging are outside the initial scope.
 
 ## Data Models
-Define the main entities, their fields, and relationships
+
+#### Food
+A Food represents a user-owned item in the pantry. Food metadata can be entered manually or populated from a barcode scan. Scanned information must be confirmed or corrected by the user before it is saved.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Globally unique UUID. |
+| `userId` | `string` | Cognito identifier of the user who owns the food. |
+| `name` | `string` | User-visible and user-configured name of the food. |
+| `servingSize`* | `Quantity` | Quantity represented by one serving. |
+| `nutritionFacts` | `NutritionFacts` | Nutritional values for one serving. |
+| `currentStock` | `Quantity` | Quantity currently available in the pantry. |
+| `createdAt` | `string` | UTC timestamp recording when the food was created. |
+| `updatedAt` | `string` | UTC timestamp recording when the food was last changed. |
+
+A food remains in the pantry when its current stock reaches zero and is removed only when the user explicitly deletes it. Each user owns and edits an independent copy of a food.
+
+For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to the backend. The backend queries USDA FoodData Central and returns the matching product information for confirmation. Bitebook does not persist the barcode, USDA identifier, brand, or shared product cache. If no usable match is found, the user can enter the food manually.
+
+\* example `servingSize: { amount: 28, unit: "g" }` which we can use TypeScript `convert` library to convert to other units, e.g. `convert(1, "ounces").to("grams") // 28.3495`
 
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
