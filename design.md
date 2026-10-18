@@ -82,16 +82,18 @@ When connectivity is lost, the app will preserve the currently displayed screen,
 #### Food
 A Food represents a user-owned item in the pantry. Food metadata can be entered manually or populated from a barcode scan. Scanned information must be confirmed or corrected by the user before it is saved.
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Globally unique UUID. |
-| `userId` | `string` | Cognito identifier of the user who owns the food. |
-| `name` | `string` | User-visible and user-configured name of the food. |
-| `servingSize`* | `Quantity` | Quantity represented by one serving. |
-| `nutritionFacts` | `NutritionFacts` | Nutritional values for one serving. |
-| `currentStock` | `Quantity` | Quantity currently available in the pantry. |
-| `createdAt` | `string` | UTC timestamp recording when the food was created. |
-| `updatedAt` | `string` | UTC timestamp recording when the food was last changed. |
+```
+type Food = {
+  id: string;                     // Globally unique UUID
+  userId: string;                 // Cognito identifier of the user who owns the food
+  name: string;                   // User-visible and user-configured name of the food
+  servingSize: Quantity;          // Quantity represented by one serving
+  nutritionFacts: NutritionFacts; // Nutritional values for one serving
+  currentStock: Quantity;         // Quantity currently available in the pantry
+  createdAt: string;              // UTC timestamp recording when the food was created
+  updatedAt: string;              // UTC timestamp recording when the food was last edited
+};
+```
 
 A food remains in the pantry when its current stock reaches zero and is removed only when the user explicitly deletes it. Each user owns and edits an independent copy of a food.
 
