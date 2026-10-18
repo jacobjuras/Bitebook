@@ -103,6 +103,32 @@ For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to 
 
 \* example `servingSize: { amount: 28, unit: "g" }` which we can use TypeScript `convert` library to convert to other units, e.g. `convert(1, "ounces").to("grams") // 28.3495`
 
+#### Quantity / Unit
+
+A Quantity represents serving sizes, pantry stock, meal ingredients, and logged amounts.
+
+```
+type Unit =
+  | "g"
+  | "kg"
+  | "oz"
+  | "lb"
+  | "ml"
+  | "l"
+  | "tsp"
+  | "tbsp"
+  | "cup"
+  | "flOz"
+  | "item";
+
+type Quantity = {
+  amount: number;
+  unit: Unit;
+};
+```
+
+Bitebook will use `convert` whenever two compatible units must be converted.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
