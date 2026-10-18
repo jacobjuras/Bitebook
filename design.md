@@ -129,6 +129,39 @@ type Quantity = {
 
 Bitebook will use `convert` whenever two compatible units must be converted.
 
+#### Nutrition Facts
+
+NutritionFacts represents the nutritional values in one serving of a Food. Calories and common macronutrients use fixed fields and units so Bitebook can calculate daily totals efficiently. Micronutrients use a supported key-value collection because they vary between foods and may be missing from provider data.
+
+```
+type Micronutrient =
+  | "sodium"
+  | "potassium"
+  | "calcium"
+  | "iron";
+
+type NutrientAmount = {
+  amount: number;
+  unit: "g" | "mg" | "mcg";
+};
+
+type NutritionFacts = {
+  caloriesKcal: number;
+  proteinG?: number;
+  carbohydratesG?: number;
+  fatG?: number;
+  saturatedFatG?: number;
+  transFatG?: number;
+  fiberG?: number;
+  sugarG?: number;
+  addedSugarG?: number;
+  cholesterolMg?: number;
+  micronutrients: Partial<Record<Micronutrient, NutrientAmount>>;
+};
+```
+
+All values are non-negative and represent one `servingSize` of the associated food. Calories is the only required field. An omitted value means the nutrient is unknown, while zero meants it is known to be absent. USDA results will be converted into Bitebook's field names and units before being saved. Bitebook will not persist USDA nutrient identifiers or raw provider responses. Additional micronutrients can be added to the supported union later without changing existing Food records.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
