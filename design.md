@@ -57,6 +57,8 @@ Bitebook will use React with TypeScript, built using Vite. React Router will pro
 #### Backend and APIs
 Bitebook will use TypeScript AWS Lambda functions behind an Amazon API Gateway HTTP API. The frontend will communicate with the backend through REST-style JSON endpoints. Backend functions will enforce business rules, authorize access to user data, access persistent storage, and integrate with external services.
 
+The food barcode scanner extracts a GTIN/UPC, a lambda backend will query USDA FoodData Central, and the user confirms or corrects the result before saving it. No barcode, USDA identifier, or shared product cache is persisted; if USDA returns no usable match, Bitebook falls back to manual entry.
+
 #### Authentication
 Amazon Cognito User Pools will manage accounts, email verification, password recovery, and user sessions. Users will be able to sign in with an email and password or through linked Google and Apple accounts. Sign-in will use the OAuth authorization-code flow with PKCE. API Gateway will validate Cognito access tokens before invoking the backend, and every data operation will verify that the authenticated user owns the requested data.
 
