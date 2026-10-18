@@ -69,13 +69,13 @@ Application data will be stored in Amazon DynamoDB using on-demand capacity. Rec
 
 Bitebook will not store user-uploaded files initially because the current requirements do not need them. The database will store barcode values and food metadata rather than barcode images. If file uploads are added later, they will use private Amazon S3 storage accessed only through authorized backend operations.
 
-#### Hosting and Deployment
-The Vite frontend build will be hosted through Amazon CloudFront with a private Amazon S3 bucket as its origin. The bucket will block public access and allow reads only from its CloudFront distribution through Origin Access Control. CloudFront will enforce HTTPS and browser security headers.
+#### Application Distribution and Deployment
+Bitebook will be built as native iOS and Android applications using Expo Application Services (EAS Build). Release builds will be distributed through the Apple App Store and Google Play, while development builds will run on physical devices and platform simulators.
 
-All AWS resources will be defined in TypeScript using AWS CDK and deployed to a development AWS account. Deployments will initially be run manually from the project repository; automated deployment can be added if the project later needs it. The API will accept cross-origin requests only from Bitebook's deployed frontend origins and local development origin.
+All AWS resources will be defined in TypeScript using AWS CDK and deployed separately to a development AWS account. Infrastructure deployments will initially be run manually from the project repository; automated deployment can be added if the project later needs it. The mobile application will authenticate API requests with Cognito access tokens.
 
 #### Offline Behavior and Synchronization
-Bitebook will initially be online-first. The service worker will cache the application shell and static assets so the installed app can open without a network connection, but authenticated account data and writes will require connectivity. API responses containing user data will not be stored in the service-worker cache.
+Bitebook will initially be online-first. The installed native application will contain the interface and static assets, but authenticated account reads and writes will require connectivity. User data will not initially be persisted in an offline cache on the device.
 
 When connectivity is lost, the app will preserve the currently displayed screen, disable operations that require the backend, and explain that it is offline. After reconnecting, it will fetch the current server state. Offline write queues, conflict resolution, and multi-device data merging are outside the initial scope.
 
@@ -107,5 +107,8 @@ For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to 
 Describe what personal data is collected, who can access it, and how it is protected
 
 ## Testing and Operations
-Cover unit tests, browser testing, monitoring, backups, and recovery
+
+Amazon CloudWatch will collect backend logs and metrics from API Gateway and Lambda. Application logs will be structured and limited to operational information such as request identifiers, operation names, latency, external-service outcomes, stock-update outcomes, and unexpected errors. Logs must not contain authentication tokens, email addresses, request bodies, meal details, or nutrition data, and will initially be retained for 30 days.
+
+CloudWatch metrics and alarms will monitor API and Lambda request volume, errors, latency, and throttling, along with failures when communicating with USDA FoodData Central. Testing will include unit tests, iOS and Android device and simulator testing, and backend API integration testing. Backup and recovery procedures will cover DynamoDB point-in-time recovery.
 
