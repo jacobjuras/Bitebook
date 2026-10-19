@@ -4,6 +4,7 @@ export type ThemeColors = {
   accent: string;
   accentSubtle: string;
   background: string;
+  border: string;
   control: string;
   controlSelected: string;
   onAccent: string;

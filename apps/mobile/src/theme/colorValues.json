@@ -8,6 +8,7 @@
   "themes": {
     "light": {
       "background": "#ffffff",
+      "border": "#d1d1d6",
       "control": "#e9e9eb",
       "controlSelected": "#ffffff",
       "textPrimary": "#111111",
@@ -15,6 +16,7 @@
     },
     "dark": {
       "background": "#111111",
+      "border": "#38383a",
       "control": "#2c2c2e",
       "controlSelected": "#48484a",
       "textPrimary": "#ffffff",

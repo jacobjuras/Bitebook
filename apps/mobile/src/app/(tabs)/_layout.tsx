@@ -1,17 +1,39 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
-import { brandColors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 export default function TabLayout() {
+  const colors = useThemeColors();
+
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        sceneStyle: { backgroundColor: colors.background },
+        tabBarActiveTintColor: colors.accent,
+        tabBarBackground: () => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: colors.background },
+            ]}
+          />
+        ),
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Calendar',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="calendar-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : colors.accent} name="calendar-outline" size={size} />
           ),
         }}
       />
@@ -20,7 +42,7 @@ export default function TabLayout() {
         options={{
           title: 'Pantry',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="cart-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : colors.accent} name="cart-outline" size={size} />
           ),
         }}
       />
@@ -29,7 +51,7 @@ export default function TabLayout() {
         options={{
           title: 'Eat',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="add-circle-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : colors.accent} name="add-circle-outline" size={size} />
           ),
         }}
       />
@@ -38,7 +60,7 @@ export default function TabLayout() {
         options={{
           title: 'Reports',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="bar-chart-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : colors.accent} name="bar-chart-outline" size={size} />
           ),
         }}
       />
@@ -47,7 +69,7 @@ export default function TabLayout() {
         options={{
           title: 'Me',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="person-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : colors.accent} name="person-outline" size={size} />
           ),
         }}
       />
