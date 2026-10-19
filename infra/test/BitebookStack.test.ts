@@ -48,6 +48,11 @@ describe('BitebookStack', () => {
 
   it('packages the fail-closed API as a private Lambda', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: {
+          USER_DATA_TABLE_NAME: Match.anyValue(),
+        },
+      },
       Handler: 'index.handler',
       LoggingConfig: {
         LogFormat: 'JSON',
@@ -60,7 +65,7 @@ describe('BitebookStack', () => {
     template.resourceCountIs('AWS::Lambda::Permission', 0);
   });
 
-  it('retains API logs and grants only log-write access', () => {
+  it('grants only required log and Food write access', () => {
     template.hasResourceProperties('AWS::Logs::LogGroup', {
       RetentionInDays: 3653,
     });
@@ -75,6 +80,11 @@ describe('BitebookStack', () => {
             Action: ['logs:CreateLogStream', 'logs:PutLogEvents'],
             Effect: 'Allow',
             Resource: Match.anyValue(),
+          },
+          {
+            Action: 'dynamodb:PutItem',
+            Effect: 'Allow',
+            Resource: [Match.anyValue()],
           },
         ],
       },

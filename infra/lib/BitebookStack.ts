@@ -27,7 +27,7 @@ export class BitebookStack extends Stack {
     });
 
     // @secure_recommendation: Preserve data through accidental deletion and support point-in-time recovery.
-    new Table(this, 'UserDataTable', {
+    const userDataTable = new Table(this, 'UserDataTable', {
       billingMode: BillingMode.PAY_PER_REQUEST,
       deletionProtection: true,
       encryption: TableEncryption.CUSTOMER_MANAGED,
@@ -55,6 +55,9 @@ export class BitebookStack extends Stack {
     // @secure_recommendation: Keep the Lambda private with only its required logging permissions.
     new NodejsFunction(this, 'ApiFunction', {
       entry: '../services/api/src/index.ts',
+      environment: {
+        USER_DATA_TABLE_NAME: userDataTable.tableName,
+      },
       handler: 'handler',
       logGroup: apiLogGroup,
       loggingFormat: LoggingFormat.JSON,
@@ -62,5 +65,8 @@ export class BitebookStack extends Stack {
       runtime: Runtime.NODEJS_24_X,
       systemLogLevelV2: SystemLogLevel.INFO,
     });
+
+    // @secure_recommendation: Grant only the table operation used by Food creation.
+    userDataTable.grant(apiFunctionRole, 'dynamodb:PutItem');
   }
 }

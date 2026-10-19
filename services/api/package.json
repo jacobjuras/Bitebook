@@ -10,9 +10,15 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "3.1152.0",
+    "@aws-sdk/lib-dynamodb": "3.1152.0",
+    "@bitebook/domain": "0.0.0"
+  },
   "devDependencies": {
     "@types/aws-lambda": "8.10.164",
     "@types/node": "24.19.2",
+    "aws-sdk-client-mock": "4.1.0",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   }
