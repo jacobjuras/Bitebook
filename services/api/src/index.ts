@@ -11,6 +11,7 @@ import { adjustFoodStock } from './stockAdjustments.js';
 import { documentClient } from './dynamodb.js';
 import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
+import { createMeal } from './mealWrites.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -115,7 +116,7 @@ async function updateFood(
   }
 }
 
-/** Handles authenticated Food API requests. */
+/** Handles authenticated Bitebook API requests. */
 export async function handler(
   event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -129,6 +130,9 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'POST /meals') {
+    return createMeal(tableName, subject, event.body);
+  }
   if (event.routeKey === 'DELETE /foods/{foodId}') {
     return deleteFood(tableName, subject, event.pathParameters?.foodId);
   }

@@ -15,6 +15,7 @@ export const ingredientSchema = z.strictObject({
 const ingredientsSchema = z
   .array(ingredientSchema)
   .min(1)
+  .max(99)
   .refine(
     (ingredients) =>
       new Set(ingredients.map(({ foodId }) => foodId)).size ===

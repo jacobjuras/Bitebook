@@ -54,4 +54,14 @@ describe('mealSchema', () => {
       false,
     );
   });
+  it('limits ingredients to one atomic DynamoDB transaction', () => {
+    const ingredients = Array.from({ length: 100 }, (_, index) => ({
+      foodId: `00000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+      quantity: { amount: 1, unit: 'item' },
+    }));
+
+    expect(mealSchema.safeParse({ ...validMeal, ingredients }).success).toBe(
+      false,
+    );
+  });
 });

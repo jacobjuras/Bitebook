@@ -8,7 +8,11 @@ import {
   TransactWriteCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { foodSchema, stockTransactionSchema } from '@bitebook/domain';
+import {
+  foodSchema,
+  mealSchema,
+  stockTransactionSchema,
+} from '@bitebook/domain';
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -36,6 +40,17 @@ const stockAdjustmentInput = {
   idempotencyKey: 'f04fa2f1-702f-4518-b7f8-b3e588961738',
   quantity: { amount: 0.5, unit: 'kg' },
   reason: 'restock',
+};
+
+const createMealInput = {
+  ingredients: [
+    { foodId: storedFood.id, quantity: { amount: 80, unit: 'g' } },
+    {
+      foodId: 'e240e5a3-e4cd-4df0-9d6e-0c5d1856f780',
+      quantity: { amount: 1, unit: 'item' },
+    },
+  ],
+  name: 'Breakfast',
 };
 
 function createEvent(
@@ -396,6 +411,62 @@ describe('handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('creates a Meal from Foods owned by the authenticated user', async () => {
+    const response = await handler(
+      createEvent(JSON.stringify(createMealInput), 'user-123', 'POST /meals'),
+    );
+    const meal = mealSchema.parse(JSON.parse(response.body ?? ''));
+
+    expect(response.statusCode).toBe(201);
+    expect(meal).toMatchObject({ ...createMealInput, userId: 'user-123' });
+    expect(meal.createdAt).toBe(meal.updatedAt);
+    expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
+      .toEqual({
+        TransactItems: [
+          ...createMealInput.ingredients.map(({ foodId }) => ({
+            ConditionCheck: {
+              ConditionExpression:
+                'attribute_exists(userId) AND attribute_exists(entityKey)',
+              Key: { entityKey: `FOOD#${foodId}`, userId: 'user-123' },
+              TableName: 'UserDataTable',
+            },
+          })),
+          {
+            Put: {
+              ConditionExpression:
+                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+              Item: { ...meal, entityKey: `MEAL#${meal.id}` },
+              TableName: 'UserDataTable',
+            },
+          },
+        ],
+      });
+  });
+
+  it('rejects invalid Meal input before writing', async () => {
+    const response = await handler(
+      createEvent(JSON.stringify({ name: 'Breakfast', ingredients: [] }), 'user-123', 'POST /meals'),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
+  });
+
+  it('rejects a Meal containing a Food the user does not own', async () => {
+    const missingFood = new TransactionCanceledException({
+      $metadata: {},
+      CancellationReasons: [{ Code: 'ConditionalCheckFailed' }, { Code: 'None' }],
+      message: 'Transaction cancelled',
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(missingFood);
+
+    const response = await handler(
+      createEvent(JSON.stringify(createMealInput), 'user-123', 'POST /meals'),
+    );
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('rejects requests without an authenticated user', async () => {
