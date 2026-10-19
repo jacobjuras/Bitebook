@@ -1,0 +1,50 @@
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { foodSchema, type Food } from '@bitebook/domain';
+
+import { documentClient } from './dynamodb.js';
+
+/** Validates a DynamoDB Food item and returns its domain fields. */
+export function parseStoredFood(item: Record<string, unknown>): Food {
+  const { entityKey, ...food } = item;
+  if (typeof entityKey !== 'string' || !entityKey.startsWith('FOOD#')) {
+    throw new Error('Stored Food has an invalid entity key');
+  }
+
+  return foodSchema.parse(food);
+}
+
+/** Retrieves one Food from an authenticated user's partition. */
+export async function getFood(
+  tableName: string,
+  userId: string,
+  foodId: string,
+): Promise<Food | undefined> {
+  const result = await documentClient.send(
+    new GetCommand({
+      Key: { entityKey: `FOOD#${foodId}`, userId },
+      TableName: tableName,
+    }),
+  );
+
+  return result.Item ? parseStoredFood(result.Item) : undefined;
+}
+
+/** Queries and validates Food records in one authenticated user's partition. */
+export async function listFoods(
+  tableName: string,
+  userId: string,
+): Promise<Food[]> {
+  const result = await documentClient.send(
+    new QueryCommand({
+      ExpressionAttributeValues: {
+        ':entityPrefix': 'FOOD#',
+        ':userId': userId,
+      },
+      KeyConditionExpression:
+        'userId = :userId AND begins_with(entityKey, :entityPrefix)',
+      TableName: tableName,
+    }),
+  );
+
+  return (result.Items ?? []).map(parseStoredFood);
+}

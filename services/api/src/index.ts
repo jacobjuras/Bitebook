@@ -1,18 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  UpdateCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { foodSchema, type Food } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda';
+
+import { documentClient } from './dynamodb.js';
+import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -24,7 +20,6 @@ const updateFoodInputSchema = createFoodInputSchema
   .omit({ currentStock: true })
   .partial()
   .refine((input) => Object.keys(input).length > 0);
-const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function jsonResponse(
   statusCode: number,
@@ -36,63 +31,6 @@ function jsonResponse(
     statusCode,
   };
 }
-/** Validates a DynamoDB Food item and returns its domain fields. */
-function parseStoredFood(item: Record<string, unknown>): Food {
-  const { entityKey, ...food } = item;
-  if (typeof entityKey !== 'string' || !entityKey.startsWith('FOOD#')) {
-    throw new Error('Stored Food has an invalid entity key');
-  }
-
-  return foodSchema.parse(food);
-}
-
-/** Retrieves and validates one Food from an authenticated user's partition. */
-async function getFood(
-  tableName: string,
-  userId: string,
-  foodId: string | undefined,
-): Promise<APIGatewayProxyStructuredResultV2> {
-  const id = foodSchema.shape.id.safeParse(foodId);
-  if (!id.success) {
-    return jsonResponse(400, { message: 'Invalid Food ID' });
-  }
-
-  const result = await documentClient.send(
-    new GetCommand({
-      Key: { entityKey: `FOOD#${id.data}`, userId },
-      TableName: tableName,
-    }),
-  );
-
-  if (!result.Item) {
-    return jsonResponse(404, { message: 'Food not found' });
-  }
-
-  return jsonResponse(200, { food: parseStoredFood(result.Item) });
-}
-
-/** Queries and validates Food records in one authenticated user's partition. */
-async function listFoods(
-  tableName: string,
-  userId: string,
-): Promise<APIGatewayProxyStructuredResultV2> {
-  const result = await documentClient.send(
-    new QueryCommand({
-      ExpressionAttributeValues: {
-        ':entityPrefix': 'FOOD#',
-        ':userId': userId,
-      },
-      KeyConditionExpression:
-        'userId = :userId AND begins_with(entityKey, :entityPrefix)',
-      TableName: tableName,
-    }),
-  );
-
-  return jsonResponse(200, {
-    foods: (result.Items ?? []).map(parseStoredFood),
-  });
-}
-
 /** Updates mutable metadata on one authenticated user's Food. */
 async function updateFood(
   tableName: string,
@@ -171,10 +109,18 @@ export async function handler(
   }
 
   if (event.routeKey === 'GET /foods/{foodId}') {
-    return getFood(tableName, subject, event.pathParameters?.foodId);
+    const id = foodSchema.shape.id.safeParse(event.pathParameters?.foodId);
+    if (!id.success) {
+      return jsonResponse(400, { message: 'Invalid Food ID' });
+    }
+
+    const food = await getFood(tableName, subject, id.data);
+    return food
+      ? jsonResponse(200, { food })
+      : jsonResponse(404, { message: 'Food not found' });
   }
   if (event.routeKey === 'GET /foods') {
-    return listFoods(tableName, subject);
+    return jsonResponse(200, { foods: await listFoods(tableName, subject) });
   }
   if (event.routeKey === 'PATCH /foods/{foodId}') {
     return updateFood(
