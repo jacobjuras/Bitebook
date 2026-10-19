@@ -2,6 +2,7 @@
 node_modules/
 .expo/
 dist/
+cdk.out/
 web-build/
 .env
 .env.*
