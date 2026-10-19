@@ -114,6 +114,7 @@ This is the current phase.
 - [x] Make CDK application composition stage-aware.
 - [x] Synthesize isolated Beta and Production application stacks.
 - [x] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
+- [x] Keep deployed API integration tests out of pull-request CI; run them only against Beta in the deployment pipeline.
 - [x] Add a deployed API integration-test package.
 - [ ] Test unauthenticated rejection through API Gateway.
 - [ ] Test cross-user data isolation.
