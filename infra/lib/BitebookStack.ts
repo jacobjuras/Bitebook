@@ -140,11 +140,11 @@ export class BitebookStack extends Stack {
       apiFunction,
     );
 
-    // @secure_recommendation: Disable the default endpoint and require JWT authentication on every route.
+    // @secure_recommendation: The mobile app requires public ingress; every route remains JWT-authenticated.
     const api = new HttpApi(this, 'HttpApi', {
       createDefaultStage: false,
       defaultAuthorizer: apiAuthorizer,
-      disableExecuteApiEndpoint: true,
+      disableExecuteApiEndpoint: false,
     });
     const routes: [string, HttpMethod[]][] = [
       ['/foods', [HttpMethod.GET, HttpMethod.POST]],

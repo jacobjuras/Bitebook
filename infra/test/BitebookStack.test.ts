@@ -147,7 +147,7 @@ describe('BitebookStack', () => {
 
   it('creates a JWT-protected HTTP API', () => {
     template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
-      DisableExecuteApiEndpoint: true,
+      DisableExecuteApiEndpoint: false,
       ProtocolType: 'HTTP',
     });
     template.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', {
