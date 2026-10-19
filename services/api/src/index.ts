@@ -7,8 +7,10 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda';
 
+import { adjustFoodStock } from './stockAdjustments.js';
 import { documentClient } from './dynamodb.js';
 import { getFood, listFoods, parseStoredFood } from './foodReads.js';
+import { jsonResponse } from './http.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -21,16 +23,6 @@ const updateFoodInputSchema = createFoodInputSchema
   .partial()
   .refine((input) => Object.keys(input).length > 0);
 
-function jsonResponse(
-  statusCode: number,
-  body: unknown,
-): APIGatewayProxyStructuredResultV2 {
-  return {
-    body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
-    statusCode,
-  };
-}
 /** Updates mutable metadata on one authenticated user's Food. */
 async function updateFood(
   tableName: string,
@@ -121,6 +113,14 @@ export async function handler(
   }
   if (event.routeKey === 'GET /foods') {
     return jsonResponse(200, { foods: await listFoods(tableName, subject) });
+  }
+  if (event.routeKey === 'POST /foods/{foodId}/stock-adjustments') {
+    return adjustFoodStock(
+      tableName,
+      subject,
+      event.pathParameters?.foodId,
+      event.body,
+    );
   }
   if (event.routeKey === 'PATCH /foods/{foodId}') {
     return updateFood(

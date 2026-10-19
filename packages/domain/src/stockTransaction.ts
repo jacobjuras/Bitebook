@@ -2,6 +2,10 @@ import * as z from 'zod';
 
 import { quantitySchema } from './quantity.js';
 
+export const stockTransactionDirectionSchema = z.enum(['increase', 'decrease']);
+
+export const stockTransactionIdSchema = z.uuid();
+
 export const stockTransactionReasonSchema = z.enum([
   'restock',
   'mealEntry',
@@ -10,12 +14,18 @@ export const stockTransactionReasonSchema = z.enum([
   'manualAdjustment',
 ]);
 
+export const manualStockChangeSchema = z.strictObject({
+  direction: stockTransactionDirectionSchema,
+  quantity: quantitySchema.refine(({ amount }) => amount > 0),
+  reason: stockTransactionReasonSchema.extract(['manualAdjustment', 'restock']),
+});
+
 export const stockTransactionSchema = z
   .strictObject({
-    id: z.uuid(),
+    id: stockTransactionIdSchema,
     userId: z.string().min(1),
     foodId: z.uuid(),
-    direction: z.enum(['increase', 'decrease']),
+    direction: stockTransactionDirectionSchema,
     quantity: quantitySchema.refine(({ amount }) => amount > 0),
     reason: stockTransactionReasonSchema,
     mealEntryId: z.uuid().optional(),

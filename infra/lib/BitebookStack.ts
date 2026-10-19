@@ -72,6 +72,7 @@ export class BitebookStack extends Stack {
       'dynamodb:GetItem',
       'dynamodb:PutItem',
       'dynamodb:Query',
+      'dynamodb:TransactWriteItems',
       'dynamodb:UpdateItem',
     );
   }

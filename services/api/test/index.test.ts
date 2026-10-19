@@ -1,11 +1,13 @@
+import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
+  TransactWriteCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { foodSchema } from '@bitebook/domain';
+import { foodSchema, stockTransactionSchema } from '@bitebook/domain';
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -28,6 +30,13 @@ const storedFood = {
   userId: 'user-123',
 };
 
+const stockAdjustmentInput = {
+  direction: 'increase',
+  idempotencyKey: 'f04fa2f1-702f-4518-b7f8-b3e588961738',
+  quantity: { amount: 0.5, unit: 'kg' },
+  reason: 'restock',
+};
+
 function createEvent(
   body: string,
   subject?: string,
@@ -48,6 +57,7 @@ describe('handler', () => {
     documentClientMock.on(GetCommand).resolves({});
     documentClientMock.on(PutCommand).resolves({});
     documentClientMock.on(QueryCommand).resolves({ Items: [] });
+    documentClientMock.on(TransactWriteCommand).resolves({});
     documentClientMock.on(UpdateCommand).resolves({});
     process.env.USER_DATA_TABLE_NAME = 'UserDataTable';
   });
@@ -210,6 +220,139 @@ describe('handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('updates stock and records one immutable transaction', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    const event = createEvent(
+      JSON.stringify(stockAdjustmentInput),
+      'user-123',
+      'POST /foods/{foodId}/stock-adjustments',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+    const body = JSON.parse(response.body ?? '');
+    const food = foodSchema.parse(body.food);
+    const stockTransaction = stockTransactionSchema.parse(body.stockTransaction);
+
+    expect(response.statusCode).toBe(200);
+    expect(food.currentStock).toEqual({ amount: 1_000, unit: 'g' });
+    expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
+      .toEqual({
+        ConsistentRead: true,
+        Key: {
+          entityKey: `FOOD#${storedFood.id}`,
+          userId: 'user-123',
+        },
+        TableName: 'UserDataTable',
+      });
+    expect(stockTransaction).toMatchObject({
+      direction: stockAdjustmentInput.direction,
+      foodId: storedFood.id,
+      id: stockAdjustmentInput.idempotencyKey,
+      quantity: stockAdjustmentInput.quantity,
+      reason: stockAdjustmentInput.reason,
+      userId: 'user-123',
+    });
+    expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
+      .toEqual({
+        TransactItems: [
+          {
+            Update: {
+              ConditionExpression: 'currentStock = :expectedStock',
+              ExpressionAttributeValues: {
+                ':expectedStock': storedFood.currentStock,
+                ':newStock': { amount: 1_000, unit: 'g' },
+                ':updatedAt': stockTransaction.createdAt,
+              },
+              Key: {
+                entityKey: `FOOD#${storedFood.id}`,
+                userId: 'user-123',
+              },
+              TableName: 'UserDataTable',
+              UpdateExpression:
+                'SET currentStock = :newStock, updatedAt = :updatedAt',
+            },
+          },
+          {
+            Put: {
+              ConditionExpression:
+                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+              Item: {
+                ...stockTransaction,
+                entityKey: `STOCK_TRANSACTION#${stockTransaction.id}`,
+              },
+              TableName: 'UserDataTable',
+            },
+          },
+        ],
+      });
+  });
+
+  it('rejects a stock change that would produce negative stock', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    const event = createEvent(
+      JSON.stringify({
+        ...stockAdjustmentInput,
+        direction: 'decrease',
+        quantity: { amount: 600, unit: 'g' },
+      }),
+      'user-123',
+      'POST /foods/{foodId}/stock-adjustments',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
+  });
+
+  it('rejects a concurrent or duplicate stock change', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    const conflict = new TransactionCanceledException({
+      $metadata: {},
+      CancellationReasons: [{ Code: 'ConditionalCheckFailed' }],
+      message: 'Transaction cancelled',
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(conflict);
+    const event = createEvent(
+      JSON.stringify(stockAdjustmentInput),
+      'user-123',
+      'POST /foods/{foodId}/stock-adjustments',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('propagates retryable stock transaction failures', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    const throttled = new TransactionCanceledException({
+      $metadata: {},
+      CancellationReasons: [{ Code: 'ThrottlingError' }],
+      message: 'Transaction throttled',
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(throttled);
+    const event = createEvent(
+      JSON.stringify(stockAdjustmentInput),
+      'user-123',
+      'POST /foods/{foodId}/stock-adjustments',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    await expect(handler(event)).rejects.toBe(throttled);
   });
 
   it('rejects requests without an authenticated user', async () => {
