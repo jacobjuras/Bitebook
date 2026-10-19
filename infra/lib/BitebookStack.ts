@@ -69,6 +69,7 @@ export class BitebookStack extends Stack {
     // @secure_recommendation: Grant only the table operations used by Food APIs.
     userDataTable.grant(
       apiFunctionRole,
+      'dynamodb:GetItem',
       'dynamodb:PutItem',
       'dynamodb:Query',
     );

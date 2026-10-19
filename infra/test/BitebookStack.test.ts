@@ -82,7 +82,11 @@ describe('BitebookStack', () => {
             Resource: Match.anyValue(),
           },
           {
-            Action: ['dynamodb:PutItem', 'dynamodb:Query'],
+            Action: [
+              'dynamodb:GetItem',
+              'dynamodb:PutItem',
+              'dynamodb:Query',
+            ],
             Effect: 'Allow',
             Resource: [Match.anyValue()],
           },

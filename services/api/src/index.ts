@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -40,6 +41,31 @@ function parseStoredFood(item: Record<string, unknown>): Food {
   return foodSchema.parse(food);
 }
 
+/** Retrieves and validates one Food from an authenticated user's partition. */
+async function getFood(
+  tableName: string,
+  userId: string,
+  foodId: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const id = foodSchema.shape.id.safeParse(foodId);
+  if (!id.success) {
+    return jsonResponse(400, { message: 'Invalid Food ID' });
+  }
+
+  const result = await documentClient.send(
+    new GetCommand({
+      Key: { entityKey: `FOOD#${id.data}`, userId },
+      TableName: tableName,
+    }),
+  );
+
+  if (!result.Item) {
+    return jsonResponse(404, { message: 'Food not found' });
+  }
+
+  return jsonResponse(200, { food: parseStoredFood(result.Item) });
+}
+
 /** Queries and validates Food records in one authenticated user's partition. */
 async function listFoods(
   tableName: string,
@@ -62,7 +88,7 @@ async function listFoods(
   });
 }
 
-/** Handles authenticated Food creation and listing requests. */
+/** Handles authenticated Food API requests. */
 export async function handler(
   event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -76,6 +102,9 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'GET /foods/{foodId}') {
+    return getFood(tableName, subject, event.pathParameters?.foodId);
+  }
   if (event.routeKey === 'GET /foods') {
     return listFoods(tableName, subject);
   }

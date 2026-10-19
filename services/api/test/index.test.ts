@@ -1,5 +1,6 @@
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -43,6 +44,7 @@ function createEvent(
 describe('handler', () => {
   beforeEach(() => {
     documentClientMock.reset();
+    documentClientMock.on(GetCommand).resolves({});
     documentClientMock.on(PutCommand).resolves({});
     documentClientMock.on(QueryCommand).resolves({ Items: [] });
     process.env.USER_DATA_TABLE_NAME = 'UserDataTable';
@@ -90,6 +92,46 @@ describe('handler', () => {
           'userId = :userId AND begins_with(entityKey, :entityPrefix)',
         TableName: 'UserDataTable',
       });
+  });
+
+  it('gets one Food owned by the authenticated user', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    const event = createEvent('', 'user-123', 'GET /foods/{foodId}');
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ food: storedFood });
+    expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
+      .toEqual({
+        Key: {
+          entityKey: `FOOD#${storedFood.id}`,
+          userId: 'user-123',
+        },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('returns not found when a Food does not exist', async () => {
+    const event = createEvent('', 'user-123', 'GET /foods/{foodId}');
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('rejects an invalid Food ID', async () => {
+    const event = createEvent('', 'user-123', 'GET /foods/{foodId}');
+    event.pathParameters = { foodId: 'not-a-uuid' };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
   });
 
   it('rejects requests without an authenticated user', async () => {
