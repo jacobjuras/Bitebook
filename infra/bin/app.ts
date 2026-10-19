@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 import { App } from 'aws-cdk-lib';
 
-import { BitebookStack } from '../lib/BitebookStack.js';
+import {
+  BitebookApplicationStage,
+  DEPLOYMENT_STAGES,
+  parseDeploymentStage,
+} from '../lib/BitebookApplicationStage.js';
 
 const app = new App({ analyticsReporting: false });
+const deploymentStage = parseDeploymentStage(app.node.tryGetContext('stage'));
+const { label } = DEPLOYMENT_STAGES[deploymentStage];
 
-new BitebookStack(app, 'BitebookStack');
+new BitebookApplicationStage(app, label, { deploymentStage });
