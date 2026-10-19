@@ -13,6 +13,7 @@ import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
 import { createMeal, deleteMeal, updateMeal } from './mealWrites.js';
+import { getUserProfile, putUserProfile } from './userProfiles.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -131,6 +132,12 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'GET /profile') {
+    return getUserProfile(tableName, subject);
+  }
+  if (event.routeKey === 'PUT /profile') {
+    return putUserProfile(tableName, subject, event.body);
+  }
   if (event.routeKey === 'DELETE /meals/{mealId}') {
     return deleteMeal(tableName, subject, event.pathParameters?.mealId);
   }

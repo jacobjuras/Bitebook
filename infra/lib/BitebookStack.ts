@@ -152,6 +152,7 @@ export class BitebookStack extends Stack {
       ['/foods/{foodId}/stock-adjustments', [HttpMethod.POST]],
       ['/meals', [HttpMethod.GET, HttpMethod.POST]],
       ['/meals/{mealId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
+      ['/profile', [HttpMethod.GET, HttpMethod.PUT]],
     ];
     for (const [path, methods] of routes) {
       api.addRoutes({

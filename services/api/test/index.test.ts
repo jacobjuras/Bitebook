@@ -12,6 +12,7 @@ import {
   foodSchema,
   mealSchema,
   stockTransactionSchema,
+  userProfileSchema,
 } from '@bitebook/domain';
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -58,6 +59,14 @@ const storedMeal = {
   createdAt: '2026-10-19T05:00:00.000Z',
   id: '1d78fb29-f8ce-47a3-9ab4-38e0dc705832',
   updatedAt: '2026-10-19T05:00:00.000Z',
+  userId: 'user-123',
+};
+
+const storedProfile = {
+  createdAt: '2026-10-19T06:00:00.000Z',
+  displayName: 'Jacob',
+  timeZone: 'America/Los_Angeles',
+  updatedAt: '2026-10-19T06:00:00.000Z',
   userId: 'user-123',
 };
 
@@ -665,6 +674,75 @@ describe('handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('gets the authenticated user\'s profile', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedProfile, entityKey: 'PROFILE' },
+    });
+
+    const response = await handler(createEvent('', 'user-123', 'GET /profile'));
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ profile: storedProfile });
+    expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
+      .toEqual({
+        Key: { entityKey: 'PROFILE', userId: 'user-123' },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('returns not found before a profile is created', async () => {
+    const response = await handler(createEvent('', 'user-123', 'GET /profile'));
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('creates or replaces the authenticated user\'s profile fields', async () => {
+    documentClientMock.on(UpdateCommand).resolves({
+      Attributes: { ...storedProfile, entityKey: 'PROFILE' },
+    });
+
+    const response = await handler(
+      createEvent(
+        JSON.stringify({
+          displayName: storedProfile.displayName,
+          timeZone: storedProfile.timeZone,
+        }),
+        'user-123',
+        'PUT /profile',
+      ),
+    );
+    const profile = userProfileSchema.parse(
+      JSON.parse(response.body ?? '').profile,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(profile).toEqual(storedProfile);
+    expect(documentClientMock.commandCalls(UpdateCommand)[0]?.args[0].input)
+      .toMatchObject({
+        ExpressionAttributeNames: {
+          '#displayName': 'displayName',
+          '#timeZone': 'timeZone',
+        },
+        Key: { entityKey: 'PROFILE', userId: 'user-123' },
+        ReturnValues: 'ALL_NEW',
+        TableName: 'UserDataTable',
+        UpdateExpression:
+          'SET createdAt = if_not_exists(createdAt, :createdAt), #displayName = :displayName, #timeZone = :timeZone, updatedAt = :updatedAt',
+      });
+  });
+
+  it.each([
+    ['an invalid time zone', { timeZone: 'Los Angeles' }],
+    ['an ownership field', { timeZone: 'UTC', userId: 'attacker' }],
+  ])('rejects profile input containing %s', async (_case, input) => {
+    const response = await handler(
+      createEvent(JSON.stringify(input), 'user-123', 'PUT /profile'),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(UpdateCommand)).toHaveLength(0);
   });
 
   it('rejects requests without an authenticated user', async () => {
