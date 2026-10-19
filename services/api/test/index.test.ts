@@ -626,6 +626,47 @@ describe('handler', () => {
     expect(response.statusCode).toBe(409);
   });
 
+  it('deletes a Meal owned by the authenticated user', async () => {
+    const event = createEvent('', 'user-123', 'DELETE /meals/{mealId}');
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response).toEqual({ statusCode: 204 });
+    expect(documentClientMock.commandCalls(DeleteCommand)[0]?.args[0].input)
+      .toEqual({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        Key: {
+          entityKey: `MEAL#${storedMeal.id}`,
+          userId: 'user-123',
+        },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('rejects an invalid Meal ID for deletion', async () => {
+    const event = createEvent('', 'user-123', 'DELETE /meals/{mealId}');
+    event.pathParameters = { mealId: 'not-a-uuid' };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(DeleteCommand)).toHaveLength(0);
+  });
+
+  it('returns not found when deleting a missing Meal', async () => {
+    const missingError = new Error('Condition failed');
+    missingError.name = 'ConditionalCheckFailedException';
+    documentClientMock.on(DeleteCommand).rejects(missingError);
+    const event = createEvent('', 'user-123', 'DELETE /meals/{mealId}');
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(404);
+  });
+
   it('rejects requests without an authenticated user', async () => {
     const response = await handler(createEvent(JSON.stringify(validInput)));
 

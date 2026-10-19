@@ -12,7 +12,7 @@ import { documentClient } from './dynamodb.js';
 import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
-import { createMeal, updateMeal } from './mealWrites.js';
+import { createMeal, deleteMeal, updateMeal } from './mealWrites.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -131,6 +131,9 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'DELETE /meals/{mealId}') {
+    return deleteMeal(tableName, subject, event.pathParameters?.mealId);
+  }
   if (event.routeKey === 'GET /meals/{mealId}') {
     const id = mealSchema.shape.id.safeParse(event.pathParameters?.mealId);
     if (!id.success) {

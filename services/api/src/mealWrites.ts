@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
-import { TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { mealSchema, type Meal } from '@bitebook/domain';
 import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 
@@ -160,4 +160,33 @@ export async function updateMeal(
   }
 
   return jsonResponse(200, updatedMeal);
+}
+
+/** Deletes one Meal from an authenticated user's partition. */
+export async function deleteMeal(
+  tableName: string,
+  userId: string,
+  mealId: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const id = mealSchema.shape.id.safeParse(mealId);
+  if (!id.success) {
+    return jsonResponse(400, { message: 'Invalid Meal ID' });
+  }
+
+  try {
+    await documentClient.send(
+      new DeleteCommand({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        Key: { entityKey: `MEAL#${id.data}`, userId },
+        TableName: tableName,
+      }),
+    );
+    return { statusCode: 204 };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      return jsonResponse(404, { message: 'Meal not found' });
+    }
+    throw error;
+  }
 }
