@@ -62,7 +62,6 @@ describe('BitebookStack', () => {
       Runtime: 'nodejs24.x',
     });
     template.resourceCountIs('AWS::Lambda::Url', 0);
-    template.resourceCountIs('AWS::Lambda::Permission', 0);
   });
 
   it('grants only required log and Food write access', () => {
@@ -143,6 +142,47 @@ describe('BitebookStack', () => {
       },
       RefreshTokenValidity: 525_600,
       SupportedIdentityProviders: ['COGNITO'],
+    });
+  });
+
+  it('creates a JWT-protected HTTP API', () => {
+    template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
+      DisableExecuteApiEndpoint: true,
+      ProtocolType: 'HTTP',
+    });
+    template.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', {
+      AuthorizerType: 'JWT',
+      IdentitySource: ['$request.header.Authorization'],
+      JwtConfiguration: {
+        Audience: [Match.anyValue()],
+        Issuer: Match.anyValue(),
+      },
+    });
+    template.resourceCountIs('AWS::ApiGatewayV2::Route', 11);
+    template.allResourcesProperties('AWS::ApiGatewayV2::Route', {
+      AuthorizationType: 'JWT',
+      AuthorizerId: Match.anyValue(),
+    });
+  });
+
+  it('scopes Lambda invocation to authenticated API routes', () => {
+    template.resourceCountIs('AWS::Lambda::Permission', 11);
+    template.allResourcesProperties('AWS::Lambda::Permission', {
+      Action: 'lambda:InvokeFunction',
+      Principal: 'apigateway.amazonaws.com',
+      SourceArn: Match.anyValue(),
+    });
+  });
+
+  it('retains structured API access logs', () => {
+    template.resourceCountIs('AWS::Logs::LogGroup', 2);
+    template.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
+      AccessLogSettings: {
+        DestinationArn: Match.anyValue(),
+        Format: Match.stringLikeRegexp('requestId'),
+      },
+      AutoDeploy: true,
+      StageName: '$default',
     });
   });
 });

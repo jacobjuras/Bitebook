@@ -1,4 +1,13 @@
 import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { AccessLogFormat } from 'aws-cdk-lib/aws-apigateway';
+import {
+  HttpApi,
+  HttpMethod,
+  HttpStage,
+  LogGroupLogDestination,
+} from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import {
   AccountRecovery,
   FeaturePlan,
@@ -59,7 +68,7 @@ export class BitebookStack extends Stack {
     apiLogGroup.grantWrite(apiFunctionRole);
 
     // @secure_recommendation: Keep the Lambda private with only its required logging permissions.
-    new NodejsFunction(this, 'ApiFunction', {
+    const apiFunction = new NodejsFunction(this, 'ApiFunction', {
       entry: '../services/api/src/index.ts',
       environment: {
         USER_DATA_TABLE_NAME: userDataTable.tableName,
@@ -108,7 +117,7 @@ export class BitebookStack extends Stack {
     });
 
     // @secure_recommendation: Native applications cannot safely hold client secrets.
-    userPool.addClient('MobileAppClient', {
+    const mobileAppClient = userPool.addClient('MobileAppClient', {
       accessTokenValidity: Duration.hours(1),
       authFlows: { userSrp: true },
       disableOAuth: true,
@@ -119,6 +128,58 @@ export class BitebookStack extends Stack {
       refreshTokenRotationGracePeriod: Duration.seconds(10),
       refreshTokenValidity: Duration.days(365),
       supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
+    });
+
+    const apiAuthorizer = new HttpUserPoolAuthorizer(
+      'ApiAuthorizer',
+      userPool,
+      { userPoolClients: [mobileAppClient] },
+    );
+    const apiIntegration = new HttpLambdaIntegration(
+      'ApiIntegration',
+      apiFunction,
+    );
+
+    // @secure_recommendation: Disable the default endpoint and require JWT authentication on every route.
+    const api = new HttpApi(this, 'HttpApi', {
+      createDefaultStage: false,
+      defaultAuthorizer: apiAuthorizer,
+      disableExecuteApiEndpoint: true,
+    });
+    const routes: [string, HttpMethod[]][] = [
+      ['/foods', [HttpMethod.GET, HttpMethod.POST]],
+      ['/foods/{foodId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
+      ['/foods/{foodId}/stock-adjustments', [HttpMethod.POST]],
+      ['/meals', [HttpMethod.GET, HttpMethod.POST]],
+      ['/meals/{mealId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
+    ];
+    for (const [path, methods] of routes) {
+      api.addRoutes({
+        authorizer: apiAuthorizer,
+        integration: apiIntegration,
+        methods,
+        path,
+      });
+    }
+
+    // @secure_recommendation: Log request metadata without request bodies or authorization headers.
+    const apiAccessLogGroup = new LogGroup(this, 'ApiAccessLogGroup', {
+      removalPolicy: RemovalPolicy.RETAIN,
+      retention: RetentionDays.TEN_YEARS,
+    });
+    new HttpStage(this, 'HttpApiStage', {
+      accessLogSettings: {
+        destination: new LogGroupLogDestination(apiAccessLogGroup),
+        format: AccessLogFormat.custom(JSON.stringify({
+          integrationStatus: '$context.integrationStatus',
+          latency: '$context.responseLatency',
+          requestId: '$context.requestId',
+          routeKey: '$context.routeKey',
+          status: '$context.status',
+        })),
+      },
+      autoDeploy: true,
+      httpApi: api,
     });
   }
 }
