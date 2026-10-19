@@ -5,7 +5,15 @@ import {
   Table,
   TableEncryption,
 } from 'aws-cdk-lib/aws-dynamodb';
+import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
+import {
+  LoggingFormat,
+  Runtime,
+  SystemLogLevel,
+} from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import type { Construct } from 'constructs';
 
 export class BitebookStack extends Stack {
@@ -30,6 +38,29 @@ export class BitebookStack extends Stack {
       },
       removalPolicy: RemovalPolicy.RETAIN,
       sortKey: { name: 'entityKey', type: AttributeType.STRING },
+    });
+
+    // @secure_recommendation: Retain structured Lambda logs for security investigations.
+    const apiLogGroup = new LogGroup(this, 'ApiFunctionLogGroup', {
+      removalPolicy: RemovalPolicy.RETAIN,
+      retention: RetentionDays.TEN_YEARS,
+    });
+
+    // @secure_recommendation: Start the API execution role with only required log access.
+    const apiFunctionRole = new Role(this, 'ApiFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+    });
+    apiLogGroup.grantWrite(apiFunctionRole);
+
+    // @secure_recommendation: Keep the Lambda private with only its required logging permissions.
+    new NodejsFunction(this, 'ApiFunction', {
+      entry: '../services/api/src/index.ts',
+      handler: 'handler',
+      logGroup: apiLogGroup,
+      loggingFormat: LoggingFormat.JSON,
+      role: apiFunctionRole,
+      runtime: Runtime.NODEJS_24_X,
+      systemLogLevelV2: SystemLogLevel.INFO,
     });
   }
 }

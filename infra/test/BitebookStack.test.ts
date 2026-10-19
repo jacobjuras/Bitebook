@@ -45,4 +45,39 @@ describe('BitebookStack', () => {
       UpdateReplacePolicy: 'Retain',
     });
   });
+
+  it('packages the fail-closed API as a private Lambda', () => {
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Handler: 'index.handler',
+      LoggingConfig: {
+        LogFormat: 'JSON',
+        LogGroup: Match.anyValue(),
+        SystemLogLevel: 'INFO',
+      },
+      Runtime: 'nodejs24.x',
+    });
+    template.resourceCountIs('AWS::Lambda::Url', 0);
+    template.resourceCountIs('AWS::Lambda::Permission', 0);
+  });
+
+  it('retains API logs and grants only log-write access', () => {
+    template.hasResourceProperties('AWS::Logs::LogGroup', {
+      RetentionInDays: 3653,
+    });
+    template.hasResource('AWS::Logs::LogGroup', {
+      DeletionPolicy: 'Retain',
+      UpdateReplacePolicy: 'Retain',
+    });
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: [
+          {
+            Action: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+            Effect: 'Allow',
+            Resource: Match.anyValue(),
+          },
+        ],
+      },
+    });
+  });
 });
