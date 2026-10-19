@@ -13,6 +13,10 @@ import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
 import { createMeal, deleteMeal, updateMeal } from './mealWrites.js';
+import {
+  createNutritionGoal,
+  getEffectiveNutritionGoal,
+} from './nutritionGoals.js';
 import { getUserProfile, putUserProfile } from './userProfiles.js';
 
 const createFoodInputSchema = foodSchema.pick({
@@ -132,6 +136,16 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'GET /nutrition-goals/effective') {
+    return getEffectiveNutritionGoal(
+      tableName,
+      subject,
+      event.queryStringParameters?.date,
+    );
+  }
+  if (event.routeKey === 'POST /nutrition-goals') {
+    return createNutritionGoal(tableName, subject, event.body);
+  }
   if (event.routeKey === 'GET /profile') {
     return getUserProfile(tableName, subject);
   }
