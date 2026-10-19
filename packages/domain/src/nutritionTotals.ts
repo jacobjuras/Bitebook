@@ -8,6 +8,7 @@ import {
 
 type ScalarNutrition = Omit<NutritionFacts, 'micronutrients'>;
 
+/** Sums nutrition values while treating absent nutrients as zero and normalizing micronutrient units. */
 export function sumNutritionFacts(
   nutritionValues: readonly NutritionFacts[],
 ): NutritionFacts {

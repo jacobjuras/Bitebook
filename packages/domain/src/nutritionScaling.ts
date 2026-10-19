@@ -5,6 +5,7 @@ import {
 import type { Quantity } from './quantity.js';
 import { convertQuantity } from './quantityConversion.js';
 
+/** Scales per-serving nutrition to an actual consumed quantity. */
 export function scaleNutritionFacts(
   nutritionFacts: NutritionFacts,
   servingSize: Quantity,

@@ -41,6 +41,7 @@ export function areCompatibleUnits(first: Unit, second: Unit): boolean {
   return getMeasurementFamily(first) === getMeasurementFamily(second);
 }
 
+/** Converts a quantity to a compatible unit within its measurement family. */
 export function convertQuantity(
   quantity: Quantity,
   targetUnit: Unit,
