@@ -236,6 +236,34 @@ CalendarMeals are calculated from stored MealEntries and are not stored separate
 
 Entries from the same local calendar day are grouped when they occur within 30 minutes of each other. This means that a CalendarMeal's start and end times are dynamic, with detection logic allowing a meal eaten less than 30 minutes before or after the window of a CalendarMeal to be automatically added to it and its start/end time appropriately updated. Adding, editing, moving, or deleting a MealEntry may change its CalendarMeal grouping and calculated nutrition.
 
+#### Stock Transaction
+
+A StockTransaction records one change to the current stock of a Food. Transactions provide a history of restocks, consumption, corrections, and reversals without replacing the Food's current stock value.
+
+```
+type StockTransactionReason =
+  | "restock"
+  | "mealEntry"
+  | "mealEntryAdjustment"
+  | "mealEntryDeletion"
+  | "manualAdjustment";
+
+type StockTransaction = {
+  id: string;                       // Globally unique UUID
+  userId: string;                   // Cognito identifier of the user who owns the Food
+  foodId: string;                   // Food whose stock changed
+  direction: "increase" | "decrease";
+  quantity: Quantity;               // Positive quantity added or removed
+  reason: StockTransactionReason;   // Operation that caused the change
+  mealEntryId?: string;             // Related MealEntry when applicable
+  createdAt: string;                // UTC timestamp when the change occurred
+};
+```
+
+StockTransaction records are immutable. Correcting a stock change creates another transaction rather than editing or deleting the original record.
+
+Bitebook will update the Food's currentStock and create its StockTransaction in one DDB transaction so they cannot become inconsistent. Logging a MealEntry creates one StockTransaction for each affected Food. Editing or deleting an entry creates additional transactions representing the quantities adjusted or restored. Manual stock updates and grocery restocks also create transactions. StockTransaction history does not need to be visible in the initial application, but it preserves enough information to support troubleshooting and a future stock-history view.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
