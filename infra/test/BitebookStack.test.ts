@@ -83,6 +83,7 @@ describe('BitebookStack', () => {
           },
           {
             Action: [
+              'dynamodb:DeleteItem',
               'dynamodb:GetItem',
               'dynamodb:PutItem',
               'dynamodb:Query',

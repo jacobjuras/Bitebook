@@ -1,5 +1,6 @@
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -54,6 +55,7 @@ function createEvent(
 describe('handler', () => {
   beforeEach(() => {
     documentClientMock.reset();
+    documentClientMock.on(DeleteCommand).resolves({});
     documentClientMock.on(GetCommand).resolves({});
     documentClientMock.on(PutCommand).resolves({});
     documentClientMock.on(QueryCommand).resolves({ Items: [] });
@@ -353,6 +355,47 @@ describe('handler', () => {
     event.pathParameters = { foodId: storedFood.id };
 
     await expect(handler(event)).rejects.toBe(throttled);
+  });
+
+  it('deletes a Food owned by the authenticated user', async () => {
+    const event = createEvent('', 'user-123', 'DELETE /foods/{foodId}');
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response).toEqual({ statusCode: 204 });
+    expect(documentClientMock.commandCalls(DeleteCommand)[0]?.args[0].input)
+      .toEqual({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        Key: {
+          entityKey: `FOOD#${storedFood.id}`,
+          userId: 'user-123',
+        },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('rejects an invalid Food ID for deletion', async () => {
+    const event = createEvent('', 'user-123', 'DELETE /foods/{foodId}');
+    event.pathParameters = { foodId: 'not-a-uuid' };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(DeleteCommand)).toHaveLength(0);
+  });
+
+  it('returns not found when deleting a missing Food', async () => {
+    const missingError = new Error('Condition failed');
+    missingError.name = 'ConditionalCheckFailedException';
+    documentClientMock.on(DeleteCommand).rejects(missingError);
+    const event = createEvent('', 'user-123', 'DELETE /foods/{foodId}');
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(404);
   });
 
   it('rejects requests without an authenticated user', async () => {

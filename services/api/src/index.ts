@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { foodSchema, type Food } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
@@ -22,6 +22,35 @@ const updateFoodInputSchema = createFoodInputSchema
   .omit({ currentStock: true })
   .partial()
   .refine((input) => Object.keys(input).length > 0);
+
+/** Deletes one Food from an authenticated user's partition. */
+async function deleteFood(
+  tableName: string,
+  userId: string,
+  foodId: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const id = foodSchema.shape.id.safeParse(foodId);
+  if (!id.success) {
+    return jsonResponse(400, { message: 'Invalid Food ID' });
+  }
+
+  try {
+    await documentClient.send(
+      new DeleteCommand({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        Key: { entityKey: `FOOD#${id.data}`, userId },
+        TableName: tableName,
+      }),
+    );
+    return { statusCode: 204 };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      return jsonResponse(404, { message: 'Food not found' });
+    }
+    throw error;
+  }
+}
 
 /** Updates mutable metadata on one authenticated user's Food. */
 async function updateFood(
@@ -100,6 +129,9 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'DELETE /foods/{foodId}') {
+    return deleteFood(tableName, subject, event.pathParameters?.foodId);
+  }
   if (event.routeKey === 'GET /foods/{foodId}') {
     const id = foodSchema.shape.id.safeParse(event.pathParameters?.foodId);
     if (!id.success) {
