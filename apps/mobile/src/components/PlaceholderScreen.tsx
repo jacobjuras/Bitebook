@@ -1,4 +1,6 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { useThemeColors } from '../theme/useThemeColors';
 
 type PlaceholderScreenProps = {
   description: string;
@@ -9,19 +11,16 @@ export function PlaceholderScreen({
   description,
   title,
 }: PlaceholderScreenProps) {
-  const isDark = useColorScheme() === 'dark';
+  const colors = useThemeColors();
 
   return (
     <View
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? '#111111' : '#ffffff' },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <Text style={[styles.title, { color: isDark ? '#ffffff' : '#111111' }]}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
         {title}
       </Text>
-      <Text style={[styles.description, { color: isDark ? '#bbbbbb' : '#555555' }]}>
+      <Text style={[styles.description, { color: colors.textSecondary }]}>
         {description}
       </Text>
     </View>

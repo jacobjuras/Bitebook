@@ -1,0 +1,24 @@
+{
+  "brand": {
+    "accent": "#007aff",
+    "accentSubtle": "rgba(0, 122, 255, 0.12)",
+    "adaptiveIconBackground": "#e6f4fe",
+    "onAccent": "#ffffff"
+  },
+  "themes": {
+    "light": {
+      "background": "#ffffff",
+      "control": "#e9e9eb",
+      "controlSelected": "#ffffff",
+      "textPrimary": "#111111",
+      "textSecondary": "#66666b"
+    },
+    "dark": {
+      "background": "#111111",
+      "control": "#2c2c2e",
+      "controlSelected": "#48484a",
+      "textPrimary": "#ffffff",
+      "textSecondary": "#b0b0b5"
+    }
+  }
+}

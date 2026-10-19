@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 
+import { brandColors } from '../../theme/colors';
+
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
@@ -9,7 +11,7 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : '#007AFF'} name="calendar-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="calendar-outline" size={size} />
           ),
         }}
       />
@@ -18,7 +20,7 @@ export default function TabLayout() {
         options={{
           title: 'Pantry',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : '#007AFF'} name="cart-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="cart-outline" size={size} />
           ),
         }}
       />
@@ -27,7 +29,7 @@ export default function TabLayout() {
         options={{
           title: 'Eat',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : '#007AFF'} name="add-circle-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="add-circle-outline" size={size} />
           ),
         }}
       />
@@ -36,7 +38,7 @@ export default function TabLayout() {
         options={{
           title: 'Reports',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : '#007AFF'} name="bar-chart-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="bar-chart-outline" size={size} />
           ),
         }}
       />
@@ -45,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: 'Me',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons color={typeof color === 'string' ? color : '#007AFF'} name="person-outline" size={size} />
+            <Ionicons color={typeof color === 'string' ? color : brandColors.accent} name="person-outline" size={size} />
           ),
         }}
       />
