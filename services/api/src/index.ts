@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { foodSchema, type Food } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
@@ -26,13 +30,57 @@ function jsonResponse(
     statusCode,
   };
 }
-/** Creates a user-owned Food from a validated authenticated request. */
+/** Validates a DynamoDB Food item and returns its domain fields. */
+function parseStoredFood(item: Record<string, unknown>): Food {
+  const { entityKey, ...food } = item;
+  if (typeof entityKey !== 'string' || !entityKey.startsWith('FOOD#')) {
+    throw new Error('Stored Food has an invalid entity key');
+  }
+
+  return foodSchema.parse(food);
+}
+
+/** Queries and validates Food records in one authenticated user's partition. */
+async function listFoods(
+  tableName: string,
+  userId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await documentClient.send(
+    new QueryCommand({
+      ExpressionAttributeValues: {
+        ':entityPrefix': 'FOOD#',
+        ':userId': userId,
+      },
+      KeyConditionExpression:
+        'userId = :userId AND begins_with(entityKey, :entityPrefix)',
+      TableName: tableName,
+    }),
+  );
+
+  return jsonResponse(200, {
+    foods: (result.Items ?? []).map(parseStoredFood),
+  });
+}
+
+/** Handles authenticated Food creation and listing requests. */
 export async function handler(
   event: APIGatewayProxyEventV2WithJWTAuthorizer,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const subject = event.requestContext.authorizer.jwt.claims.sub;
   if (typeof subject !== 'string' || subject.length === 0) {
     return jsonResponse(401, { message: 'Authentication required' });
+  }
+
+  const tableName = process.env.USER_DATA_TABLE_NAME;
+  if (!tableName) {
+    throw new Error('USER_DATA_TABLE_NAME is not configured');
+  }
+
+  if (event.routeKey === 'GET /foods') {
+    return listFoods(tableName, subject);
+  }
+  if (event.routeKey !== 'POST /foods') {
+    return jsonResponse(404, { message: 'Not found' });
   }
 
   let requestBody: unknown;
@@ -45,11 +93,6 @@ export async function handler(
   const input = createFoodInputSchema.safeParse(requestBody);
   if (!input.success) {
     return jsonResponse(400, { message: 'Invalid food' });
-  }
-
-  const tableName = process.env.USER_DATA_TABLE_NAME;
-  if (!tableName) {
-    throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
   const timestamp = new Date().toISOString();

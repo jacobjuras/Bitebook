@@ -66,7 +66,11 @@ export class BitebookStack extends Stack {
       systemLogLevelV2: SystemLogLevel.INFO,
     });
 
-    // @secure_recommendation: Grant only the table operation used by Food creation.
-    userDataTable.grant(apiFunctionRole, 'dynamodb:PutItem');
+    // @secure_recommendation: Grant only the table operations used by Food APIs.
+    userDataTable.grant(
+      apiFunctionRole,
+      'dynamodb:PutItem',
+      'dynamodb:Query',
+    );
   }
 }
