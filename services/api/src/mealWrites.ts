@@ -7,11 +7,16 @@ import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 
 import { documentClient } from './dynamodb.js';
 import { jsonResponse } from './http.js';
+import { getMeal } from './mealReads.js';
 
 const createMealInputSchema = mealSchema.pick({
   ingredients: true,
   name: true,
 });
+const updateMealInputSchema = createMealInputSchema
+  .partial()
+  .refine((input) => Object.keys(input).length > 0);
+
 
 /** Creates a Meal only when every referenced Food belongs to the user. */
 export async function createMeal(
@@ -78,4 +83,81 @@ export async function createMeal(
   }
 
   return jsonResponse(201, meal);
+}
+
+/** Updates a Meal without accepting stale writes or unowned Food references. */
+export async function updateMeal(
+  tableName: string,
+  userId: string,
+  mealId: string | undefined,
+  body: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const id = mealSchema.shape.id.safeParse(mealId);
+  if (!id.success) {
+    return jsonResponse(400, { message: 'Invalid Meal ID' });
+  }
+
+  let requestBody: unknown;
+  try {
+    requestBody = JSON.parse(body ?? '');
+  } catch {
+    return jsonResponse(400, { message: 'Invalid meal' });
+  }
+  const input = updateMealInputSchema.safeParse(requestBody);
+  if (!input.success) {
+    return jsonResponse(400, { message: 'Invalid meal' });
+  }
+
+  const currentMeal = await getMeal(tableName, userId, id.data, true);
+  if (!currentMeal) {
+    return jsonResponse(404, { message: 'Meal not found' });
+  }
+
+  const updatedMeal = mealSchema.parse({
+    ...currentMeal,
+    ...input.data,
+    updatedAt: new Date().toISOString(),
+  });
+  const ingredientChecks = input.data.ingredients?.map(({ foodId }) => ({
+    ConditionCheck: {
+      ConditionExpression:
+        'attribute_exists(userId) AND attribute_exists(entityKey)',
+      Key: { entityKey: `FOOD#${foodId}`, userId },
+      TableName: tableName,
+    },
+  })) ?? [];
+
+  try {
+    await documentClient.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          ...ingredientChecks,
+          {
+            Put: {
+              ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+              ExpressionAttributeValues: {
+                ':expectedUpdatedAt': currentMeal.updatedAt,
+              },
+              Item: { ...updatedMeal, entityKey: `MEAL#${updatedMeal.id}` },
+              TableName: tableName,
+            },
+          },
+        ],
+      }),
+    );
+  } catch (error) {
+    if (error instanceof TransactionCanceledException) {
+      const failedCondition = error.CancellationReasons?.findIndex(
+        ({ Code }) => Code === 'ConditionalCheckFailed',
+      );
+      if (failedCondition !== undefined && failedCondition >= 0) {
+        return failedCondition < ingredientChecks.length
+          ? jsonResponse(400, { message: 'Meal contains unavailable Foods' })
+          : jsonResponse(409, { message: 'Meal changed; try again' });
+      }
+    }
+    throw error;
+  }
+
+  return jsonResponse(200, updatedMeal);
 }

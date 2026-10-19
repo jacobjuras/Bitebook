@@ -18,9 +18,11 @@ export async function getMeal(
   tableName: string,
   userId: string,
   mealId: string,
+  consistentRead = false,
 ): Promise<Meal | undefined> {
   const result = await documentClient.send(
     new GetCommand({
+      ...(consistentRead ? { ConsistentRead: true } : {}),
       Key: { entityKey: `MEAL#${mealId}`, userId },
       TableName: tableName,
     }),

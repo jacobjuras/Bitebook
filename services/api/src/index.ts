@@ -12,7 +12,7 @@ import { documentClient } from './dynamodb.js';
 import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
-import { createMeal } from './mealWrites.js';
+import { createMeal, updateMeal } from './mealWrites.js';
 
 const createFoodInputSchema = foodSchema.pick({
   currentStock: true,
@@ -144,6 +144,14 @@ export async function handler(
   }
   if (event.routeKey === 'GET /meals') {
     return jsonResponse(200, { meals: await listMeals(tableName, subject) });
+  }
+  if (event.routeKey === 'PATCH /meals/{mealId}') {
+    return updateMeal(
+      tableName,
+      subject,
+      event.pathParameters?.mealId,
+      event.body,
+    );
   }
   if (event.routeKey === 'POST /meals') {
     return createMeal(tableName, subject, event.body);

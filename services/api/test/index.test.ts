@@ -535,6 +535,97 @@ describe('handler', () => {
     expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
   });
 
+  it('updates Meal metadata with optimistic concurrency', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedMeal, entityKey: `MEAL#${storedMeal.id}` },
+    });
+    const event = createEvent(
+      JSON.stringify({ name: 'Weekend breakfast' }),
+      'user-123',
+      'PATCH /meals/{mealId}',
+    );
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+    const updatedMeal = mealSchema.parse(JSON.parse(response.body ?? ''));
+
+    expect(response.statusCode).toBe(200);
+    expect(updatedMeal).toMatchObject({
+      ...storedMeal,
+      name: 'Weekend breakfast',
+      updatedAt: expect.any(String),
+    });
+    expect(updatedMeal.updatedAt).not.toBe(storedMeal.updatedAt);
+    expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
+      .toEqual({
+        ConsistentRead: true,
+        Key: { entityKey: `MEAL#${storedMeal.id}`, userId: 'user-123' },
+        TableName: 'UserDataTable',
+      });
+    expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
+      .toEqual({
+        TransactItems: [
+          {
+            Put: {
+              ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+              ExpressionAttributeValues: {
+                ':expectedUpdatedAt': storedMeal.updatedAt,
+              },
+              Item: {
+                ...updatedMeal,
+                entityKey: `MEAL#${storedMeal.id}`,
+              },
+              TableName: 'UserDataTable',
+            },
+          },
+        ],
+      });
+  });
+
+  it('rejects unavailable Foods in updated Meal ingredients', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedMeal, entityKey: `MEAL#${storedMeal.id}` },
+    });
+    const unavailableFood = new TransactionCanceledException({
+      $metadata: {},
+      CancellationReasons: [{ Code: 'ConditionalCheckFailed' }, { Code: 'None' }],
+      message: 'Transaction cancelled',
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(unavailableFood);
+    const event = createEvent(
+      JSON.stringify({ ingredients: createMealInput.ingredients }),
+      'user-123',
+      'PATCH /meals/{mealId}',
+    );
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects a stale Meal update', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedMeal, entityKey: `MEAL#${storedMeal.id}` },
+    });
+    const conflict = new TransactionCanceledException({
+      $metadata: {},
+      CancellationReasons: [{ Code: 'ConditionalCheckFailed' }],
+      message: 'Transaction cancelled',
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(conflict);
+    const event = createEvent(
+      JSON.stringify({ name: 'Weekend breakfast' }),
+      'user-123',
+      'PATCH /meals/{mealId}',
+    );
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(409);
+  });
+
   it('rejects requests without an authenticated user', async () => {
     const response = await handler(createEvent(JSON.stringify(validInput)));
 
