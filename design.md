@@ -280,6 +280,24 @@ Bitebook will update the Food's currentStock and create its StockTransaction in 
 
 Bitebook will initially suggest the device's current time zone when creating the profile. Time zones use IANA IDs because regional daylight-saving rules can change the applicable offset.
 
+#### Nutrition Goal
+
+A NutritionGoal records the user's daily calorie target beginning on a particular local calendar date. Bitebook retains earlier goals so changing the current target does not alter whether historical days met their goals.
+
+```
+type NutritionGoal = {
+  id: string;             // Globally unique UUID
+  userId: string;         // Cognito identifier of the user who owns the goal
+  caloriesKcal: number;   // Target daily calorie intake
+  effectiveFrom: string;  // Inclusive local date in YYYY-MM-DD format
+  createdAt: string;      // UTC timestamp recording when the goal was created
+};
+```
+
+To determine the goal for a particular day, Bitebook selects the user's most recent NutritionGoal whose date is on or before that day. Changing a goal only creates a new NutritionGoal rather than overwriting the previous one. The new goal begins on the date selected by the user, which defaults to the current date. Only one goal may begin on a particular date.
+
+The Calendar uses the applicable goal to determine whether, in this example, the user met their calorie goal for the day (within 5%). Additional macro or micronutrient targets can be added later if we want to introduce goals for those values.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
