@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/*",
     "services/*",
+    "tests/*",
     "infra",
     "apps/*"
   ],
