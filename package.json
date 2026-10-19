@@ -1,0 +1,22 @@
+{
+  "name": "bitebook",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*",
+    "infra"
+  ],
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "scripts": {
+    "mobile": "npm run start --workspace @bitebook/mobile",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
