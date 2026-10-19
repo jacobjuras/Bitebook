@@ -174,6 +174,13 @@ describe('BitebookStack', () => {
     });
   });
 
+  it('exports mobile client configuration', () => {
+    template.hasOutput('ApiUrl', { Value: Match.anyValue() });
+    template.hasOutput('CognitoRegion', { Value: Match.anyValue() });
+    template.hasOutput('UserPoolId', { Value: Match.anyValue() });
+    template.hasOutput('UserPoolClientId', { Value: Match.anyValue() });
+  });
+
   it('retains structured API access logs', () => {
     template.resourceCountIs('AWS::Logs::LogGroup', 2);
     template.hasResourceProperties('AWS::ApiGatewayV2::Stage', {

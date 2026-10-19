@@ -1,4 +1,11 @@
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import {
+  Aws,
+  CfnOutput,
+  Duration,
+  RemovalPolicy,
+  Stack,
+  type StackProps,
+} from 'aws-cdk-lib';
 import { AccessLogFormat } from 'aws-cdk-lib/aws-apigateway';
 import {
   HttpApi,
@@ -183,6 +190,14 @@ export class BitebookStack extends Stack {
       },
       autoDeploy: true,
       httpApi: api,
+    });
+
+    // @secure_recommendation: Export only public client configuration, never credentials or secrets.
+    new CfnOutput(this, 'ApiUrl', { value: api.apiEndpoint });
+    new CfnOutput(this, 'CognitoRegion', { value: Aws.REGION });
+    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
+    new CfnOutput(this, 'UserPoolClientId', {
+      value: mobileAppClient.userPoolClientId,
     });
   }
 }
