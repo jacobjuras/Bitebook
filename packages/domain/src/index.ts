@@ -11,5 +11,6 @@ export * from './nutritionScaling.js';
 export * from './nutritionTotals.js';
 export * from './quantity.js';
 export * from './quantityConversion.js';
+export * from './stockAdjustment.js';
 export * from './stockTransaction.js';
 export * from './userProfile.js';
