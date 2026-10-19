@@ -1,4 +1,5 @@
 export * from './calendarMeal.js';
+export * from './calendarMealGrouping.js';
 export * from './food.js';
 export * from './meal.js';
 export * from './mealEntry.js';
