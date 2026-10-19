@@ -113,7 +113,7 @@ This is the current phase.
 - [ ] Bootstrap CDK deployment roles and artifact access in both accounts.
 - [x] Make CDK application composition stage-aware.
 - [x] Synthesize isolated Beta and Production application stacks.
-- [ ] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
+- [x] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
 - [ ] Add a deployed API integration-test package.
 - [ ] Test unauthenticated rejection through API Gateway.
 - [ ] Test cross-user data isolation.
