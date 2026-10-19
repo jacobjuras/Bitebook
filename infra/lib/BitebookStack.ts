@@ -13,17 +13,17 @@ export class BitebookStack extends Stack {
     super(scope, id, props);
 
     // @secure_recommendation: Protect stored user data with a service-owned KMS key.
-    const dataKey = new Key(this, 'DataKey', {
+    const userDataKey = new Key(this, 'UserDataKey', {
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
     // @secure_recommendation: Preserve data through accidental deletion and support point-in-time recovery.
-    new Table(this, 'DataTable', {
+    new Table(this, 'UserDataTable', {
       billingMode: BillingMode.PAY_PER_REQUEST,
       deletionProtection: true,
       encryption: TableEncryption.CUSTOMER_MANAGED,
-      encryptionKey: dataKey,
+      encryptionKey: userDataKey,
       partitionKey: { name: 'userId', type: AttributeType.STRING },
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: true,
