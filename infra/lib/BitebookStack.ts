@@ -1,4 +1,10 @@
-import { RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import {
+  AccountRecovery,
+  FeaturePlan,
+  UserPool,
+  UserPoolClientIdentityProvider,
+} from 'aws-cdk-lib/aws-cognito';
 import {
   AttributeType,
   BillingMode,
@@ -76,5 +82,43 @@ export class BitebookStack extends Stack {
       'dynamodb:TransactWriteItems',
       'dynamodb:UpdateItem',
     );
+
+    // @secure_recommendation: Protect accounts with verified, case-insensitive email identities.
+    const userPool = new UserPool(this, 'UserPool', {
+      accountRecovery: AccountRecovery.EMAIL_ONLY,
+      autoVerify: { email: true },
+      deletionProtection: true,
+      featurePlan: FeaturePlan.ESSENTIALS,
+      passwordPolicy: {
+        minLength: 8,
+        passwordHistorySize: 1,
+        requireDigits: false,
+        requireLowercase: false,
+        requireSymbols: false,
+        requireUppercase: false,
+        tempPasswordValidity: Duration.days(3),
+      },
+      removalPolicy: RemovalPolicy.RETAIN,
+      selfSignUpEnabled: false,
+      signInAliases: { email: true },
+      signInCaseSensitive: false,
+      standardAttributes: {
+        email: { mutable: true, required: true },
+      },
+    });
+
+    // @secure_recommendation: Native applications cannot safely hold client secrets.
+    userPool.addClient('MobileAppClient', {
+      accessTokenValidity: Duration.hours(1),
+      authFlows: { userSrp: true },
+      disableOAuth: true,
+      enableTokenRevocation: true,
+      generateSecret: false,
+      idTokenValidity: Duration.hours(1),
+      preventUserExistenceErrors: true,
+      refreshTokenRotationGracePeriod: Duration.seconds(10),
+      refreshTokenValidity: Duration.days(365),
+      supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
+    });
   }
 }

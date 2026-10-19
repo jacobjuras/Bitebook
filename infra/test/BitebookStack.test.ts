@@ -97,4 +97,52 @@ describe('BitebookStack', () => {
       },
     });
   });
+
+  it('creates a protected email User Pool', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      AccountRecoverySetting: {
+        RecoveryMechanisms: [{ Name: 'verified_email', Priority: 1 }],
+      },
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: true },
+      AutoVerifiedAttributes: ['email'],
+      DeletionProtection: 'ACTIVE',
+      Policies: {
+        PasswordPolicy: {
+          MinimumLength: 8,
+          PasswordHistorySize: 1,
+          RequireLowercase: false,
+          RequireNumbers: false,
+          RequireSymbols: false,
+          RequireUppercase: false,
+          TemporaryPasswordValidityDays: 3,
+        },
+      },
+      UserPoolTier: 'ESSENTIALS',
+      UsernameAttributes: ['email'],
+      UsernameConfiguration: { CaseSensitive: false },
+    });
+    template.hasResource('AWS::Cognito::UserPool', {
+      DeletionPolicy: 'Retain',
+      UpdateReplacePolicy: 'Retain',
+    });
+    template.resourceCountIs('AWS::Cognito::IdentityPool', 0);
+  });
+
+  it('creates a secretless mobile User Pool client', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+      AccessTokenValidity: 60,
+      AllowedOAuthFlowsUserPoolClient: false,
+      EnableTokenRevocation: true,
+      ExplicitAuthFlows: ['ALLOW_USER_SRP_AUTH'],
+      GenerateSecret: false,
+      IdTokenValidity: 60,
+      PreventUserExistenceErrors: 'ENABLED',
+      RefreshTokenRotation: {
+        Feature: 'ENABLED',
+        RetryGracePeriodSeconds: 10,
+      },
+      RefreshTokenValidity: 525_600,
+      SupportedIdentityProviders: ['COGNITO'],
+    });
+  });
 });
