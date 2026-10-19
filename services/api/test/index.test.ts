@@ -53,6 +53,14 @@ const createMealInput = {
   name: 'Breakfast',
 };
 
+const storedMeal = {
+  ...createMealInput,
+  createdAt: '2026-10-19T05:00:00.000Z',
+  id: '1d78fb29-f8ce-47a3-9ab4-38e0dc705832',
+  updatedAt: '2026-10-19T05:00:00.000Z',
+  userId: 'user-123',
+};
+
 function createEvent(
   body: string,
   subject?: string,
@@ -467,6 +475,64 @@ describe('handler', () => {
     );
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it('lists Meals owned by the authenticated user', async () => {
+    documentClientMock.on(QueryCommand).resolves({
+      Items: [{ ...storedMeal, entityKey: `MEAL#${storedMeal.id}` }],
+    });
+
+    const response = await handler(createEvent('', 'user-123', 'GET /meals'));
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ meals: [storedMeal] });
+    expect(documentClientMock.commandCalls(QueryCommand)[0]?.args[0].input)
+      .toEqual({
+        ExpressionAttributeValues: {
+          ':entityPrefix': 'MEAL#',
+          ':userId': 'user-123',
+        },
+        KeyConditionExpression:
+          'userId = :userId AND begins_with(entityKey, :entityPrefix)',
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('gets one Meal owned by the authenticated user', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedMeal, entityKey: `MEAL#${storedMeal.id}` },
+    });
+    const event = createEvent('', 'user-123', 'GET /meals/{mealId}');
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ meal: storedMeal });
+    expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
+      .toEqual({
+        Key: { entityKey: `MEAL#${storedMeal.id}`, userId: 'user-123' },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('returns not found when a Meal does not exist', async () => {
+    const event = createEvent('', 'user-123', 'GET /meals/{mealId}');
+    event.pathParameters = { mealId: storedMeal.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('rejects an invalid Meal ID', async () => {
+    const event = createEvent('', 'user-123', 'GET /meals/{mealId}');
+    event.pathParameters = { mealId: 'not-a-uuid' };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
   });
 
   it('rejects requests without an authenticated user', async () => {

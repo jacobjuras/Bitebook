@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { DeleteCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { foodSchema, type Food } from '@bitebook/domain';
+import { foodSchema, mealSchema, type Food } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyStructuredResultV2,
@@ -11,6 +11,7 @@ import { adjustFoodStock } from './stockAdjustments.js';
 import { documentClient } from './dynamodb.js';
 import { getFood, listFoods, parseStoredFood } from './foodReads.js';
 import { jsonResponse } from './http.js';
+import { getMeal, listMeals } from './mealReads.js';
 import { createMeal } from './mealWrites.js';
 
 const createFoodInputSchema = foodSchema.pick({
@@ -130,6 +131,20 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'GET /meals/{mealId}') {
+    const id = mealSchema.shape.id.safeParse(event.pathParameters?.mealId);
+    if (!id.success) {
+      return jsonResponse(400, { message: 'Invalid Meal ID' });
+    }
+
+    const meal = await getMeal(tableName, subject, id.data);
+    return meal
+      ? jsonResponse(200, { meal })
+      : jsonResponse(404, { message: 'Meal not found' });
+  }
+  if (event.routeKey === 'GET /meals') {
+    return jsonResponse(200, { meals: await listMeals(tableName, subject) });
+  }
   if (event.routeKey === 'POST /meals') {
     return createMeal(tableName, subject, event.body);
   }
