@@ -245,12 +245,65 @@ This is the current phase.
 - [ ] Build the Locked In report.
 - [ ] Support absolute and relative report date ranges.
 
-## 20. Operational readiness
+## 20. Monetization product decisions
+
+**Stack:** Product design
+
+- [x] Choose an advertising-supported free experience.
+- [x] Choose an optional premium subscription priced at approximately $1 per month.
+- [ ] Choose banner ads, interstitial ads, or both.
+- [ ] Define ad placements and frequency limits that do not interrupt core logging flows.
+- [ ] Choose the mobile ad network.
+- [ ] Define the first premium-gated features.
+- [ ] Decide whether premium removes advertising.
+- [ ] Confirm the subscription price, supported regions, trial behavior, and grace-period behavior.
+- [ ] Decide whether to integrate directly with Apple and Google or use a subscription-management provider.
+
+## 21. Premium subscription backend
+
+**Stack:** Shared domain package, Lambda backend, DynamoDB, store notifications, and CDK infrastructure
+
+- [ ] Define a server-owned premium entitlement model independent of either app store's receipt format.
+- [ ] Add authenticated entitlement lookup for the mobile app.
+- [ ] Validate Apple App Store transactions on the backend.
+- [ ] Validate Google Play transactions on the backend.
+- [ ] Process signed store notifications for renewals, cancellations, refunds, billing failures, and expirations.
+- [ ] Keep purchase identifiers and subscription metadata out of application logs.
+- [ ] Test purchase, restoration, renewal, cancellation, refund, grace-period, and expiration transitions.
+- [ ] Ensure account deletion handles retained store records and active subscription instructions correctly.
+
+## 22. Premium subscription mobile experience
+
+**Stack:** Expo React Native mobile app, Apple StoreKit, and Google Play Billing
+
+- [ ] Configure the approximately $1 monthly subscription product in both stores.
+- [ ] Design and build the premium explanation and purchase screen after premium features are chosen.
+- [ ] Purchase subscriptions through the platform billing system.
+- [ ] Restore purchases on another device or after reinstalling.
+- [ ] Provide access to platform subscription management.
+- [ ] Read premium access from the validated backend entitlement.
+- [ ] Gate only the premium features selected in the product decision.
+- [ ] Apply the chosen premium advertising behavior.
+
+## 23. Advertising mobile experience
+
+**Stack:** Expo React Native mobile app and selected mobile ad network
+
+- [ ] Integrate the selected ad SDK with development test ads.
+- [ ] Implement the chosen banner and/or interstitial placements.
+- [ ] Enforce placement and frequency limits.
+- [ ] Prevent test ads and test identifiers from reaching Production.
+- [ ] Apply premium entitlement behavior to ads if ad removal is selected.
+- [ ] Verify ads do not obstruct navigation, meal logging, accessibility, or error messages.
+- [ ] Add consent and tracking behavior required by platform and regional rules.
+- [ ] Update the privacy notice, Apple privacy disclosures, and Google Play Data safety disclosures for the selected SDK.
+
+## 24. Operational readiness
 
 **Stack:** AWS CDK infrastructure, deployed integration tests, and runbooks
 
 - [ ] Add API throttling and abuse limits.
-- [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, and USDA failures.
+- [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, USDA failures, and subscription-notification failures.
 - [ ] Add deployment notifications and operational runbooks.
 - [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
 - [ ] Verify malformed input, unauthenticated access, and cross-user access are rejected end to end.
@@ -258,7 +311,7 @@ This is the current phase.
 - [ ] Inspect representative logs for prohibited user data and credentials.
 - [ ] Publish the privacy notice and complete platform privacy disclosures.
 
-## 21. Mobile distribution
+## 25. Mobile distribution
 
 **Stack:** Expo Application Services, Apple App Store, and Google Play
 

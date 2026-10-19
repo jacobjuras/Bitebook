@@ -26,6 +26,8 @@ In this section, we will cover all of the functionality the app should support
 - When a user wants a food or meal to affect stock, they will be soft-blocked from logging it if they don't have enough stock of any of the ingredients in the meal (bypassable by the user)
 - Users can create login credentials to access their data from different devices, so their data is backed up to their account
 - Users can link a Google or Apple account to use for sign-in rather than creating a Bitebook-specific username and password
+- The free experience will include advertising through at least one format; banner versus interstitial placement remains a product decision
+- Users can purchase an optional premium subscription; premium-gated features and whether premium removes ads remain product decisions
 
 
 ## Core User Experience
@@ -63,6 +65,13 @@ The food barcode scanner extracts a GTIN/UPC, a lambda backend will query USDA F
 
 #### Authentication
 Amazon Cognito User Pools will manage accounts, email verification, password recovery, and user sessions. Users will be able to sign in with an email and password or through linked Google and Apple accounts. Sign-in will use the OAuth authorization-code flow with PKCE. API Gateway will validate Cognito access tokens before invoking the backend, and every data operation will verify that the authenticated user owns the requested data.
+
+#### Monetization
+Bitebook will offer a free advertising-supported experience and an optional premium subscription. The exact ad format, placements, frequency limits, premium features, and whether premium removes ads will be decided before monetization implementation.
+
+Apple App Store and Google Play billing will process subscriptions because premium unlocks digital app functionality. The app will support purchase restoration and subscription management through each platform. Bitebook's backend will validate store transactions and maintain the user's current entitlement; the mobile client will not grant premium access based only on local state. Store notifications will update entitlements after renewals, cancellations, refunds, billing failures, and expirations.
+
+Advertising will use a mobile ad network SDK. Bitebook will not use pantry, meal, nutrition, profile, or precise health-related behavior to target advertisements. Before ads launch, the implementation will define consent, tracking, age, regional privacy, and platform-disclosure behavior and will default to the least data-intensive viable ad configuration.
 
 #### Database and File Storage
 Application data will be stored in Amazon DynamoDB using on-demand capacity. Records will be scoped to the authenticated user's Cognito identifier. Operations that must update several records together, such as recording a meal and reducing ingredient stock, will use transactional writes so that either every change succeeds or none do. Point-in-time recovery will be enabled.
@@ -331,7 +340,7 @@ All API inputs will be validated against explicit schemas and bounded in size be
 
 AWS processes authentication, API, database, secret, and operational data for Bitebook. Google and Apple receive only the information required for their sign-in flows. USDA FoodData Central receives only the scanned product identifier needed for lookup; Bitebook does not send USDA the user's identity, pantry, or meal history.
 
-Camera permission will be requested only when the user opens barcode scanning, and denying permission will leave manual food entry available. Bitebook will not sell user data or use pantry, meal, or nutrition data for advertising. If advertising or analytics are added later, their data collection, consent requirements, platform privacy disclosures, and retention must be reviewed before release.
+Camera permission will be requested only when the user opens barcode scanning, and denying permission will leave manual food entry available. Bitebook will not sell user data or use pantry, meal, nutrition, profile, or precise health-related behavior to target advertising. The selected ad network and app stores may process device, advertising, purchase, and subscription metadata needed to serve ads and operate purchases. Their exact data collection, consent requirements, platform privacy disclosures, and retention will be reviewed and documented before monetization launches.
 
 #### Retention and User Control
 
