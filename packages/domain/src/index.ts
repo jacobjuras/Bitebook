@@ -4,6 +4,7 @@ export * from './meal.js';
 export * from './mealEntry.js';
 export * from './nutritionFacts.js';
 export * from './nutritionGoal.js';
+export * from './nutritionScaling.js';
 export * from './quantity.js';
 export * from './quantityConversion.js';
 export * from './stockTransaction.js';
