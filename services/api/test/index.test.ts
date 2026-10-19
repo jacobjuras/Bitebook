@@ -3,6 +3,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { foodSchema } from '@bitebook/domain';
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
@@ -47,6 +48,7 @@ describe('handler', () => {
     documentClientMock.on(GetCommand).resolves({});
     documentClientMock.on(PutCommand).resolves({});
     documentClientMock.on(QueryCommand).resolves({ Items: [] });
+    documentClientMock.on(UpdateCommand).resolves({});
     process.env.USER_DATA_TABLE_NAME = 'UserDataTable';
   });
 
@@ -132,6 +134,82 @@ describe('handler', () => {
 
     expect(response.statusCode).toBe(400);
     expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
+  });
+
+  it('updates mutable fields on an authenticated user\'s Food', async () => {
+    const updatedFood = {
+      ...storedFood,
+      name: 'Rolled oats',
+      updatedAt: '2026-10-19T04:00:00.000Z',
+    };
+    documentClientMock.on(UpdateCommand).resolves({
+      Attributes: {
+        ...updatedFood,
+        entityKey: `FOOD#${storedFood.id}`,
+      },
+    });
+    const event = createEvent(
+      JSON.stringify({ name: 'Rolled oats' }),
+      'user-123',
+      'PATCH /foods/{foodId}',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ food: updatedFood });
+    expect(documentClientMock.commandCalls(UpdateCommand)[0]?.args[0].input)
+      .toEqual({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        ExpressionAttributeNames: {
+          '#field0': 'name',
+          '#field1': 'updatedAt',
+        },
+        ExpressionAttributeValues: {
+          ':value0': 'Rolled oats',
+          ':value1': expect.any(String),
+        },
+        Key: {
+          entityKey: `FOOD#${storedFood.id}`,
+          userId: 'user-123',
+        },
+        ReturnValues: 'ALL_NEW',
+        TableName: 'UserDataTable',
+        UpdateExpression: 'SET #field0 = :value0, #field1 = :value1',
+      });
+  });
+
+  it.each([
+    ['without mutable fields', '{}'],
+    ['with ownership fields', JSON.stringify({ userId: 'attacker' })],
+    ['with stock changes', JSON.stringify({ currentStock: validInput.currentStock })],
+    ['with invalid values', JSON.stringify({ name: '' })],
+  ])('rejects an update %s', async (_case, body) => {
+    const event = createEvent(body, 'user-123', 'PATCH /foods/{foodId}');
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(UpdateCommand)).toHaveLength(0);
+  });
+
+  it('returns not found when updating a missing Food', async () => {
+    const missingError = new Error('Condition failed');
+    missingError.name = 'ConditionalCheckFailedException';
+    documentClientMock.on(UpdateCommand).rejects(missingError);
+    const event = createEvent(
+      JSON.stringify({ name: 'Rolled oats' }),
+      'user-123',
+      'PATCH /foods/{foodId}',
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(404);
   });
 
   it('rejects requests without an authenticated user', async () => {

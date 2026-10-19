@@ -86,6 +86,7 @@ describe('BitebookStack', () => {
               'dynamodb:GetItem',
               'dynamodb:PutItem',
               'dynamodb:Query',
+              'dynamodb:UpdateItem',
             ],
             Effect: 'Allow',
             Resource: [Match.anyValue()],

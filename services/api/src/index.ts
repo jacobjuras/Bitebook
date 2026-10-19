@@ -6,6 +6,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { foodSchema, type Food } from '@bitebook/domain';
 import type {
@@ -19,6 +20,10 @@ const createFoodInputSchema = foodSchema.pick({
   nutritionFacts: true,
   servingSize: true,
 });
+const updateFoodInputSchema = createFoodInputSchema
+  .omit({ currentStock: true })
+  .partial()
+  .refine((input) => Object.keys(input).length > 0);
 const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function jsonResponse(
@@ -88,6 +93,69 @@ async function listFoods(
   });
 }
 
+/** Updates mutable metadata on one authenticated user's Food. */
+async function updateFood(
+  tableName: string,
+  userId: string,
+  foodId: string | undefined,
+  body: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const id = foodSchema.shape.id.safeParse(foodId);
+  if (!id.success) {
+    return jsonResponse(400, { message: 'Invalid Food ID' });
+  }
+
+  let requestBody: unknown;
+  try {
+    requestBody = JSON.parse(body ?? '');
+  } catch {
+    return jsonResponse(400, { message: 'Invalid food' });
+  }
+
+  const input = updateFoodInputSchema.safeParse(requestBody);
+  if (!input.success) {
+    return jsonResponse(400, { message: 'Invalid food' });
+  }
+
+  const fields = Object.entries({
+    ...input.data,
+    updatedAt: new Date().toISOString(),
+  });
+  const expressionAttributeNames = Object.fromEntries(
+    fields.map(([name], index) => [`#field${index}`, name]),
+  );
+  const expressionAttributeValues = Object.fromEntries(
+    fields.map(([, value], index) => [`:value${index}`, value]),
+  );
+
+  try {
+    const result = await documentClient.send(
+      new UpdateCommand({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        Key: { entityKey: `FOOD#${id.data}`, userId },
+        ReturnValues: 'ALL_NEW',
+        TableName: tableName,
+        UpdateExpression: `SET ${fields
+          .map((_, index) => `#field${index} = :value${index}`)
+          .join(', ')}`,
+      }),
+    );
+
+    if (!result.Attributes) {
+      throw new Error('DynamoDB did not return the updated Food');
+    }
+    return jsonResponse(200, { food: parseStoredFood(result.Attributes) });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      return jsonResponse(404, { message: 'Food not found' });
+    }
+    throw error;
+  }
+}
+
 /** Handles authenticated Food API requests. */
 export async function handler(
   event: APIGatewayProxyEventV2WithJWTAuthorizer,
@@ -107,6 +175,14 @@ export async function handler(
   }
   if (event.routeKey === 'GET /foods') {
     return listFoods(tableName, subject);
+  }
+  if (event.routeKey === 'PATCH /foods/{foodId}') {
+    return updateFood(
+      tableName,
+      subject,
+      event.pathParameters?.foodId,
+      event.body,
+    );
   }
   if (event.routeKey !== 'POST /foods') {
     return jsonResponse(404, { message: 'Not found' });
