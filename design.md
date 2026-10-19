@@ -67,7 +67,7 @@ Amazon Cognito User Pools will manage accounts, email verification, password rec
 #### Database and File Storage
 Application data will be stored in Amazon DynamoDB using on-demand capacity. Records will be scoped to the authenticated user's Cognito identifier. Operations that must update several records together, such as recording a meal and reducing ingredient stock, will use transactional writes so that either every change succeeds or none do. Point-in-time recovery will be enabled.
 
-Bitebook will not store user-uploaded files initially because the current requirements do not need them. The database will store barcode values and food metadata rather than barcode images. If file uploads are added later, they will use private Amazon S3 storage accessed only through authorized backend operations.
+Bitebook will not store user-uploaded files initially because the current requirements do not need them. The database will store confirmed food metadata but will not persist barcode values or images. If file uploads are added later, they will use private Amazon S3 storage accessed only through authorized backend operations.
 
 #### Application Distribution and Deployment
 Bitebook will be built as native iOS and Android applications using Expo Application Services (EAS Build). Release builds will be distributed through the Apple App Store and Google Play, while development builds will run on physical devices and platform simulators.
@@ -299,7 +299,47 @@ To determine the goal for a particular day, Bitebook selects the user's most rec
 The Calendar uses the applicable goal to determine whether, in this example, the user met their calorie goal for the day (within 5%). Additional macro or micronutrient targets can be added later if we want to introduce goals for those values.
 
 ## Security and Privacy
-Describe what personal data is collected, who can access it, and how it is protected
+
+#### Data Collection
+
+Bitebook collects only the information required to provide its features:
+
+- Cognito account information, including email address and linked Google or Apple identity.
+- Profile information, including an optional display name and time zone.
+- User-created pantry foods, meals, nutrition information, stock history, meal entries, preparation classifications, and nutrition goals.
+- Operational metadata such as request identifiers, timestamps, outcomes, and error categories.
+
+Passwords and social-login credentials are handled by Cognito and the identity provider; the Bitebook backend never receives or stores plaintext passwords. Bitebook does not collect precise location, contacts, photos, or raw camera frames. Barcode scanning occurs on the device. The decoded GTIN or UPC is sent temporarily to the backend for a USDA lookup, but neither the identifier nor the camera image is persisted.
+
+#### Authentication and Authorization
+
+Bitebook's APIs require a valid Cognito access token. API Gateway validates the token's signature, issuer, audience, and expiration before invoking Lambda. The Cognito native-app client will use authorization-code flow with PKCE and will not have a client secret, because a secret cannot be protected inside a distributed mobile application.
+
+The mobile application stores Cognito tokens only in platform-backed secure storage through Expo SecureStore, not in AsyncStorage or application logs. OAuth redirect URLs will be restricted to Bitebook's registered application URLs.
+
+Every backend operation derives the user's `userId` from the validated token rather than trusting a `userId` supplied by the client. Lambda verifies ownership before reading, changing, or deleting a resource. The mobile application receives no AWS credentials and cannot access DynamoDB directly. Authentication and authorization tests will verify that unauthenticated requests and cross-user resource access are rejected.
+
+#### Data Protection and Secrets
+
+All communication between the mobile application, API Gateway, Cognito, and USDA uses HTTPS. DynamoDB data, point-in-time recovery backups, Cognito data, Secrets Manager secrets, and CloudWatch logs will be encrypted at rest using AWS KMS-backed service encryption.
+
+Lambda functions will use separate least-privilege IAM execution roles that grant access only to the tables, indexes, logs, and secrets each function requires. The USDA API key will be stored in AWS Secrets Manager, retrieved only by the barcode-lookup backend, and never embedded in the application, source code, deployment output, or logs.
+
+All API inputs will be validated against explicit schemas and bounded in size before use. API Gateway throttling and Cognito protections will limit abusive traffic. Production builds will disable debug and network-payload logging.
+
+#### External Services and Permissions
+
+AWS processes authentication, API, database, secret, and operational data for Bitebook. Google and Apple receive only the information required for their sign-in flows. USDA FoodData Central receives only the scanned product identifier needed for lookup; Bitebook does not send USDA the user's identity, pantry, or meal history.
+
+Camera permission will be requested only when the user opens barcode scanning, and denying permission will leave manual food entry available. Bitebook will not sell user data or use pantry, meal, or nutrition data for advertising. If advertising or analytics are added later, their data collection, consent requirements, platform privacy disclosures, and retention must be reviewed before release.
+
+#### Retention and User Control
+
+Application data remains until the user edits or deletes it or deletes their account. Account deletion will be available from within the application and will remove the Cognito account and all active DynamoDB records owned by that user. Encrypted point-in-time recovery data may retain deleted records for up to the configured recovery window, initially 35 days, after which it expires automatically. Backups will not be used to serve ordinary application requests.
+
+Operational CloudWatch logs will be retained for 30 days. Logs may contain request IDs, operation names, timing, status, and pseudonymous user identifiers when needed for security investigation, but must not contain access tokens, passwords, email addresses, barcodes, request or response bodies, food names, meal details, nutrition data, or third-party API keys.
+
+Before public release, Bitebook will publish a privacy notice describing the collected data, service providers, retention periods, account-deletion process, and contact method. Security verification will include unauthenticated API tests, cross-user access tests, input-validation tests, secret scanning, and inspection of representative logs for prohibited data.
 
 ## Testing and Operations
 
