@@ -2,6 +2,7 @@ export * from './calendarMeal.js';
 export * from './calendarMealGrouping.js';
 export * from './food.js';
 export * from './meal.js';
+export * from './mealAvailability.js';
 export * from './mealEntry.js';
 export * from './nutritionFacts.js';
 export * from './nutritionGoal.js';
