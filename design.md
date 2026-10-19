@@ -72,7 +72,7 @@ Bitebook will not store user-uploaded files initially because the current requir
 #### Application Distribution and Deployment
 Bitebook will be built as native iOS and Android applications using Expo Application Services (EAS Build). Release builds will be distributed through the Apple App Store and Google Play, while development builds will run on physical devices and platform simulators.
 
-All AWS resources will be defined in TypeScript using AWS CDK and deployed separately to a development AWS account. Infrastructure deployments will initially be run manually from the project repository; automated deployment can be added if the project later needs it. The mobile application will authenticate API requests with Cognito access tokens.
+All AWS resources will be defined in TypeScript using AWS CDK. Pull requests will run build, type-check, unit-test, and CDK-synthesis checks without deploying. Merges to `main` will deploy an isolated Beta stage, run integration tests against its deployed API, and then pause for manual approval before promoting the same tested artifact to Production. Beta and Production will deploy to separate AWS accounts with independent APIs, Cognito User Pools, DynamoDB tables, KMS keys, logs, permissions, and service quotas. The mobile application will authenticate API requests with Cognito access tokens and use environment-specific deployment configuration.
 
 #### Offline Behavior and Synchronization
 Bitebook will initially be online-first. The installed native application will contain the interface and static assets, but authenticated account reads and writes will require connectivity. User data will not initially be persisted in an offline cache on the device.

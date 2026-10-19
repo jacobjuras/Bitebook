@@ -1,0 +1,269 @@
+# Bitebook Implementation Plan
+
+This plan tracks implementation in dependency order. Completed work remains checked so the file records how the application was built, not only what remains.
+
+## 1. Product and repository foundation
+
+**Stack:** Product design and repository configuration
+
+- [x] Define the product goals, core views, technical architecture, data models, security requirements, and privacy boundaries.
+- [x] Create the npm workspace monorepo.
+- [x] Pin Node.js 24 and document installation, build, test, Expo, and bundle commands.
+- [x] Scaffold the Expo mobile application with Expo Router.
+- [x] Scaffold the shared `@bitebook/domain` package.
+- [x] Scaffold the `@bitebook/api` Lambda package with a fail-closed handler.
+- [x] Scaffold the `@bitebook/infra` CDK application.
+- [x] Add repository-wide build, type-check, and test scripts.
+- [x] Ignore generated build and CDK synthesis artifacts.
+
+## 2. Shared domain models and logic
+
+**Stack:** Shared TypeScript domain package (`@bitebook/domain`)
+
+- [x] Define and validate Quantity and supported measurement units.
+- [x] Define and validate NutritionFacts and micronutrients.
+- [x] Define and validate Food.
+- [x] Define and validate Ingredient and Meal.
+- [x] Define and validate MealEntry and ingredient snapshots.
+- [x] Define and validate CalendarMeal.
+- [x] Define and validate StockTransaction.
+- [x] Define and validate UserProfile.
+- [x] Define and validate NutritionGoal.
+- [x] Convert compatible mass and volume quantities.
+- [x] Scale nutrition facts by consumed quantity.
+- [x] Sum nutrition facts while treating absent nutrient values as zero.
+- [x] Group nearby MealEntries into local-day CalendarMeals.
+- [x] Select the effective NutritionGoal for a local date.
+- [x] Calculate Meal availability from current Food stock.
+- [x] Calculate validated Food stock increases and decreases.
+- [x] Add concise function documentation for non-obvious public domain operations.
+
+## 3. Mobile shell and visual foundation
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`)
+
+- [x] Add Calendar, Pantry, Eat, Reports, and Me tabs.
+- [x] Add nested Pantry navigation so child screens keep the tab bar visible.
+- [x] Add Food and Meal Pantry empty states.
+- [x] Distinguish the Meal empty state for users with and without Foods.
+- [x] Add placeholder Food and Meal creation destinations.
+- [x] Centralize semantic light and dark color tokens.
+- [x] Apply theme colors to the tab bar and screen backgrounds.
+- [ ] Add shared spacing, typography, and radius tokens when repeated UI patterns justify them.
+
+## 4. Core AWS infrastructure
+
+**Stack:** AWS CDK infrastructure (`@bitebook/infra`)
+
+- [x] Add the user-scoped DynamoDB table with on-demand billing.
+- [x] Add point-in-time recovery, deletion protection, and retained removal behavior.
+- [x] Encrypt the table with a rotating customer-managed KMS key.
+- [x] Bundle the API handler as a private Node.js 24 Lambda.
+- [x] Give the Lambda only the DynamoDB operations currently used by the API.
+- [x] Add structured Lambda and API Gateway access log groups.
+- [x] Add the Cognito User Pool and secretless native-app client.
+- [x] Configure verified, case-insensitive email identities and one-year refresh tokens.
+- [x] Keep MFA and Cognito Plus threat protection out of the initial release.
+- [x] Add the API Gateway HTTP API with Cognito JWT authorization on every route.
+- [x] Enable the authenticated default API Gateway endpoint.
+- [x] Export the API URL, AWS Region, User Pool ID, and app-client ID.
+- [ ] Resolve the conflict between ten-year security-event retention guidance and the product privacy/cost target before Production.
+
+## 5. Food backend API
+
+**Stack:** Lambda backend (`@bitebook/api`) and its least-privilege CDK grants (`@bitebook/infra`)
+
+- [x] Create Foods for the authenticated user.
+- [x] List the authenticated user's Foods.
+- [x] Get one owned Food by ID.
+- [x] Update mutable Food metadata.
+- [x] Delete an owned Food conditionally.
+- [x] Adjust Food stock and record an immutable StockTransaction atomically.
+- [x] Refactor Food reads and DynamoDB client setup into focused modules.
+
+## 6. Meal backend API
+
+**Stack:** Lambda backend (`@bitebook/api`) and its least-privilege CDK grants (`@bitebook/infra`)
+
+- [x] Create Meals from Foods owned by the authenticated user.
+- [x] List the authenticated user's Meals.
+- [x] Get one owned Meal by ID.
+- [x] Update Meal metadata and ingredients with optimistic concurrency.
+- [x] Delete an owned Meal conditionally.
+
+## 7. Profile and NutritionGoal backend API
+
+**Stack:** Lambda backend (`@bitebook/api`) and API Gateway routes (`@bitebook/infra`)
+
+- [x] Get the authenticated user's profile.
+- [x] Replace the authenticated user's profile while preserving its creation time.
+- [x] Create effective-dated NutritionGoals with one goal per date.
+- [x] Get the goal effective on a requested local date.
+- [ ] Allow an unactioned future NutritionGoal to be rescheduled or replaced without rewriting effective history.
+
+## 8. Staged CI/CD foundation
+
+**Stack:** GitHub CI, CDK Pipelines, and AWS deployment accounts (`@bitebook/infra`)
+
+This is the current phase.
+
+- [x] Choose separate AWS accounts for Beta and Production.
+- [ ] Create or designate the Beta AWS account.
+- [ ] Create or designate the Production AWS account.
+- [ ] Bootstrap CDK deployment roles and artifact access in both accounts.
+- [ ] Make CDK application composition stage-aware.
+- [ ] Synthesize isolated Beta and Production application stacks.
+- [ ] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
+- [ ] Add a deployed API integration-test package.
+- [ ] Test unauthenticated rejection through API Gateway.
+- [ ] Test cross-user data isolation.
+- [ ] Test an authenticated Food lifecycle against Beta.
+- [ ] Add a deployment pipeline that deploys Beta after merges to `main`.
+- [ ] Run integration tests as the Beta promotion gate.
+- [ ] Add manual approval before Production.
+- [ ] Promote the same tested artifact from Beta to Production.
+- [ ] Add environment-specific mobile configuration for local development, Beta, and Production.
+
+## 9. Authentication infrastructure
+
+**Stack:** Amazon Cognito and OAuth configuration (`@bitebook/infra` plus provider consoles)
+
+- [ ] Enable public email account registration with verification and recovery.
+- [ ] Register Google as a Cognito identity provider.
+- [ ] Add a Cognito domain and authorization-code flow with PKCE.
+- [ ] Register exact mobile callback and sign-out URLs.
+- [ ] Reassess Sign in with Apple before iOS App Store submission.
+
+## 10. Mobile authentication and API client
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`)
+
+- [ ] Add mobile email sign-up and verification.
+- [ ] Add sign-in and sign-out.
+- [ ] Store tokens in platform-backed secure storage.
+- [ ] Refresh access and ID tokens silently.
+- [ ] Add Google sign-in and Expo deep-link handling.
+- [ ] Add a shared authenticated HTTP client.
+- [ ] Add consistent loading, validation, offline, and API error handling.
+
+## 11. Pantry mobile experience
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`), consuming the completed Food and Meal APIs
+
+- [ ] Load Foods and Meals from the authenticated API.
+- [ ] Connect Pantry empty states to live data.
+- [ ] Build the Food list with search and sorting.
+- [ ] Build manual Food creation.
+- [ ] Build Food details and metadata editing.
+- [ ] Build the Food deletion interface.
+- [ ] Build Food stock adjustment and grocery-restock interfaces.
+- [ ] Build the Meal list with search and sorting.
+- [ ] Build Meal creation with Food selection and quantities.
+- [ ] Build Meal details and editing.
+- [ ] Display Meal nutrition and available servings.
+- [ ] Build the Meal deletion interface.
+
+## 12. MealEntry and scheduled-stock backend
+
+**Stack:** Shared domain package, Lambda backend, DynamoDB, and scheduled AWS infrastructure
+
+- [ ] Add MealEntry creation from a Food or saved Meal using ingredient snapshots.
+- [ ] Add MealEntry reads by ID and date range.
+- [ ] Add MealEntry updates.
+- [ ] Add MealEntry deletion.
+- [ ] Apply stock atomically for current and past entries when `affectsStock` is enabled.
+- [ ] Soft-block insufficient stock while allowing an explicit user override.
+- [ ] Apply only the stock difference when an applied entry changes.
+- [ ] Restore stock when an applied entry is deleted.
+- [ ] Add scheduled processing for future entries.
+- [ ] Record `stockAppliedAt` idempotently so future entries apply once.
+
+## 13. Eat mobile experience
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`), consuming the MealEntry API
+
+- [ ] Build the Eat selection flow for Foods and Meals.
+- [ ] Support custom logged quantities.
+- [ ] Support home-prepared and prepared-elsewhere classification.
+- [ ] Support logging for now, the past, or a future scheduled time.
+- [ ] Let the user choose whether an entry affects stock.
+- [ ] Show the insufficient-stock warning and explicit override.
+
+## 14. Calendar backend API
+
+**Stack:** Lambda backend (`@bitebook/api`) using shared CalendarMeal and NutritionGoal domain logic
+
+- [ ] Add MealEntry date-range queries.
+- [ ] Compose calendar-day responses from MealEntries and effective goals.
+- [ ] Return grouped CalendarMeals and daily nutrition totals.
+- [ ] Return future-entry stock warnings.
+
+## 15. Calendar, profile, and goals mobile experience
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`)
+
+- [ ] Build the Calendar month view.
+- [ ] Show daily goal status in the month view.
+- [ ] Build the Calendar day timeline.
+- [ ] Build CalendarMeal details and combined nutrition.
+- [ ] Show future-entry stock warnings.
+- [ ] Build profile viewing and editing.
+- [ ] Build NutritionGoal history and update flows.
+
+## 16. Barcode lookup backend
+
+**Stack:** Lambda backend, AWS Secrets Manager, and least-privilege CDK grants
+
+- [ ] Store the USDA API key in AWS Secrets Manager.
+- [ ] Grant only the barcode-lookup path permission to read the secret.
+- [ ] Add a bounded authenticated USDA lookup endpoint.
+- [ ] Normalize USDA results into Bitebook Food fields without persisting raw responses or barcodes.
+
+## 17. Barcode scanning mobile experience
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`)
+
+- [ ] Request camera permission only when scanning starts.
+- [ ] Add barcode scanning.
+- [ ] Add confirmation and correction before saving.
+- [ ] Preserve manual entry when permission is denied or no usable result exists.
+
+## 18. Reports backend and domain calculations
+
+**Stack:** Shared domain package and Lambda backend
+
+- [ ] Calculate nutrition totals over absolute and relative date ranges.
+- [ ] Calculate home-prepared versus prepared-elsewhere percentages.
+- [ ] Add backend aggregation only where client-side calculation would transfer excessive data.
+
+## 19. Reports mobile experience
+
+**Stack:** Expo React Native mobile app (`@bitebook/mobile`)
+
+- [ ] Build calorie-intake reports.
+- [ ] Build macro- and micronutrient reports.
+- [ ] Build the Locked In report.
+- [ ] Support absolute and relative report date ranges.
+
+## 20. Operational readiness
+
+**Stack:** AWS CDK infrastructure, deployed integration tests, and runbooks
+
+- [ ] Add API throttling and abuse limits.
+- [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, and USDA failures.
+- [ ] Add deployment notifications and operational runbooks.
+- [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
+- [ ] Verify malformed input, unauthenticated access, and cross-user access are rejected end to end.
+- [ ] Verify rollback-sensitive stock operations end to end.
+- [ ] Inspect representative logs for prohibited user data and credentials.
+- [ ] Publish the privacy notice and complete platform privacy disclosures.
+
+## 21. Mobile distribution
+
+**Stack:** Expo Application Services, Apple App Store, and Google Play
+
+- [ ] Add EAS development, Beta, and Production build profiles.
+- [ ] Build and distribute internal Beta releases.
+- [ ] Prepare Apple App Store metadata and review materials.
+- [ ] Prepare Google Play metadata and review materials.
+- [ ] Submit Production releases.
