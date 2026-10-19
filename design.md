@@ -264,6 +264,22 @@ StockTransaction records are immutable. Correcting a stock change creates anothe
 
 Bitebook will update the Food's currentStock and create its StockTransaction in one DDB transaction so they cannot become inconsistent. Logging a MealEntry creates one StockTransaction for each affected Food. Editing or deleting an entry creates additional transactions representing the quantities adjusted or restored. Manual stock updates and grocery restocks also create transactions. StockTransaction history does not need to be visible in the initial application, but it preserves enough information to support troubleshooting and a future stock-history view.
 
+#### User Profile
+
+ A UserProfile stores Bitebook-specific information and preferences for one user. Amazon Cognito manages authN information separately, including email addresses, passwords, account verification, recovery, and linked Google or Apple accounts.
+
+ ```
+ type UserProfile = {
+  userId: string;        // Cognito identifier and unique profile key
+  displayName?: string;  // Optional name displayed within Bitebook
+  timeZone: string;      // IANA time zone used for calendar dates and scheduling
+  createdAt: string;     // UTC timestamp recording when the profile was created
+  updatedAt: string;     // UTC timestamp recording when the profile was last edited
+};
+```
+
+Bitebook will initially suggest the device's current time zone when creating the profile. Time zones use IANA IDs because regional daylight-saving rules can change the applicable offset.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
