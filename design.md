@@ -218,6 +218,24 @@ When affectsStock is enabled, Bitebook validates and reduces stock at the schedu
 
 CalendarMeal records are calculated by gruoping nearby MealEntry records. They do not replace or modify the underlying entities.
 
+#### Calendar Meal
+
+A Calendar Meal is a derived grouping of MealEntries logged near one another. It represents what the user sees as one meal on the Calendar, rather than a reusable Meal from the Pantry.
+
+```
+type CalendarMeal = {
+  startTime: string;                  // Timestamp of the earliest grouped entry
+  endTime: string;                    // Timestamp of the latest grouped entry
+  entries: MealEntry[];               // Foods and saved Meals included in the group
+  nutritionTotals: NutritionFacts;    // Combined nutrition calculated from the entries
+};
+```
+For example, a Food logged at 12:00 and a saved Meal logged at 12:30 appear in one CalendarMeal. Selecting that CalendarMeal opens a detailed page showing both MealEntries, their ingredients and quantities, and their combined calorie, macro, and micronutrient totals.
+
+CalendarMeals are calculated from stored MealEntries and are not stored separately in DDB. nutritionTotals is also calculated rather than persisted.
+
+Entries from the same local calendar day are grouped when they occur within 30 minutes of each other. This means that a CalendarMeal's start and end times are dynamic, with detection logic allowing a meal eaten less than 30 minutes before or after the window of a CalendarMeal to be automatically added to it and its start/end time appropriately updated. Adding, editing, moving, or deleting a MealEntry may change its CalendarMeal grouping and calculated nutrition.
+
 ## Security and Privacy
 Describe what personal data is collected, who can access it, and how it is protected
 
