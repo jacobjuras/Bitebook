@@ -5,6 +5,7 @@ export * from './meal.js';
 export * from './mealEntry.js';
 export * from './nutritionFacts.js';
 export * from './nutritionGoal.js';
+export * from './nutritionGoalSelection.js';
 export * from './nutritionScaling.js';
 export * from './nutritionTotals.js';
 export * from './quantity.js';
