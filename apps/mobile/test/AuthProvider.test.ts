@@ -1,79 +1,85 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  exchange: vi.fn(),
-  revoke: vi.fn(),
-  save: vi.fn(),
+  configure: vi.fn(),
+  confirmSignIn: vi.fn(),
+  fetchAuthSession: vi.fn(),
+  setStorage: vi.fn(),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
 }));
 
-vi.mock('expo-auth-session', () => ({
-  exchangeCodeAsync: mocks.exchange,
-  ResponseType: { Code: 'code' },
-  revokeAsync: mocks.revoke,
-  useAuthRequest: vi.fn(),
+vi.mock('aws-amplify', () => ({
+  Amplify: { configure: mocks.configure },
 }));
-vi.mock('expo-web-browser', () => ({
-  maybeCompleteAuthSession: vi.fn(),
-  openAuthSessionAsync: vi.fn(),
+vi.mock('aws-amplify/auth', () => ({
+  confirmSignIn: mocks.confirmSignIn,
+  fetchAuthSession: mocks.fetchAuthSession,
+  signIn: mocks.signIn,
+  signOut: mocks.signOut,
+}));
+vi.mock('aws-amplify/auth/cognito', () => ({
+  cognitoUserPoolsTokenProvider: {
+    setKeyValueStorage: mocks.setStorage,
+  },
 }));
 vi.mock('../src/config/mobileConfig.js', () => ({
   getMobileConfig: () => ({
-    cognitoUrl: new URL(
-      'https://bitebook-beta.auth.us-west-2.amazoncognito.com',
-    ),
     userPoolClientId: 'client-id',
+    userPoolId: 'us-west-2_pool',
   }),
 }));
-vi.mock('../src/auth/authSession.js', () => ({
-  clearAuthSession: vi.fn(),
-  loadAuthSession: vi.fn(),
-  saveAuthSession: mocks.save,
+vi.mock('../src/auth/secureTokenStorage.js', () => ({
+  secureTokenStorage: { storage: 'secure' },
 }));
 
 import {
-  exchangeAuthorizationCode,
-  revokeAuthSession,
+  completeRequiredPassword,
+  endAuthSession,
+  resolveSignInStatus,
+  signInWithPassword,
 } from '../src/auth/AuthProvider.js';
-
-const session = {
-  accessToken: 'access',
-  expiresIn: 3600,
-  idToken: 'id',
-  issuedAt: 1234,
-  refreshToken: 'refresh',
-};
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('Cognito authentication operations', () => {
-  it('exchanges an authorization code with its PKCE verifier', async () => {
-    mocks.exchange.mockResolvedValue(session);
-    mocks.save.mockResolvedValue(session);
-
-    await expect(exchangeAuthorizationCode('code', 'verifier'))
-      .resolves.toEqual(session);
-    expect(mocks.exchange).toHaveBeenCalledWith({
-      clientId: 'client-id',
-      code: 'code',
-      extraParams: { code_verifier: 'verifier' },
-      redirectUri: 'bitebook://auth/callback',
-    }, {
-      authorizationEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/authorize',
-      revocationEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/revoke',
-      tokenEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/token',
+describe('Amplify authentication operations', () => {
+  it('signs in with trimmed email through explicit SRP', async () => {
+    mocks.signIn.mockResolvedValue({
+      isSignedIn: true,
+      nextStep: { signInStep: 'DONE' },
     });
-    expect(mocks.save).toHaveBeenCalledWith(session);
+
+    await expect(signInWithPassword(' user@example.com ', 'password'))
+      .resolves.toBe('signed-in');
+    expect(mocks.signIn).toHaveBeenCalledWith({
+      options: { authFlowType: 'USER_SRP_AUTH' },
+      password: 'password',
+      username: 'user@example.com',
+    });
   });
 
-  it('revokes the stored refresh token', async () => {
-    await revokeAuthSession(session);
-    expect(mocks.revoke).toHaveBeenCalledWith({
-      clientId: 'client-id',
-      token: 'refresh',
-    }, {
-      authorizationEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/authorize',
-      revocationEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/revoke',
-      tokenEndpoint: 'https://bitebook-beta.auth.us-west-2.amazoncognito.com/oauth2/token',
+  it('completes the admin-created user password challenge', async () => {
+    expect(resolveSignInStatus({
+      isSignedIn: false,
+      nextStep: {
+        missingAttributes: [],
+        signInStep: 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED',
+      },
+    })).toBe('new-password-required');
+    mocks.confirmSignIn.mockResolvedValue({
+      isSignedIn: true,
+      nextStep: { signInStep: 'DONE' },
     });
+
+    await expect(completeRequiredPassword('new-password'))
+      .resolves.toBe('signed-in');
+    expect(mocks.confirmSignIn).toHaveBeenCalledWith({
+      challengeResponse: 'new-password',
+    });
+  });
+
+  it('delegates token revocation and removal to Amplify sign-out', async () => {
+    await endAuthSession();
+    expect(mocks.signOut).toHaveBeenCalledOnce();
   });
 });
