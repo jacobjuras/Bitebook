@@ -140,8 +140,8 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Configure admin-created test users for temporary internal environments.
 - [ ] Enable public email account registration with verification and recovery after external-account migration.
 - [ ] Register Google as a Cognito identity provider after external-account migration.
-- [ ] Add a Cognito domain and authorization-code flow with PKCE.
-- [ ] Register exact mobile callback and sign-out URLs.
+- [x] Add a Cognito domain and authorization-code flow with PKCE.
+- [x] Register exact mobile callback and sign-out URLs.
 - [ ] Reassess Sign in with Apple before iOS App Store submission.
 
 ## 10. Mobile authentication and API client

@@ -1,4 +1,5 @@
 import { App } from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,17 +9,26 @@ import {
 
 describe('BitebookApplicationStage', () => {
   it.each([
-    ['beta', 'Beta', 'Bitebook-Beta'],
-    ['production', 'Production', 'Bitebook-Production'],
+    ['beta', 'Beta', 'Bitebook-Beta', 'bitebook-beta-492683309774'],
+    [
+      'production',
+      'Production',
+      'Bitebook-Production',
+      'bitebook-production-805982516567',
+    ],
   ] as const)(
     'creates the %s application stage',
-    (deploymentStage, stageLabel, stackName) => {
+    (deploymentStage, stageLabel, stackName, cognitoDomainPrefix) => {
       const stage = new BitebookApplicationStage(new App(), stageLabel, {
         deploymentStage,
       });
 
       expect(stage.stageName).toBe(stageLabel);
       expect(stage.applicationStack.stackName).toBe(stackName);
+      Template.fromStack(stage.applicationStack).hasResourceProperties(
+        'AWS::Cognito::UserPoolDomain',
+        { Domain: cognitoDomainPrefix },
+      );
       expect(stage.applicationStack.tags.tagValues()).toEqual({
         DeploymentStage: stageLabel,
       });
