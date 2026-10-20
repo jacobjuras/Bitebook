@@ -3,10 +3,12 @@
   "version": "0.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start --localhost",
-    "android": "expo start --localhost --android",
+    "start": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --dev-client --localhost",
+    "android": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --dev-client --localhost --android",
+    "android:build": "expo run:android --no-bundler",
     "doctor": "expo-doctor",
-    "ios": "expo start --localhost --ios",
+    "ios": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --dev-client --localhost --ios",
+    "ios:build": "expo run:ios --no-bundler",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -16,6 +18,7 @@
     "expo-auth-session": "~58.0.13",
     "expo-constants": "~58.0.12",
     "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.14",
     "expo-linking": "~58.0.13",
     "expo-router": "~58.0.24",
     "expo-secure-store": "~58.0.2",
@@ -28,6 +31,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "cross-env": "^10.1.0",
     "expo-doctor": "1.21.5",
     "typescript": "~6.0.3",
     "vitest": "5.0.5"
