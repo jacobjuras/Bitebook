@@ -24,7 +24,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
   },
-  plugins: ['expo-router', 'expo-secure-store', 'expo-web-browser'],
+  plugins: ['expo-router', 'expo-secure-store'],
   experiments: {
     typedRoutes: true,
   },

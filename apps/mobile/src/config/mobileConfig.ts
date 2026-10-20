@@ -5,7 +5,6 @@ export type MobileStage = (typeof MOBILE_STAGES)[number];
 export interface MobileEnvironment {
   EXPO_PUBLIC_BITEBOOK_API_URL?: string;
   EXPO_PUBLIC_BITEBOOK_COGNITO_REGION?: string;
-  EXPO_PUBLIC_BITEBOOK_COGNITO_URL?: string;
   EXPO_PUBLIC_BITEBOOK_STAGE?: string;
   EXPO_PUBLIC_BITEBOOK_USER_POOL_CLIENT_ID?: string;
   EXPO_PUBLIC_BITEBOOK_USER_POOL_ID?: string;
@@ -14,7 +13,6 @@ export interface MobileEnvironment {
 export interface MobileConfig {
   apiUrl: URL;
   cognitoRegion: string;
-  cognitoUrl: URL;
   stage: MobileStage;
   userPoolClientId: string;
   userPoolId: string;
@@ -24,8 +22,6 @@ const runtimeEnvironment: MobileEnvironment = {
   EXPO_PUBLIC_BITEBOOK_API_URL: process.env.EXPO_PUBLIC_BITEBOOK_API_URL,
   EXPO_PUBLIC_BITEBOOK_COGNITO_REGION:
     process.env.EXPO_PUBLIC_BITEBOOK_COGNITO_REGION,
-  EXPO_PUBLIC_BITEBOOK_COGNITO_URL:
-    process.env.EXPO_PUBLIC_BITEBOOK_COGNITO_URL,
   EXPO_PUBLIC_BITEBOOK_STAGE: process.env.EXPO_PUBLIC_BITEBOOK_STAGE,
   EXPO_PUBLIC_BITEBOOK_USER_POOL_CLIENT_ID:
     process.env.EXPO_PUBLIC_BITEBOOK_USER_POOL_CLIENT_ID,
@@ -65,24 +61,6 @@ function parseApiUrl(value: string, stage: MobileStage): URL {
   return url;
 }
 
-function parseCognitoUrl(value: string, cognitoRegion: string): URL {
-  const url = new URL(value);
-  const expectedSuffix = `.auth.${cognitoRegion}.amazoncognito.com`;
-  if (
-    url.protocol !== 'https:'
-    || !url.hostname.endsWith(expectedSuffix)
-    || url.port
-    || url.pathname !== '/'
-    || url.username
-    || url.password
-    || url.search
-    || url.hash
-  ) {
-    throw new Error('The Cognito URL must be the configured Region\'s HTTPS managed domain');
-  }
-  return url;
-}
-
 /** Reads and validates the public API and Cognito settings embedded in a mobile build. */
 export function getMobileConfig(
   environment: MobileEnvironment = runtimeEnvironment,
@@ -110,10 +88,6 @@ export function getMobileConfig(
       stage,
     ),
     cognitoRegion,
-    cognitoUrl: parseCognitoUrl(
-      requireValue(environment, 'EXPO_PUBLIC_BITEBOOK_COGNITO_URL'),
-      cognitoRegion,
-    ),
     stage,
     userPoolClientId: requireValue(
       environment,

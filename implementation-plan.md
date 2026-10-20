@@ -151,9 +151,10 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 
 - [ ] Add mobile email sign-up and verification.
 - [ ] Add sign-in and sign-out.
+- [x] Add first-party Cognito SRP authentication and admin-created-user password challenges.
 - [x] Store tokens in platform-backed secure storage.
 - [ ] Refresh access and ID tokens silently.
-- [x] Add Expo deep-link handling for Cognito OAuth callbacks.
+- [ ] Add social-provider OAuth deep-link handling after external-account migration.
 - [ ] Add Google sign-in after external-account migration.
 - [ ] Add a shared authenticated HTTP client.
 - [ ] Add consistent loading, validation, offline, and API error handling.
