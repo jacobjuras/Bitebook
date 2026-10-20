@@ -150,7 +150,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 
 - [ ] Add mobile email sign-up and verification.
 - [ ] Add sign-in and sign-out.
-- [ ] Store tokens in platform-backed secure storage.
+- [x] Store tokens in platform-backed secure storage.
 - [ ] Refresh access and ID tokens silently.
 - [ ] Add Google sign-in and Expo deep-link handling.
 - [ ] Add a shared authenticated HTTP client.
