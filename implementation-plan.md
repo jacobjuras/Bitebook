@@ -314,7 +314,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 
 - [ ] Add API throttling and abuse limits.
 - [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, USDA failures, and subscription-notification failures.
-- [ ] Add deployment notifications and operational runbooks.
+- [ ] Add operational runbooks for deployment failures and rollbacks.
 - [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
 - [ ] Inspect representative logs for prohibited user data and credentials.
 - [ ] Publish the privacy notice and complete platform privacy disclosures.
@@ -349,6 +349,7 @@ This phase intentionally runs near the end, after the product workflows and oper
 - [ ] Estimate Beta and Production monthly costs from the final synthesized infrastructure and adjust configuration before creating resources.
 - [ ] Create fresh externally owned Beta and Production AWS accounts with budgets, billing alerts, and account-level security controls.
 - [ ] Bootstrap both fresh accounts and retarget the pipeline, application stages, and mobile environment configuration.
+- [ ] Configure SNS email alerts for pipeline failures, cancellations, and rollback starts or failures.
 - [ ] Deploy all infrastructure to the fresh accounts and pass the complete Beta API integration and mobile UI test gates.
 - [ ] Verify automatic promotion deploys the same tested artifact to the fresh Production account.
 - [ ] Remove Bitebook infrastructure from the temporary internal accounts only after the fresh environments are verified.
