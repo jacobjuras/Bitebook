@@ -59,6 +59,12 @@ npx expo-doctor
 cd ../..
 ```
 
+### Configure the mobile environment
+
+Copy `apps/mobile/.env.example` to `apps/mobile/.env.local` and replace its placeholders with the target `Bitebook-Beta` or `Bitebook-Production` CloudFormation outputs. Local development, Beta, and Production use the same variable names with different values.
+
+Variables prefixed with `EXPO_PUBLIC_` are embedded in the application bundle. Use them only for the public API URL and Cognito client identifiers, never credentials or secrets.
+
 Create production JavaScript bundles for both mobile platforms:
 
 ```bash

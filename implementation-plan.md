@@ -124,7 +124,7 @@ This is the current phase.
 - [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
 - [ ] Block Production promotion when either pipeline test gate fails.
 - [ ] Automatically promote the same tested artifact to Production when both Beta pipeline gates pass.
-- [ ] Add environment-specific mobile configuration for local development, Beta, and Production.
+- [x] Add environment-specific mobile configuration for local development, Beta, and Production.
 
 ## 9. Authentication infrastructure
 
