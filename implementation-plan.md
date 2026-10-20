@@ -120,7 +120,7 @@ This is the current phase.
 - [x] Define a self-updating pipeline sourced from GitHub `main` and targeting Beta.
 - [ ] Authorize the GitHub CodeConnections connection in the Beta account.
 - [ ] Deploy the pipeline so merges to `main` deploy Beta.
-- [ ] Run deployed API integration tests against Beta as a pipeline gate.
+- [x] Configure deployed API integration tests against Beta as a pipeline gate.
 - [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
 - [ ] Block Production promotion when either pipeline test gate fails.
 - [ ] Automatically promote the same tested artifact to Production when both Beta pipeline gates pass.
