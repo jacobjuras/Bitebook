@@ -158,7 +158,7 @@ describe('BitebookStack', () => {
         Issuer: Match.anyValue(),
       },
     });
-    template.resourceCountIs('AWS::ApiGatewayV2::Route', 15);
+    template.resourceCountIs('AWS::ApiGatewayV2::Route', 16);
     template.allResourcesProperties('AWS::ApiGatewayV2::Route', {
       AuthorizationType: 'JWT',
       AuthorizerId: Match.anyValue(),
@@ -166,7 +166,7 @@ describe('BitebookStack', () => {
   });
 
   it('scopes Lambda invocation to authenticated API routes', () => {
-    template.resourceCountIs('AWS::Lambda::Permission', 15);
+    template.resourceCountIs('AWS::Lambda::Permission', 16);
     template.allResourcesProperties('AWS::Lambda::Permission', {
       Action: 'lambda:InvokeFunction',
       Principal: 'apigateway.amazonaws.com',
