@@ -100,6 +100,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Create effective-dated NutritionGoals with one goal per date.
 - [x] Get the goal effective on a requested local date.
 - [x] Allow an unactioned future NutritionGoal to be rescheduled or replaced without rewriting effective history.
+- [x] Delete any NutritionGoal and recalculate reports from the remaining goal history.
 
 ## 8. Staged CI/CD foundation
 

@@ -15,6 +15,7 @@ import { getMeal, listMeals } from './mealReads.js';
 import { createMeal, deleteMeal, updateMeal } from './mealWrites.js';
 import {
   createNutritionGoal,
+  deleteNutritionGoal,
   getEffectiveNutritionGoal,
   replaceFutureNutritionGoal,
 } from './nutritionGoals.js';
@@ -142,6 +143,13 @@ export async function handler(
       tableName,
       subject,
       event.queryStringParameters?.date,
+    );
+  }
+  if (event.routeKey === 'DELETE /nutrition-goals/{effectiveFrom}') {
+    return deleteNutritionGoal(
+      tableName,
+      subject,
+      event.pathParameters?.effectiveFrom,
     );
   }
   if (event.routeKey === 'PUT /nutrition-goals/{effectiveFrom}') {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
+  DeleteCommand,
   GetCommand,
   PutCommand,
   QueryCommand,
@@ -94,6 +95,33 @@ function getLocalDate(timeZone: string, timestamp: Date): string {
     }).formatToParts(timestamp).map(({ type, value }) => [type, value]),
   );
   return localDateSchema.parse(`${parts.year}-${parts.month}-${parts.day}`);
+}
+
+/** Deletes one NutritionGoal owned by the authenticated user. */
+export async function deleteNutritionGoal(
+  tableName: string,
+  userId: string,
+  effectiveFrom: string | undefined,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const date = localDateSchema.safeParse(effectiveFrom);
+  if (!date.success) {
+    return jsonResponse(400, { message: 'Invalid nutrition goal date' });
+  }
+
+  try {
+    await documentClient.send(new DeleteCommand({
+      ConditionExpression:
+        'attribute_exists(userId) AND attribute_exists(entityKey)',
+      Key: { entityKey: `NUTRITION_GOAL#${date.data}`, userId },
+      TableName: tableName,
+    }));
+    return { statusCode: 204 };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      return jsonResponse(404, { message: 'Nutrition goal not found' });
+    }
+    throw error;
+  }
 }
 
 /** Replaces a NutritionGoal only while both its old and new dates are still future dates. */
