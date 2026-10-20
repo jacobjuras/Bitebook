@@ -124,7 +124,10 @@ This is the current phase.
 - [x] Configure deployed API integration tests against Beta as a pipeline gate.
 - [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
 - [ ] Block Production promotion when either pipeline test gate fails.
+- [ ] Automatically roll Beta back to its last successful revision when Beta smoke tests fail.
 - [ ] Automatically promote the same tested artifact to Production when both Beta pipeline gates pass.
+- [ ] Run Production smoke tests after deployment and mark promotion successful only when they pass.
+- [ ] Automatically roll Production back to its last successful revision when Production smoke tests fail.
 - [x] Add environment-specific mobile configuration for local development, Beta, and Production.
 
 ## 9. Authentication infrastructure
