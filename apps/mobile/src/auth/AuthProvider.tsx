@@ -16,6 +16,7 @@ import {
 } from 'react';
 
 import { getMobileConfig } from '../config/mobileConfig';
+import { AuthStatus } from './AuthStatus';
 import { secureTokenStorage } from './secureTokenStorage';
 
 const config = getMobileConfig();
@@ -30,17 +31,11 @@ Amplify.configure({
 });
 cognitoUserPoolsTokenProvider.setKeyValueStorage(secureTokenStorage);
 
-export type AuthStatus =
-  | 'loading'
-  | 'new-password-required'
-  | 'signed-in'
-  | 'signed-out';
-
 /** Maps supported Cognito sign-in results to Bitebook authentication states. */
 export function resolveSignInStatus(result: SignInOutput): AuthStatus {
-  if (result.isSignedIn) return 'signed-in';
+  if (result.isSignedIn) return AuthStatus.SignedIn;
   if (result.nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
-    return 'new-password-required';
+    return AuthStatus.NewPasswordRequired;
   }
   throw new Error(`Unsupported Cognito sign-in step: ${result.nextStep.signInStep}`);
 }
@@ -89,49 +84,49 @@ function signInErrorMessage(error: unknown) {
 
 /** Provides one first-party Cognito authentication lifecycle to every route. */
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>(AuthStatus.Loading);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAuthSession().then(({ tokens }) => {
-      setStatus(tokens ? 'signed-in' : 'signed-out');
+      setStatus(tokens ? AuthStatus.SignedIn : AuthStatus.SignedOut);
     }).catch(() => {
       setError('Unable to restore the saved session');
-      setStatus('signed-out');
+      setStatus(AuthStatus.SignedOut);
     });
   }, []);
 
   async function signIn(email: string, password: string) {
     setError(null);
-    setStatus('loading');
+    setStatus(AuthStatus.Loading);
     try {
       setStatus(await signInWithPassword(email, password));
     } catch (error) {
       setError(signInErrorMessage(error));
-      setStatus('signed-out');
+      setStatus(AuthStatus.SignedOut);
     }
   }
 
   async function confirmNewPassword(password: string) {
     setError(null);
-    setStatus('loading');
+    setStatus(AuthStatus.Loading);
     try {
       setStatus(await completeRequiredPassword(password));
     } catch {
       setError('Unable to set the new password');
-      setStatus('new-password-required');
+      setStatus(AuthStatus.NewPasswordRequired);
     }
   }
 
   async function signOut() {
     setError(null);
-    setStatus('loading');
+    setStatus(AuthStatus.Loading);
     try {
       await endAuthSession();
-      setStatus('signed-out');
+      setStatus(AuthStatus.SignedOut);
     } catch {
       setError('Sign out failed');
-      setStatus('signed-in');
+      setStatus(AuthStatus.SignedIn);
     }
   }
 
