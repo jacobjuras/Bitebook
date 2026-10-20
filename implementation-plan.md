@@ -10,6 +10,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Create the npm workspace monorepo.
 - [x] Pin Node.js 24 and document installation, build, test, Expo, and bundle commands.
 - [x] Scaffold the Expo mobile application with Expo Router.
+- [x] Replace Expo Go with app-specific development builds for native-module support.
 - [x] Scaffold the shared `@bitebook/domain` package.
 - [x] Scaffold the `@bitebook/api` Lambda package with a fail-closed handler.
 - [x] Scaffold the `@bitebook/infra` CDK application.

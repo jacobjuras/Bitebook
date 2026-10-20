@@ -11,9 +11,11 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   ios: {
+    bundleIdentifier: 'com.bitebook.app',
     supportsTablet: true,
   },
   android: {
+    package: 'com.bitebook.app',
     adaptiveIcon: {
       backgroundColor: colorValues.brand.adaptiveIconBackground,
       foregroundImage: './assets/android-icon-foreground.png',
