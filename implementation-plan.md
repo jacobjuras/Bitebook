@@ -122,6 +122,7 @@ This is the current phase.
 - [x] Authorize the GitHub CodeConnections connection in the Beta account.
 - [x] Deploy the pipeline so merges to `main` deploy Beta.
 - [x] Configure deployed API integration tests against Beta as a pipeline gate.
+- [x] Add a non-blocking mobile UI placeholder that reports skipped until the runner exists.
 - [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
 - [ ] Block Production promotion when either pipeline test gate fails.
 - [ ] Automatically roll Beta back to its last successful revision when Beta smoke tests fail.

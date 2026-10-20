@@ -117,26 +117,38 @@ export class BitebookPipelineStack extends Stack {
       deploymentStage: 'beta',
       env: BETA_ENVIRONMENT,
     });
+    const deployedApiTests = new CodeBuildStep('DeployedApiTests', {
+      buildEnvironment: {
+        buildImage: LinuxBuildImage.STANDARD_7_0,
+        privileged: false,
+      },
+      commands: [
+        'npm ci',
+        'npm run test:deployed --workspace @bitebook/integration-tests',
+      ],
+      envFromCfnOutputs: {
+        BITEBOOK_API_URL: beta.applicationStack.apiUrl,
+      },
+      input: source,
+      logging: { cloudWatch: { logGroup: buildLogGroup } },
+      partialBuildSpec: BuildSpec.fromObject({
+        phases: { install: { 'runtime-versions': { nodejs: 24 } } },
+      }),
+      timeout: Duration.minutes(10),
+    });
+    const mobileUiTests = new CodeBuildStep('MobileUiTests', {
+      buildEnvironment: {
+        buildImage: LinuxBuildImage.STANDARD_7_0,
+        privileged: false,
+      },
+      commands: [
+        'echo "Mobile UI tests skipped: runner is not configured"',
+      ],
+      logging: { cloudWatch: { logGroup: buildLogGroup } },
+      timeout: Duration.minutes(5),
+    });
     pipeline.addStage(beta, {
-      post: [new CodeBuildStep('DeployedApiTests', {
-        buildEnvironment: {
-          buildImage: LinuxBuildImage.STANDARD_7_0,
-          privileged: false,
-        },
-        commands: [
-          'npm ci',
-          'npm run test:deployed --workspace @bitebook/integration-tests',
-        ],
-        envFromCfnOutputs: {
-          BITEBOOK_API_URL: beta.applicationStack.apiUrl,
-        },
-        input: source,
-        logging: { cloudWatch: { logGroup: buildLogGroup } },
-        partialBuildSpec: BuildSpec.fromObject({
-          phases: { install: { 'runtime-versions': { nodejs: 24 } } },
-        }),
-        timeout: Duration.minutes(10),
-      })],
+      post: [deployedApiTests, mobileUiTests],
     });
 
     // @secure_recommendation: Keep every generated build private and write logs only to the retained log group.
