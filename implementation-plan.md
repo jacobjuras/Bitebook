@@ -349,6 +349,7 @@ This phase intentionally runs near the end, after the product workflows and oper
 **Stack:** AWS accounts, CDK infrastructure, deployment pipeline, mobile configuration, and app stores
 
 - [ ] Revisit every CDK resource and deployment setting before migration, especially retention, removal policies, backups, logging, KMS keys, capacity, billing modes, alarms, quotas, and deletion protection.
+- [ ] Audit every AWS service tier in use and keep paid tiers only when the final product requires their features.
 - [ ] Estimate Beta and Production monthly costs from the final synthesized infrastructure and adjust configuration before creating resources.
 - [ ] Create fresh externally owned Beta and Production AWS accounts with budgets, billing alerts, and account-level security controls.
 - [ ] Bootstrap both fresh accounts and retarget the pipeline, application stages, and mobile environment configuration.
