@@ -110,7 +110,6 @@ describe('BitebookStack', () => {
       Policies: {
         PasswordPolicy: {
           MinimumLength: 8,
-          PasswordHistorySize: 1,
           RequireLowercase: false,
           RequireNumbers: false,
           RequireSymbols: false,
@@ -118,8 +117,7 @@ describe('BitebookStack', () => {
           TemporaryPasswordValidityDays: 3,
         },
       },
-      UserPoolAddOns: { AdvancedSecurityMode: 'ENFORCED' },
-      UserPoolTier: 'PLUS',
+      UserPoolTier: 'LITE',
       UsernameAttributes: ['email'],
       UsernameConfiguration: { CaseSensitive: false },
     });

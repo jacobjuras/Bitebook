@@ -19,7 +19,6 @@ import {
   AccountRecovery,
   FeaturePlan,
   OAuthScope,
-  StandardThreatProtectionMode,
   UserPool,
   UserPoolClientIdentityProvider,
 } from 'aws-cdk-lib/aws-cognito';
@@ -112,10 +111,9 @@ export class BitebookStack extends Stack {
       accountRecovery: AccountRecovery.EMAIL_ONLY,
       autoVerify: { email: true },
       deletionProtection: true,
-      featurePlan: FeaturePlan.PLUS,
+      featurePlan: FeaturePlan.LITE,
       passwordPolicy: {
         minLength: 8,
-        passwordHistorySize: 1,
         requireDigits: false,
         requireLowercase: false,
         requireSymbols: false,
@@ -126,7 +124,6 @@ export class BitebookStack extends Stack {
       selfSignUpEnabled: false,
       signInAliases: { email: true },
       signInCaseSensitive: false,
-      standardThreatProtectionMode: StandardThreatProtectionMode.FULL_FUNCTION,
       standardAttributes: {
         email: { mutable: true, required: true },
       },
