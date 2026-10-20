@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "synth": "npm run synth:beta && npm run synth:production",
+    "synth": "npm run synth:beta && npm run synth:production && npm run synth:pipeline",
     "synth:beta": "npm run build && cdk synth -c stage=beta --output cdk.out/beta",
+    "synth:pipeline": "npm run build && cdk synth -c pipeline=true --output cdk.out/pipeline",
     "synth:production": "npm run build && cdk synth -c stage=production --output cdk.out/production",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

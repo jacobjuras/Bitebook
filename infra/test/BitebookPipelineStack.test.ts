@@ -1,0 +1,126 @@
+import { App } from 'aws-cdk-lib';
+import { Match, Template } from 'aws-cdk-lib/assertions';
+import { describe, expect, it } from 'vitest';
+
+import {
+  BETA_ENVIRONMENT,
+  BitebookPipelineStack,
+} from '../lib/BitebookPipelineStack.js';
+
+describe('BitebookPipelineStack', () => {
+  const stack = new BitebookPipelineStack(new App(), 'Pipeline', {
+    env: BETA_ENVIRONMENT,
+  });
+  const template = Template.fromStack(stack);
+
+  it('records the Beta deployment environment', () => {
+    expect(BETA_ENVIRONMENT).toEqual({
+      account: '492683309774',
+      region: 'us-west-2',
+    });
+  });
+
+  it('accepts only the Beta account GitHub connection', () => {
+    template.hasParameter('GitHubConnectionArn', {
+      AllowedPattern: '^arn:aws:(?:codeconnections|codestar-connections):us-west-2:492683309774:connection/[0-9a-f-]+$',
+      Type: 'String',
+    });
+  });
+
+  it('deploys main to Beta in queued executions', () => {
+    template.hasResourceProperties('AWS::CodePipeline::Pipeline', {
+      ExecutionMode: 'QUEUED',
+      Name: 'Bitebook',
+      PipelineType: 'V2',
+      Stages: Match.arrayWith([
+        Match.objectLike({
+          Actions: Match.arrayWith([
+            Match.objectLike({
+              Configuration: Match.objectLike({
+                BranchName: 'main',
+                FullRepositoryId: 'jacobjuras/Bitebook',
+              }),
+            }),
+          ]),
+          Name: 'Source',
+        }),
+        Match.objectLike({ Name: 'Beta' }),
+      ]),
+    });
+
+    const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
+    expect(JSON.stringify(pipelines)).not.toContain('Production');
+  });
+
+  it('protects pipeline artifacts and their access logs', () => {
+    template.resourceCountIs('AWS::S3::Bucket', 2);
+    template.allResourcesProperties('AWS::S3::Bucket', {
+      OwnershipControls: {
+        Rules: [{ ObjectOwnership: 'BucketOwnerEnforced' }],
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+      VersioningConfiguration: { Status: 'Enabled' },
+    });
+    template.hasResourceProperties('AWS::S3::Bucket', {
+      BucketEncryption: {
+        ServerSideEncryptionConfiguration: [Match.objectLike({
+          ServerSideEncryptionByDefault: {
+            KMSMasterKeyID: Match.anyValue(),
+            SSEAlgorithm: 'aws:kms',
+          },
+        })],
+      },
+      LoggingConfiguration: {
+        DestinationBucketName: Match.anyValue(),
+        LogFilePrefix: 'artifact-access/',
+      },
+    });
+    template.hasResourceProperties('AWS::S3::BucketPolicy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: 's3:PutObject',
+            Principal: { Service: 'logging.s3.amazonaws.com' },
+          }),
+        ]),
+      },
+    });
+  });
+
+  it('retains the artifact key and build logs', () => {
+    template.hasResourceProperties('AWS::KMS::Key', {
+      EnableKeyRotation: true,
+    });
+    template.hasResource('AWS::KMS::Key', {
+      DeletionPolicy: 'Retain',
+      UpdateReplacePolicy: 'Retain',
+    });
+    template.hasResourceProperties('AWS::Logs::LogGroup', {
+      RetentionInDays: 3653,
+    });
+    template.hasResource('AWS::Logs::LogGroup', {
+      DeletionPolicy: 'Retain',
+      UpdateReplacePolicy: 'Retain',
+    });
+  });
+
+  it('keeps every generated build private and non-privileged', () => {
+    template.resourceCountIs('AWS::CodeBuild::Project', 3);
+    template.allResourcesProperties('AWS::CodeBuild::Project', {
+      Environment: Match.objectLike({ PrivilegedMode: false }),
+      LogsConfig: {
+        CloudWatchLogs: {
+          GroupName: Match.anyValue(),
+          Status: 'ENABLED',
+        },
+      },
+      Visibility: 'PRIVATE',
+    });
+    template.resourceCountIs('AWS::IAM::User', 0);
+  });
+});
