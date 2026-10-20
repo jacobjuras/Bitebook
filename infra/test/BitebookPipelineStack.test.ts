@@ -32,6 +32,19 @@ describe('BitebookPipelineStack', () => {
     });
   });
 
+  it('grants the GitHub App source role access to its connection', () => {
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: 'codeconnections:UseConnection',
+            Resource: { Ref: 'GitHubConnectionArn' },
+          }),
+        ]),
+      },
+    });
+  });
+
   it('deploys main through Beta and Production in queued executions', () => {
     template.hasResourceProperties('AWS::CodePipeline::Pipeline', {
       ExecutionMode: 'QUEUED',

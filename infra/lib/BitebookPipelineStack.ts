@@ -5,7 +5,12 @@ import {
   ExecutionMode,
   PipelineType,
 } from 'aws-cdk-lib/aws-codepipeline';
-import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import {
+  Effect,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { BlockPublicAccess, Bucket, BucketEncryption, CfnBucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
@@ -197,6 +202,19 @@ export class BitebookPipelineStack extends Stack {
       'Stages.5.OnFailure.Result',
       'ROLLBACK',
     );
+    const sourceActionRole = this.node.findAll().find(
+      (node) => node instanceof Role && node.node.path.endsWith(
+        '/Pipeline/Source/jacobjuras_Bitebook/CodePipelineActionRole',
+      ),
+    );
+    if (!(sourceActionRole instanceof Role)) {
+      throw new Error('Pipeline source action role was not generated');
+    }
+    sourceActionRole.addToPrincipalPolicy(new PolicyStatement({
+      actions: ['codeconnections:UseConnection'],
+      resources: [connectionArn.valueAsString],
+    }));
+
     for (const node of this.node.findAll()) {
       if (node instanceof Project) {
         buildLogGroup.grantWrite(node);
