@@ -136,7 +136,7 @@ describe('BitebookStack', () => {
       AllowedOAuthScopes: ['email', 'openid'],
       CallbackURLs: ['bitebook://auth/callback'],
       EnableTokenRevocation: true,
-      ExplicitAuthFlows: ['ALLOW_USER_SRP_AUTH'],
+      ExplicitAuthFlows: ['ALLOW_USER_PASSWORD_AUTH'],
       GenerateSecret: false,
       IdTokenValidity: 60,
       LogoutURLs: ['bitebook://auth/signout'],

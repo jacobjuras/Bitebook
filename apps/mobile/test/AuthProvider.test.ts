@@ -43,7 +43,7 @@ import {
 beforeEach(() => vi.clearAllMocks());
 
 describe('Amplify authentication operations', () => {
-  it('signs in with trimmed email through explicit SRP', async () => {
+  it('signs in with trimmed email through Cognito password authentication', async () => {
     mocks.signIn.mockResolvedValue({
       isSignedIn: true,
       nextStep: { signInStep: 'DONE' },
@@ -52,7 +52,7 @@ describe('Amplify authentication operations', () => {
     await expect(signInWithPassword(' user@example.com ', 'password'))
       .resolves.toBe('signed-in');
     expect(mocks.signIn).toHaveBeenCalledWith({
-      options: { authFlowType: 'USER_SRP_AUTH' },
+      options: { authFlowType: 'USER_PASSWORD_AUTH' },
       password: 'password',
       username: 'user@example.com',
     });

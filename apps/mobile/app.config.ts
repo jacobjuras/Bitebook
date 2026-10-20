@@ -24,7 +24,11 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
   },
-  plugins: ['expo-router', 'expo-secure-store'],
+  plugins: [
+    '@react-native-async-storage/expo-with-async-storage',
+    'expo-router',
+    'expo-secure-store',
+  ],
   experiments: {
     typedRoutes: true,
   },

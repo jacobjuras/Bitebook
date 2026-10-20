@@ -136,7 +136,7 @@ export class BitebookStack extends Stack {
     // @secure_recommendation: Native applications cannot safely hold client secrets.
     const mobileAppClient = userPool.addClient('MobileAppClient', {
       accessTokenValidity: Duration.hours(1),
-      authFlows: { userSrp: true },
+      authFlows: { userPassword: true },
       enableTokenRevocation: true,
       generateSecret: false,
       idTokenValidity: Duration.hours(1),
