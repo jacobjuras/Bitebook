@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "test:deployed": "vitest run --config vitest.deployed.config.ts",
+    "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

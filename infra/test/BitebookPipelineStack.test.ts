@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BETA_ENVIRONMENT,
   BitebookPipelineStack,
+  PRODUCTION_ENVIRONMENT,
 } from '../lib/BitebookPipelineStack.js';
 
 describe('BitebookPipelineStack', () => {
@@ -13,9 +14,13 @@ describe('BitebookPipelineStack', () => {
   });
   const template = Template.fromStack(stack);
 
-  it('records the Beta deployment environment', () => {
+  it('records the deployment environments', () => {
     expect(BETA_ENVIRONMENT).toEqual({
       account: '492683309774',
+      region: 'us-west-2',
+    });
+    expect(PRODUCTION_ENVIRONMENT).toEqual({
+      account: '805982516567',
       region: 'us-west-2',
     });
   });
@@ -27,7 +32,7 @@ describe('BitebookPipelineStack', () => {
     });
   });
 
-  it('deploys main to Beta in queued executions', () => {
+  it('deploys main through Beta and Production in queued executions', () => {
     template.hasResourceProperties('AWS::CodePipeline::Pipeline', {
       ExecutionMode: 'QUEUED',
       Name: 'Bitebook',
@@ -44,12 +49,16 @@ describe('BitebookPipelineStack', () => {
           ]),
           Name: 'Source',
         }),
-        Match.objectLike({ Name: 'Beta' }),
+        Match.objectLike({
+          Name: 'Beta',
+          OnFailure: { Result: 'ROLLBACK' },
+        }),
+        Match.objectLike({
+          Name: 'Production',
+          OnFailure: { Result: 'ROLLBACK' },
+        }),
       ]),
     });
-
-    const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
-    expect(JSON.stringify(pipelines)).not.toContain('Production');
   });
 
   it('tests the deployed Beta API before promotion', () => {
@@ -85,6 +94,25 @@ describe('BitebookPipelineStack', () => {
 
     const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
     expect(JSON.stringify(pipelines)).toContain('MobileUiTests');
+  });
+
+  it('smoke tests Production after both Beta gates pass', () => {
+    template.hasResourceProperties('AWS::CodeBuild::Project', {
+      Description: Match.stringLikeRegexp('ProductionSmokeTests'),
+      Source: {
+        BuildSpec: Match.stringLikeRegexp(
+          'nodejs[\\s\\S]*24[\\s\\S]*test:smoke',
+        ),
+        Type: 'CODEPIPELINE',
+      },
+      TimeoutInMinutes: 10,
+    });
+
+    const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
+    const renderedPipeline = JSON.stringify(pipelines);
+    expect(renderedPipeline).toContain('ProductionSmokeTests');
+    expect(renderedPipeline).toContain('BITEBOOK_API_URL');
+    expect(renderedPipeline).toContain('.ApiUrl}');
   });
 
   it('protects pipeline artifacts and their access logs', () => {
@@ -145,7 +173,7 @@ describe('BitebookPipelineStack', () => {
   });
 
   it('keeps every generated build private and non-privileged', () => {
-    template.resourceCountIs('AWS::CodeBuild::Project', 5);
+    template.resourceCountIs('AWS::CodeBuild::Project', 6);
     template.allResourcesProperties('AWS::CodeBuild::Project', {
       Environment: Match.objectLike({ PrivilegedMode: false }),
       LogsConfig: {

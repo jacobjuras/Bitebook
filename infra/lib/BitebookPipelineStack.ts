@@ -1,6 +1,10 @@
 import { CfnParameter, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import { BuildSpec, CfnProject, LinuxBuildImage, Project } from 'aws-cdk-lib/aws-codebuild';
-import { ExecutionMode, PipelineType } from 'aws-cdk-lib/aws-codepipeline';
+import {
+  CfnPipeline,
+  ExecutionMode,
+  PipelineType,
+} from 'aws-cdk-lib/aws-codepipeline';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -19,7 +23,12 @@ export const BETA_ENVIRONMENT = {
   region: 'us-west-2',
 } as const;
 
-/** Defines the self-updating pipeline that deploys Bitebook from GitHub to Beta. */
+export const PRODUCTION_ENVIRONMENT = {
+  account: '805982516567',
+  region: 'us-west-2',
+} as const;
+
+/** Defines the self-updating pipeline that promotes Bitebook through Beta and Production. */
 export class BitebookPipelineStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -151,8 +160,43 @@ export class BitebookPipelineStack extends Stack {
       post: [deployedApiTests, mobileUiTests],
     });
 
+    const production = new BitebookApplicationStage(this, 'Production', {
+      deploymentStage: 'production',
+      env: PRODUCTION_ENVIRONMENT,
+    });
+    pipeline.addStage(production, {
+      post: [new CodeBuildStep('ProductionSmokeTests', {
+        buildEnvironment: {
+          buildImage: LinuxBuildImage.STANDARD_7_0,
+          privileged: false,
+        },
+        commands: [
+          'npm ci',
+          'npm run test:smoke --workspace @bitebook/integration-tests',
+        ],
+        envFromCfnOutputs: {
+          BITEBOOK_API_URL: production.applicationStack.apiUrl,
+        },
+        input: source,
+        logging: { cloudWatch: { logGroup: buildLogGroup } },
+        partialBuildSpec: BuildSpec.fromObject({
+          phases: { install: { 'runtime-versions': { nodejs: 24 } } },
+        }),
+        timeout: Duration.minutes(10),
+      })],
+    });
+
     // @secure_recommendation: Keep every generated build private and write logs only to the retained log group.
     pipeline.buildPipeline();
+    const pipelineResource = pipeline.pipeline.node.defaultChild as CfnPipeline;
+    pipelineResource.addPropertyOverride(
+      'Stages.4.OnFailure.Result',
+      'ROLLBACK',
+    );
+    pipelineResource.addPropertyOverride(
+      'Stages.5.OnFailure.Result',
+      'ROLLBACK',
+    );
     for (const node of this.node.findAll()) {
       if (node instanceof Project) {
         buildLogGroup.grantWrite(node);
