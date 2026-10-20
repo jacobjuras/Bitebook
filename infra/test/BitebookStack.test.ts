@@ -184,6 +184,7 @@ describe('BitebookStack', () => {
   it('exports mobile client configuration', () => {
     template.hasOutput('ApiUrl', { Value: Match.anyValue() });
     template.hasOutput('CognitoRegion', { Value: Match.anyValue() });
+    template.hasOutput('CognitoUrl', { Value: Match.anyValue() });
     template.hasOutput('UserPoolId', { Value: Match.anyValue() });
     template.hasOutput('UserPoolClientId', { Value: Match.anyValue() });
   });
