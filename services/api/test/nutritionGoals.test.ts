@@ -1,5 +1,6 @@
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -150,6 +151,56 @@ describe('NutritionGoal routes', () => {
 
     expect(response.statusCode).toBe(400);
     expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
+  });
+
+  it('deletes a NutritionGoal by effective date', async () => {
+    documentClientMock.on(DeleteCommand).resolves({});
+
+    const response = await handler(createEvent(
+      'DELETE /nutrition-goals/{effectiveFrom}',
+      undefined,
+      undefined,
+      '2026-10-19',
+    ));
+
+    expect(response).toEqual({ statusCode: 204 });
+    expect(documentClientMock.commandCalls(DeleteCommand)[0]?.args[0].input)
+      .toEqual({
+        ConditionExpression:
+          'attribute_exists(userId) AND attribute_exists(entityKey)',
+        Key: {
+          entityKey: 'NUTRITION_GOAL#2026-10-19',
+          userId: 'user-123',
+        },
+        TableName: 'UserDataTable',
+      });
+  });
+
+  it('rejects an invalid NutritionGoal deletion date', async () => {
+    const response = await handler(createEvent(
+      'DELETE /nutrition-goals/{effectiveFrom}',
+      undefined,
+      undefined,
+      'not-a-date',
+    ));
+
+    expect(response.statusCode).toBe(400);
+    expect(documentClientMock.commandCalls(DeleteCommand)).toHaveLength(0);
+  });
+
+  it('returns not found when deleting a missing NutritionGoal', async () => {
+    const missing = new Error('Condition failed');
+    missing.name = 'ConditionalCheckFailedException';
+    documentClientMock.on(DeleteCommand).rejects(missing);
+
+    const response = await handler(createEvent(
+      'DELETE /nutrition-goals/{effectiveFrom}',
+      undefined,
+      undefined,
+      '2026-10-19',
+    ));
+
+    expect(response.statusCode).toBe(404);
   });
 
   it('replaces a goal on the same future date', async () => {

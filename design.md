@@ -303,7 +303,7 @@ type NutritionGoal = {
 };
 ```
 
-To determine the goal for a particular day, Bitebook selects the user's most recent NutritionGoal whose date is on or before that day. Changing a goal only creates a new NutritionGoal rather than overwriting the previous one. The new goal begins on the date selected by the user, which defaults to the current date. Only one goal may begin on a particular date.
+To determine the goal for a particular day, Bitebook selects the user's most recent NutritionGoal whose date is on or before that day. Changing a goal creates a new NutritionGoal rather than overwriting the previous one. The new goal begins on the date selected by the user, which defaults to the current date, and only one goal may begin on a particular date. Users may delete any goal; reports calculate results from the remaining goal history each time, so deletion can intentionally change whether past days met their target.
 
 The Calendar uses the applicable goal to determine whether, in this example, the user met their calorie goal for the day (within 5%). Additional macro or micronutrient targets can be added later if we want to introduce goals for those values.
 
