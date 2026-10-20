@@ -112,15 +112,15 @@ This is the current phase.
 - [x] Designate `jacjuras-test` (`492683309774`) as the Beta AWS account.
 - [x] Create and designate Production AWS account `805982516567`.
 - [x] Select PDX (`us-west-2`) as the deployment Region.
-- [ ] Bootstrap CDK deployment roles and artifact access in both accounts.
+- [x] Bootstrap CDK deployment roles and artifact access in both accounts.
 - [x] Make CDK application composition stage-aware.
 - [x] Synthesize isolated Beta and Production application stacks.
 - [x] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
 - [x] Keep deployed API integration tests out of pull-request CI; run them only against Beta in the deployment pipeline.
 - [x] Add a deployed API integration-test package.
 - [x] Define a self-updating pipeline sourced from GitHub `main` and targeting Beta.
-- [ ] Authorize the GitHub CodeConnections connection in the Beta account.
-- [ ] Deploy the pipeline so merges to `main` deploy Beta.
+- [x] Authorize the GitHub CodeConnections connection in the Beta account.
+- [x] Deploy the pipeline so merges to `main` deploy Beta.
 - [x] Configure deployed API integration tests against Beta as a pipeline gate.
 - [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
 - [ ] Block Production promotion when either pipeline test gate fails.
