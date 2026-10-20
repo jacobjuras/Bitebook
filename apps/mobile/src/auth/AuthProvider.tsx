@@ -45,10 +45,10 @@ export function resolveSignInStatus(result: SignInOutput): AuthStatus {
   throw new Error(`Unsupported Cognito sign-in step: ${result.nextStep.signInStep}`);
 }
 
-/** Starts Cognito SRP authentication for a Bitebook email account. */
+/** Starts Cognito password authentication for a Bitebook email account. */
 export async function signInWithPassword(email: string, password: string) {
   return resolveSignInStatus(await amplifySignIn({
-    options: { authFlowType: 'USER_SRP_AUTH' },
+    options: { authFlowType: 'USER_PASSWORD_AUTH' },
     password,
     username: email.trim(),
   }));
@@ -74,6 +74,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function signInErrorMessage(error: unknown) {
+  const fallback = 'Unable to sign in with those credentials';
+  if (!__DEV__ || !(error instanceof Error)) return fallback;
+
+  const underlyingError = 'underlyingError' in error
+    ? error.underlyingError
+    : undefined;
+  const diagnostic = underlyingError instanceof Error
+    ? `${underlyingError.name}: ${underlyingError.message}`
+    : `${error.name}: ${error.message}`;
+  return `${fallback} (${diagnostic})`;
+}
+
 /** Provides one first-party Cognito authentication lifecycle to every route. */
 export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading');
@@ -93,8 +106,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setStatus('loading');
     try {
       setStatus(await signInWithPassword(email, password));
-    } catch {
-      setError('Unable to sign in with those credentials');
+    } catch (error) {
+      setError(signInErrorMessage(error));
       setStatus('signed-out');
     }
   }
