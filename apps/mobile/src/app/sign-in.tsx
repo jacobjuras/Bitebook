@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../auth/AuthProvider';
+import { AuthStatus } from '../auth/AuthStatus';
 import { useThemeColors } from '../theme/useThemeColors';
 
 /** Presents first-party Cognito authentication before the tabbed app is available. */
@@ -19,8 +20,8 @@ export default function SignInScreen() {
   const { confirmNewPassword, error, signIn, status } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const needsNewPassword = status === 'new-password-required';
-  const isLoading = status === 'loading';
+  const needsNewPassword = status === AuthStatus.NewPasswordRequired;
+  const isLoading = status === AuthStatus.Loading;
   const isDisabled =
     isLoading
     || password.length < MIN_PASSWORD_LENGTH

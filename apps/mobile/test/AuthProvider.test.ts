@@ -39,6 +39,7 @@ import {
   resolveSignInStatus,
   signInWithPassword,
 } from '../src/auth/AuthProvider.js';
+import { AuthStatus } from '../src/auth/AuthStatus.js';
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -50,7 +51,7 @@ describe('Amplify authentication operations', () => {
     });
 
     await expect(signInWithPassword(' user@example.com ', 'password'))
-      .resolves.toBe('signed-in');
+      .resolves.toBe(AuthStatus.SignedIn);
     expect(mocks.signIn).toHaveBeenCalledWith({
       options: { authFlowType: 'USER_PASSWORD_AUTH' },
       password: 'password',
@@ -65,14 +66,14 @@ describe('Amplify authentication operations', () => {
         missingAttributes: [],
         signInStep: 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED',
       },
-    })).toBe('new-password-required');
+    })).toBe(AuthStatus.NewPasswordRequired);
     mocks.confirmSignIn.mockResolvedValue({
       isSignedIn: true,
       nextStep: { signInStep: 'DONE' },
     });
 
     await expect(completeRequiredPassword('new-password'))
-      .resolves.toBe('signed-in');
+      .resolves.toBe(AuthStatus.SignedIn);
     expect(mocks.confirmSignIn).toHaveBeenCalledWith({
       challengeResponse: 'new-password',
     });
