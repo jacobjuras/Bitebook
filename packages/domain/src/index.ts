@@ -1,3 +1,4 @@
+export * from './authentication.js';
 export * from './calendarMeal.js';
 export * from './calendarMealGrouping.js';
 export * from './food.js';

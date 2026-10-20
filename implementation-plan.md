@@ -50,6 +50,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Add placeholder Food and Meal creation destinations.
 - [x] Centralize semantic light and dark color tokens.
 - [x] Apply theme colors to the tab bar and screen backgrounds.
+- [ ] Centralize user-interface strings before adding additional languages.
 - [ ] Add shared spacing, typography, and radius tokens when repeated UI patterns justify them.
 
 ## 4. Core AWS infrastructure
