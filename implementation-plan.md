@@ -107,22 +107,23 @@ This plan tracks implementation in dependency order. Completed work remains chec
 
 This is the current phase.
 
-- [x] Choose separate AWS accounts for Beta and Production.
-- [ ] Create or designate the Beta AWS account.
-- [ ] Create or designate the Production AWS account.
+- [x] Choose separate AWS accounts for Beta and Production, without a separate management or tooling account for now.
+- [x] Designate `jacjuras-test` (`492683309774`) as the Beta AWS account.
+- [x] Create and designate Production AWS account `805982516567`.
+- [x] Select PDX (`us-west-2`) as the deployment Region.
 - [ ] Bootstrap CDK deployment roles and artifact access in both accounts.
 - [x] Make CDK application composition stage-aware.
 - [x] Synthesize isolated Beta and Production application stacks.
 - [x] Add pull-request CI for build, type-check, unit tests, and CDK synthesis.
 - [x] Keep deployed API integration tests out of pull-request CI; run them only against Beta in the deployment pipeline.
 - [x] Add a deployed API integration-test package.
-- [ ] Test unauthenticated rejection through API Gateway.
-- [ ] Test cross-user data isolation.
-- [ ] Test an authenticated Food lifecycle against Beta.
-- [ ] Add a deployment pipeline that deploys Beta after merges to `main`.
-- [ ] Run integration tests as the Beta promotion gate.
-- [ ] Add manual approval before Production.
-- [ ] Promote the same tested artifact from Beta to Production.
+- [x] Define a self-updating pipeline sourced from GitHub `main` and targeting Beta.
+- [ ] Authorize the GitHub CodeConnections connection in the Beta account.
+- [ ] Deploy the pipeline so merges to `main` deploy Beta.
+- [ ] Run deployed API integration tests against Beta as a pipeline gate.
+- [ ] Add a pipeline gate for mobile UI tests once the UI-test runner exists.
+- [ ] Block Production promotion when either pipeline test gate fails.
+- [ ] Automatically promote the same tested artifact to Production when both Beta pipeline gates pass.
 - [ ] Add environment-specific mobile configuration for local development, Beta, and Production.
 
 ## 9. Authentication infrastructure
@@ -301,18 +302,29 @@ This is the current phase.
 
 ## 24. Operational readiness
 
-**Stack:** AWS CDK infrastructure, deployed integration tests, and runbooks
+**Stack:** AWS CDK infrastructure and runbooks
 
 - [ ] Add API throttling and abuse limits.
 - [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, USDA failures, and subscription-notification failures.
 - [ ] Add deployment notifications and operational runbooks.
 - [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
-- [ ] Verify malformed input, unauthenticated access, and cross-user access are rejected end to end.
-- [ ] Verify rollback-sensitive stock operations end to end.
 - [ ] Inspect representative logs for prohibited user data and credentials.
 - [ ] Publish the privacy notice and complete platform privacy disclosures.
 
-## 25. Mobile distribution
+## 25. End-to-end release validation
+
+**Stack:** Deployed API integration tests, mobile UI automation, Beta application, and deployment pipeline
+
+This phase intentionally runs near the end, after the product workflows and operational controls are complete. Unit tests continue to ship with each implementation change.
+
+- [ ] Create comprehensive deployed API integration tests for authentication, Foods, Meals, MealEntries, profile, goals, barcode lookup, reports, subscriptions, and ads.
+- [ ] Add deployed API tests for malformed input, unauthenticated access, and cross-user access.
+- [ ] Add deployed API tests for rollback-sensitive stock operations.
+- [ ] Select and configure a mobile UI test framework and execution environment for iOS and Android.
+- [ ] Create mobile UI tests for authentication, Pantry, meal logging, Calendar, Reports, subscriptions, and ads.
+- [ ] Verify the completed API integration and mobile UI suites pass through their existing Beta pipeline gates.
+
+## 26. Mobile distribution preparation
 
 **Stack:** Expo Application Services, Apple App Store, and Google Play
 
@@ -320,4 +332,16 @@ This is the current phase.
 - [ ] Build and distribute internal Beta releases.
 - [ ] Prepare Apple App Store metadata and review materials.
 - [ ] Prepare Google Play metadata and review materials.
-- [ ] Submit Production releases.
+
+## 27. Final account migration and launch
+
+**Stack:** AWS accounts, CDK infrastructure, deployment pipeline, mobile configuration, and app stores
+
+- [ ] Revisit every CDK resource and deployment setting before migration, especially retention, removal policies, backups, logging, KMS keys, capacity, billing modes, alarms, quotas, and deletion protection.
+- [ ] Estimate Beta and Production monthly costs from the final synthesized infrastructure and adjust configuration before creating resources.
+- [ ] Create fresh externally owned Beta and Production AWS accounts with budgets, billing alerts, and account-level security controls.
+- [ ] Bootstrap both fresh accounts and retarget the pipeline, application stages, and mobile environment configuration.
+- [ ] Deploy all infrastructure to the fresh accounts and pass the complete Beta API integration and mobile UI test gates.
+- [ ] Verify automatic promotion deploys the same tested artifact to the fresh Production account.
+- [ ] Remove Bitebook infrastructure from the temporary internal accounts only after the fresh environments are verified.
+- [ ] Submit Production releases to the Apple App Store and Google Play.
