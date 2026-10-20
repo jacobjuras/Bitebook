@@ -132,7 +132,7 @@ export class BitebookStack extends Stack {
       },
     });
 
-    userPool.addDomain('Domain', {
+    const userPoolDomain = userPool.addDomain('Domain', {
       cognitoDomain: { domainPrefix: props.cognitoDomainPrefix },
     });
 
@@ -216,6 +216,7 @@ export class BitebookStack extends Stack {
       value: api.apiEndpoint,
     });
     new CfnOutput(this, 'CognitoRegion', { value: Aws.REGION });
+    new CfnOutput(this, 'CognitoUrl', { value: userPoolDomain.baseUrl() });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', {
       value: mobileAppClient.userPoolClientId,
