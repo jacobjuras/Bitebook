@@ -149,12 +149,10 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 **Stack:** Expo React Native mobile app (`@bitebook/mobile`)
 
 - [ ] Add mobile email sign-up and verification.
-- [x] Gate the tabbed app behind a standalone first-party sign-in and required-password screen.
-- [ ] Add authenticated sign-out.
-- [x] Add first-party Cognito SRP authentication and admin-created-user password challenges.
+- [ ] Add sign-in and sign-out.
 - [x] Store tokens in platform-backed secure storage.
 - [ ] Refresh access and ID tokens silently.
-- [ ] Add social-provider OAuth deep-link handling after external-account migration.
+- [x] Add Expo deep-link handling for Cognito OAuth callbacks.
 - [ ] Add Google sign-in after external-account migration.
 - [ ] Add a shared authenticated HTTP client.
 - [ ] Add consistent loading, validation, offline, and API error handling.

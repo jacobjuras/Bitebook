@@ -1,28 +1,12 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { AuthProvider, useAuth } from '../auth/AuthProvider';
-
-function AuthenticatedRoutes() {
-  const { status } = useAuth();
-  const isSignedIn = status === 'signed-in';
-
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="sign-in" />
-      </Stack.Protected>
-      <Stack.Protected guard={isSignedIn}>
-        <Stack.Screen name="(tabs)" />
-      </Stack.Protected>
-    </Stack>
-  );
-}
+import { AuthProvider } from '../auth/AuthProvider';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <AuthenticatedRoutes />
+      <Stack screenOptions={{ headerShown: false }} />
       <StatusBar style="auto" />
     </AuthProvider>
   );
