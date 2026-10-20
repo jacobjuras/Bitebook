@@ -152,7 +152,8 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Add sign-in and sign-out.
 - [x] Store tokens in platform-backed secure storage.
 - [ ] Refresh access and ID tokens silently.
-- [ ] Add Google sign-in and Expo deep-link handling.
+- [x] Add Expo deep-link handling for Cognito OAuth callbacks.
+- [ ] Add Google sign-in after external-account migration.
 - [ ] Add a shared authenticated HTTP client.
 - [ ] Add consistent loading, validation, offline, and API error handling.
 
