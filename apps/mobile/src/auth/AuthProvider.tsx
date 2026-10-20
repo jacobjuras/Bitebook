@@ -1,10 +1,11 @@
 import {
-  AuthenticationDetails,
-  CognitoUser,
-  CognitoUserPool,
-  type CognitoUserSession,
-  type IAuthenticationCallback,
-} from 'amazon-cognito-identity-js';
+  exchangeCodeAsync,
+  ResponseType,
+  revokeAsync,
+  useAuthRequest,
+  type DiscoveryDocument,
+} from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import {
   createContext,
   useContext,
@@ -21,100 +22,64 @@ import {
   type AuthSession,
 } from './authSession';
 
+const CALLBACK_URL = 'bitebook://auth/callback';
+const SIGN_OUT_URL = 'bitebook://auth/signout';
 const config = getMobileConfig();
-const volatileValues = new Map<string, string>();
-// @secure_recommendation: Cognito's internal cache is volatile; only SecureStore persists tokens.
-const volatileStorage = {
-  clear: () => volatileValues.clear(),
-  getItem: (key: string) => volatileValues.get(key) ?? null,
-  removeItem: (key: string) => void volatileValues.delete(key),
-  setItem: (key: string, value: string) => void volatileValues.set(key, value),
+const discovery: DiscoveryDocument = {
+  authorizationEndpoint: new URL('/oauth2/authorize', config.cognitoUrl).href,
+  revocationEndpoint: new URL('/oauth2/revoke', config.cognitoUrl).href,
+  tokenEndpoint: new URL('/oauth2/token', config.cognitoUrl).href,
 };
-const userPool = new CognitoUserPool({
-  ClientId: config.userPoolClientId,
-  Storage: volatileStorage,
-  UserPoolId: config.userPoolId,
-});
 
-type AuthStatus =
-  | 'loading'
-  | 'new-password-required'
-  | 'signed-in'
-  | 'signed-out';
+WebBrowser.maybeCompleteAuthSession();
+
+/** Exchanges a Cognito authorization code using its matching PKCE verifier. */
+export async function exchangeAuthorizationCode(code: string, verifier: string) {
+  const response = await exchangeCodeAsync({
+    clientId: config.userPoolClientId,
+    code,
+    extraParams: { code_verifier: verifier },
+    redirectUri: CALLBACK_URL,
+  }, discovery);
+  return saveAuthSession(response);
+}
+
+/** Revokes a Cognito refresh token before removing the local session. */
+export async function revokeAuthSession(session: AuthSession) {
+  await revokeAsync({
+    clientId: config.userPoolClientId,
+    token: session.refreshToken,
+  }, discovery);
+}
+
+function createSignOutUrl() {
+  const url = new URL('/logout', config.cognitoUrl);
+  url.searchParams.set('client_id', config.userPoolClientId);
+  url.searchParams.set('logout_uri', SIGN_OUT_URL);
+  return url.href;
+}
+
+type AuthStatus = 'loading' | 'signed-in' | 'signed-out';
 interface AuthContextValue {
-  confirmNewPassword(password: string): Promise<void>;
   error: string | null;
   session: AuthSession | null;
-  signIn(email: string, password: string): Promise<void>;
+  signIn(): Promise<void>;
   signOut(): Promise<void>;
   status: AuthStatus;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function awaitAuthentication(
-  start: (callbacks: IAuthenticationCallback) => void,
-): Promise<CognitoUserSession | null> {
-  return new Promise((resolve, reject) => start({
-    newPasswordRequired: () => resolve(null),
-    onFailure: reject,
-    onSuccess: resolve,
-  }));
-}
-
-async function storeSession(session: CognitoUserSession) {
-  const accessToken = session.getAccessToken();
-  return saveAuthSession({
-    accessToken: accessToken.getJwtToken(),
-    expiresIn: accessToken.getExpiration() - accessToken.getIssuedAt(),
-    idToken: session.getIdToken().getJwtToken(),
-    issuedAt: accessToken.getIssuedAt(),
-    refreshToken: session.getRefreshToken().getToken(),
-  });
-}
-
-/** Authenticates an email and password through Cognito's SRP protocol. */
-export async function signInWithPassword(email: string, password: string) {
-  const username = email.trim();
-  const user = new CognitoUser({ Pool: userPool, Username: username });
-  const result = await awaitAuthentication((callbacks) => {
-    user.authenticateUser(new AuthenticationDetails({
-      Password: password,
-      Username: username,
-    }), callbacks);
-  });
-  return { session: result ? await storeSession(result) : null, user };
-}
-
-/** Completes the temporary-password challenge for an admin-created user. */
-export async function completeRequiredPassword(
-  user: CognitoUser,
-  password: string,
-) {
-  const result = await awaitAuthentication((callbacks) => {
-    user.completeNewPasswordChallenge(password, {}, callbacks);
-  });
-  if (!result) throw new Error('Unexpected password challenge');
-  return storeSession(result);
-}
-
-/** Revokes the refresh token that maintains a Cognito session. */
-export async function revokeAuthSession(session: AuthSession) {
-  const response = await fetch(new URL('/oauth2/revoke', config.cognitoUrl), {
-    body: new URLSearchParams({
-      client_id: config.userPoolClientId,
-      token: session.refreshToken,
-    }).toString(),
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    method: 'POST',
-  });
-  if (!response.ok) throw new Error('Cognito token revocation failed');
-}
-
-/** Provides one first-party Cognito email session to every mobile route. */
+/** Provides one Cognito session and sign-in lifecycle to every mobile route. */
 export function AuthProvider({ children }: PropsWithChildren) {
+  const [request, , promptAsync] = useAuthRequest({
+    clientId: config.userPoolClientId,
+    redirectUri: CALLBACK_URL,
+    responseType: ResponseType.Code,
+    scopes: ['openid', 'email'],
+    usePKCE: true,
+  }, discovery);
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [pendingUser, setPendingUser] = useState<CognitoUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -128,35 +93,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  async function signIn(email: string, password: string) {
+  async function signIn() {
+    if (!request?.codeVerifier) return;
     setError(null);
-    setStatus('loading');
     try {
-      const result = await signInWithPassword(email, password);
-      if (!result.session) {
-        setPendingUser(result.user);
-        setStatus('new-password-required');
-        return;
-      }
-      setSession(result.session);
+      const result = await promptAsync();
+      if (result.type !== 'success' || !result.params.code) return;
+      setSession(await exchangeAuthorizationCode(
+        result.params.code,
+        request.codeVerifier,
+      ));
       setStatus('signed-in');
     } catch {
-      setError('Unable to sign in with those credentials');
-      setStatus('signed-out');
-    }
-  }
-
-  async function confirmNewPassword(password: string) {
-    if (!pendingUser) return;
-    setError(null);
-    setStatus('loading');
-    try {
-      setSession(await completeRequiredPassword(pendingUser, password));
-      setPendingUser(null);
-      setStatus('signed-in');
-    } catch {
-      setError('Unable to set the new password');
-      setStatus('new-password-required');
+      setError('Sign in failed');
     }
   }
 
@@ -166,18 +115,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       await revokeAuthSession(session);
       await clearAuthSession();
+      setSession(null);
+      setStatus('signed-out');
+      await WebBrowser.openAuthSessionAsync(createSignOutUrl(), SIGN_OUT_URL);
     } catch {
       setError('Sign out failed');
-      return;
     }
-    setSession(null);
-    setStatus('signed-out');
   }
 
   return (
-    <AuthContext.Provider value={{
-      confirmNewPassword, error, session, signIn, signOut, status,
-    }}>
+    <AuthContext.Provider value={{ error, session, signIn, signOut, status }}>
       {children}
     </AuthContext.Provider>
   );

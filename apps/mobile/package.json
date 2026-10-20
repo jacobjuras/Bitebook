@@ -3,23 +3,24 @@
   "version": "0.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --localhost",
-    "android": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --localhost --android",
+    "start": "expo start --localhost",
+    "android": "expo start --localhost --android",
     "doctor": "expo-doctor",
-    "ios": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --localhost --ios",
+    "ios": "expo start --localhost --ios",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "amazon-cognito-identity-js": "^6.3.22",
     "expo": "~58.0.16",
+    "expo-auth-session": "~58.0.13",
     "expo-constants": "~58.0.12",
+    "expo-crypto": "~58.0.7",
     "expo-linking": "~58.0.13",
     "expo-router": "~58.0.24",
     "expo-secure-store": "~58.0.2",
     "expo-status-bar": "~58.0.3",
+    "expo-web-browser": "~58.0.6",
     "react": "19.3.0",
     "react-native": "0.88.0",
     "react-native-safe-area-context": "~5.10.1",
@@ -27,7 +28,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
-    "cross-env": "^10.1.0",
     "expo-doctor": "1.21.5",
     "typescript": "~6.0.3",
     "vitest": "5.0.5"
