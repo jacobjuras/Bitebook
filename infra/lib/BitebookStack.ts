@@ -1,3 +1,4 @@
+import { MIN_PASSWORD_LENGTH } from '@bitebook/domain/authentication';
 import {
   Aws,
   CfnOutput,
@@ -113,7 +114,7 @@ export class BitebookStack extends Stack {
       deletionProtection: true,
       featurePlan: FeaturePlan.LITE,
       passwordPolicy: {
-        minLength: 8,
+        minLength: MIN_PASSWORD_LENGTH,
         requireDigits: false,
         requireLowercase: false,
         requireSymbols: false,

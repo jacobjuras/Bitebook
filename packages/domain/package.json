@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./authentication": {
+      "types": "./dist/authentication.d.ts",
+      "import": "./dist/authentication.js"
     }
   },
   "scripts": {

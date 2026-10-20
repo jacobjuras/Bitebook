@@ -1,3 +1,4 @@
+import { MIN_PASSWORD_LENGTH } from '@bitebook/domain/authentication';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +21,10 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const needsNewPassword = status === 'new-password-required';
   const isLoading = status === 'loading';
-  const isDisabled = isLoading || !password || (!needsNewPassword && !email.trim());
+  const isDisabled =
+    isLoading
+    || password.length < MIN_PASSWORD_LENGTH
+    || (!needsNewPassword && !email.trim());
 
   async function submit() {
     const submittedPassword = password;
@@ -33,15 +37,20 @@ export default function SignInScreen() {
     await signIn(email, submittedPassword);
   }
 
+  // Authentication screen
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/* Sign-in form */}
       <View style={styles.content}>
+        {/* App title */}
         <Text style={[styles.title, { color: colors.textPrimary }]}>Bitebook</Text>
+        {/* Sign-in instructions */}
         <Text style={[styles.description, { color: colors.textSecondary }]}>
           {needsNewPassword
             ? 'Choose a permanent password to finish signing in.'
             : 'Sign in to access your foods, meals, goals, and reports.'}
         </Text>
+        {/* Email input */}
         {!needsNewPassword ? (
           <TextInput
             autoCapitalize="none"
@@ -53,6 +62,7 @@ export default function SignInScreen() {
             value={email}
           />
         ) : null}
+        {/* Password input */}
         <TextInput
           autoCapitalize="none"
           autoComplete={needsNewPassword ? 'new-password' : 'current-password'}
@@ -63,6 +73,7 @@ export default function SignInScreen() {
           style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]}
           value={password}
         />
+        {/* Sign-in button */}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: isDisabled }}
@@ -75,13 +86,16 @@ export default function SignInScreen() {
           ]}
         >
           {isLoading ? (
+            // Sign-in progress indicator
             <ActivityIndicator color={colors.onAccent} />
           ) : (
+            // Sign-in button label
             <Text style={[styles.buttonText, { color: colors.onAccent }]}>
               {needsNewPassword ? 'Set password' : 'Sign in'}
             </Text>
           )}
         </Pressable>
+        {/* Authentication error */}
         {error ? (
           <Text accessibilityRole="alert" style={{ color: colors.textSecondary }}>
             {error}
