@@ -4,8 +4,14 @@ import type { Construct } from 'constructs';
 import { BitebookStack } from './BitebookStack.js';
 
 export const DEPLOYMENT_STAGES = {
-  beta: { label: 'Beta' },
-  production: { label: 'Production' },
+  beta: {
+    cognitoDomainPrefix: 'bitebook-beta-492683309774',
+    label: 'Beta',
+  },
+  production: {
+    cognitoDomainPrefix: 'bitebook-production-805982516567',
+    label: 'Production',
+  },
 } as const;
 
 export type DeploymentStage = keyof typeof DEPLOYMENT_STAGES;
@@ -25,12 +31,13 @@ export class BitebookApplicationStage extends Stage {
     props: BitebookApplicationStageProps,
   ) {
     const { deploymentStage, ...stageProps } = props;
-    const { label } = DEPLOYMENT_STAGES[deploymentStage];
+    const { cognitoDomainPrefix, label } = DEPLOYMENT_STAGES[deploymentStage];
 
     super(scope, id, { ...stageProps, stageName: label });
 
     // @secure_recommendation: Label each deployment so production and non-production resources remain distinguishable.
     this.applicationStack = new BitebookStack(this, 'Application', {
+      cognitoDomainPrefix,
       stackName: `Bitebook-${label}`,
       tags: { DeploymentStage: label },
     });

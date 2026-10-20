@@ -6,7 +6,9 @@ import { BitebookStack } from '../lib/BitebookStack.js';
 
 describe('BitebookStack', () => {
   const app = new App({ analyticsReporting: false });
-  const template = Template.fromStack(new BitebookStack(app, 'TestStack'));
+  const template = Template.fromStack(new BitebookStack(app, 'TestStack', {
+    cognitoDomainPrefix: 'bitebook-test-111111111111',
+  }));
 
   it('creates a protected user data table', () => {
     template.hasResourceProperties('AWS::DynamoDB::Table', {
@@ -116,7 +118,8 @@ describe('BitebookStack', () => {
           TemporaryPasswordValidityDays: 3,
         },
       },
-      UserPoolTier: 'ESSENTIALS',
+      UserPoolAddOns: { AdvancedSecurityMode: 'ENFORCED' },
+      UserPoolTier: 'PLUS',
       UsernameAttributes: ['email'],
       UsernameConfiguration: { CaseSensitive: false },
     });
@@ -130,17 +133,21 @@ describe('BitebookStack', () => {
   it('creates a secretless mobile User Pool client', () => {
     template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
       AccessTokenValidity: 60,
-      AllowedOAuthFlowsUserPoolClient: false,
+      AllowedOAuthFlows: ['code'],
+      AllowedOAuthFlowsUserPoolClient: true,
+      AllowedOAuthScopes: ['email', 'openid'],
+      CallbackURLs: ['bitebook://auth/callback'],
       EnableTokenRevocation: true,
       ExplicitAuthFlows: ['ALLOW_USER_SRP_AUTH'],
       GenerateSecret: false,
       IdTokenValidity: 60,
+      LogoutURLs: ['bitebook://auth/signout'],
       PreventUserExistenceErrors: 'ENABLED',
       RefreshTokenRotation: {
         Feature: 'ENABLED',
         RetryGracePeriodSeconds: 10,
       },
-      RefreshTokenValidity: 525_600,
+      RefreshTokenValidity: 43_200,
       SupportedIdentityProviders: ['COGNITO'],
     });
   });

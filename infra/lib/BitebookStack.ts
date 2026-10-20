@@ -18,6 +18,8 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import {
   AccountRecovery,
   FeaturePlan,
+  OAuthScope,
+  StandardThreatProtectionMode,
   UserPool,
   UserPoolClientIdentityProvider,
 } from 'aws-cdk-lib/aws-cognito';
@@ -38,10 +40,14 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import type { Construct } from 'constructs';
 
+export interface BitebookStackProps extends StackProps {
+  cognitoDomainPrefix: string;
+}
+
 export class BitebookStack extends Stack {
   readonly apiUrl: CfnOutput;
 
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: BitebookStackProps) {
     super(scope, id, props);
 
     // @secure_recommendation: Protect stored user data with a service-owned KMS key.
@@ -106,7 +112,7 @@ export class BitebookStack extends Stack {
       accountRecovery: AccountRecovery.EMAIL_ONLY,
       autoVerify: { email: true },
       deletionProtection: true,
-      featurePlan: FeaturePlan.ESSENTIALS,
+      featurePlan: FeaturePlan.PLUS,
       passwordPolicy: {
         minLength: 8,
         passwordHistorySize: 1,
@@ -120,22 +126,32 @@ export class BitebookStack extends Stack {
       selfSignUpEnabled: false,
       signInAliases: { email: true },
       signInCaseSensitive: false,
+      standardThreatProtectionMode: StandardThreatProtectionMode.FULL_FUNCTION,
       standardAttributes: {
         email: { mutable: true, required: true },
       },
+    });
+
+    userPool.addDomain('Domain', {
+      cognitoDomain: { domainPrefix: props.cognitoDomainPrefix },
     });
 
     // @secure_recommendation: Native applications cannot safely hold client secrets.
     const mobileAppClient = userPool.addClient('MobileAppClient', {
       accessTokenValidity: Duration.hours(1),
       authFlows: { userSrp: true },
-      disableOAuth: true,
       enableTokenRevocation: true,
       generateSecret: false,
       idTokenValidity: Duration.hours(1),
+      oAuth: {
+        callbackUrls: ['bitebook://auth/callback'],
+        flows: { authorizationCodeGrant: true },
+        logoutUrls: ['bitebook://auth/signout'],
+        scopes: [OAuthScope.EMAIL, OAuthScope.OPENID],
+      },
       preventUserExistenceErrors: true,
       refreshTokenRotationGracePeriod: Duration.seconds(10),
-      refreshTokenValidity: Duration.days(365),
+      refreshTokenValidity: Duration.days(30),
       supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
     });
 
