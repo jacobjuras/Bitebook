@@ -71,6 +71,22 @@ describe('BitebookPipelineStack', () => {
     expect(renderedPipeline).toContain('.ApiUrl}');
   });
 
+  it('skips mobile UI tests until their runner is configured', () => {
+    template.hasResourceProperties('AWS::CodeBuild::Project', {
+      Description: Match.stringLikeRegexp('MobileUiTests'),
+      Source: {
+        BuildSpec: Match.stringLikeRegexp(
+          'Mobile UI tests skipped: runner is not configured',
+        ),
+        Type: 'CODEPIPELINE',
+      },
+      TimeoutInMinutes: 5,
+    });
+
+    const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
+    expect(JSON.stringify(pipelines)).toContain('MobileUiTests');
+  });
+
   it('protects pipeline artifacts and their access logs', () => {
     template.resourceCountIs('AWS::S3::Bucket', 2);
     template.allResourcesProperties('AWS::S3::Bucket', {
@@ -129,7 +145,7 @@ describe('BitebookPipelineStack', () => {
   });
 
   it('keeps every generated build private and non-privileged', () => {
-    template.resourceCountIs('AWS::CodeBuild::Project', 4);
+    template.resourceCountIs('AWS::CodeBuild::Project', 5);
     template.allResourcesProperties('AWS::CodeBuild::Project', {
       Environment: Match.objectLike({ PrivilegedMode: false }),
       LogsConfig: {
