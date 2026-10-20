@@ -130,8 +130,11 @@ This is the current phase.
 
 **Stack:** Amazon Cognito and OAuth configuration (`@bitebook/infra` plus provider consoles)
 
-- [ ] Enable public email account registration with verification and recovery.
-- [ ] Register Google as a Cognito identity provider.
+Temporary internal Beta and Production environments use admin-created Cognito test users. Public registration and social identity providers remain disabled there and are enabled only after migration to externally owned accounts.
+
+- [ ] Configure admin-created test users for temporary internal environments.
+- [ ] Enable public email account registration with verification and recovery after external-account migration.
+- [ ] Register Google as a Cognito identity provider after external-account migration.
 - [ ] Add a Cognito domain and authorization-code flow with PKCE.
 - [ ] Register exact mobile callback and sign-out URLs.
 - [ ] Reassess Sign in with Apple before iOS App Store submission.
