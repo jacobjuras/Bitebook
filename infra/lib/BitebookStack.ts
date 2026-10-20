@@ -162,6 +162,7 @@ export class BitebookStack extends Stack {
       ['/meals', [HttpMethod.GET, HttpMethod.POST]],
       ['/meals/{mealId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
       ['/nutrition-goals', [HttpMethod.POST]],
+      ['/nutrition-goals/{effectiveFrom}', [HttpMethod.PUT]],
       ['/nutrition-goals/effective', [HttpMethod.GET]],
       ['/profile', [HttpMethod.GET, HttpMethod.PUT]],
     ];

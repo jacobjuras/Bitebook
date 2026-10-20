@@ -99,7 +99,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Replace the authenticated user's profile while preserving its creation time.
 - [x] Create effective-dated NutritionGoals with one goal per date.
 - [x] Get the goal effective on a requested local date.
-- [ ] Allow an unactioned future NutritionGoal to be rescheduled or replaced without rewriting effective history.
+- [x] Allow an unactioned future NutritionGoal to be rescheduled or replaced without rewriting effective history.
 
 ## 8. Staged CI/CD foundation
 
