@@ -52,6 +52,25 @@ describe('BitebookPipelineStack', () => {
     expect(JSON.stringify(pipelines)).not.toContain('Production');
   });
 
+  it('tests the deployed Beta API before promotion', () => {
+    template.hasResourceProperties('AWS::CodeBuild::Project', {
+      Description: Match.stringLikeRegexp('DeployedApiTests'),
+      Source: {
+        BuildSpec: Match.stringLikeRegexp(
+          'nodejs[\\s\\S]*24[\\s\\S]*test:deployed',
+        ),
+        Type: 'CODEPIPELINE',
+      },
+      TimeoutInMinutes: 10,
+    });
+
+    const pipelines = template.findResources('AWS::CodePipeline::Pipeline');
+    const renderedPipeline = JSON.stringify(pipelines);
+    expect(renderedPipeline).toContain('DeployedApiTests');
+    expect(renderedPipeline).toContain('BITEBOOK_API_URL');
+    expect(renderedPipeline).toContain('.ApiUrl}');
+  });
+
   it('protects pipeline artifacts and their access logs', () => {
     template.resourceCountIs('AWS::S3::Bucket', 2);
     template.allResourcesProperties('AWS::S3::Bucket', {
@@ -110,7 +129,7 @@ describe('BitebookPipelineStack', () => {
   });
 
   it('keeps every generated build private and non-privileged', () => {
-    template.resourceCountIs('AWS::CodeBuild::Project', 3);
+    template.resourceCountIs('AWS::CodeBuild::Project', 4);
     template.allResourcesProperties('AWS::CodeBuild::Project', {
       Environment: Match.objectLike({ PrivilegedMode: false }),
       LogsConfig: {

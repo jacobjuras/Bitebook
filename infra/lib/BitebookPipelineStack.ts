@@ -5,7 +5,11 @@ import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { BlockPublicAccess, Bucket, BucketEncryption, CfnBucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
-import { CodeBuildStep, CodePipeline, CodePipelineSource } from 'aws-cdk-lib/pipelines';
+import {
+  CodeBuildStep,
+  CodePipeline,
+  CodePipelineSource,
+} from 'aws-cdk-lib/pipelines';
 import type { Construct } from 'constructs';
 
 import { BitebookApplicationStage } from './BitebookApplicationStage.js';
@@ -109,10 +113,31 @@ export class BitebookPipelineStack extends Stack {
       }),
     });
 
-    pipeline.addStage(new BitebookApplicationStage(this, 'Beta', {
+    const beta = new BitebookApplicationStage(this, 'Beta', {
       deploymentStage: 'beta',
       env: BETA_ENVIRONMENT,
-    }));
+    });
+    pipeline.addStage(beta, {
+      post: [new CodeBuildStep('DeployedApiTests', {
+        buildEnvironment: {
+          buildImage: LinuxBuildImage.STANDARD_7_0,
+          privileged: false,
+        },
+        commands: [
+          'npm ci',
+          'npm run test:deployed --workspace @bitebook/integration-tests',
+        ],
+        envFromCfnOutputs: {
+          BITEBOOK_API_URL: beta.applicationStack.apiUrl,
+        },
+        input: source,
+        logging: { cloudWatch: { logGroup: buildLogGroup } },
+        partialBuildSpec: BuildSpec.fromObject({
+          phases: { install: { 'runtime-versions': { nodejs: 24 } } },
+        }),
+        timeout: Duration.minutes(10),
+      })],
+    });
 
     // @secure_recommendation: Keep every generated build private and write logs only to the retained log group.
     pipeline.buildPipeline();

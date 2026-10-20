@@ -39,6 +39,8 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import type { Construct } from 'constructs';
 
 export class BitebookStack extends Stack {
+  readonly apiUrl: CfnOutput;
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -193,7 +195,9 @@ export class BitebookStack extends Stack {
     });
 
     // @secure_recommendation: Export only public client configuration, never credentials or secrets.
-    new CfnOutput(this, 'ApiUrl', { value: api.apiEndpoint });
+    this.apiUrl = new CfnOutput(this, 'ApiUrl', {
+      value: api.apiEndpoint,
+    });
     new CfnOutput(this, 'CognitoRegion', { value: Aws.REGION });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', {
