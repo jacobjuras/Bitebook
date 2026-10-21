@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   foodControls: { flexDirection: 'row', gap: 10, marginHorizontal: 24, marginTop: 16 },
   foodDetail: { fontSize: 14 },
   foodDetails: { flexDirection: 'row', justifyContent: 'space-between' },
-  foodList: { gap: 10, padding: 24 },
+  foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
   foodName: { fontSize: 17, fontWeight: '600' },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
   iconCircle: { alignItems: 'center', borderRadius: 30, height: 60, justifyContent: 'center', width: 60 },
