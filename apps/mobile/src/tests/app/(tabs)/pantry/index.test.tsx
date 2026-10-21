@@ -1,9 +1,13 @@
-import { createElement } from 'react';
+import type { Food } from '@bitebook/domain';
+import { createElement, type ReactNode } from 'react';
 import {
   fireEvent,
   render,
   screen,
 } from '@testing-library/react-native';
+import {
+  StyleSheet,
+} from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -16,6 +20,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
+vi.mock('@expo/ui/community/menu', async () => {
+  const { createElement } = await vi.importActual<typeof import('react')>('react');
+  return {
+    MenuView: ({ children, ...props }: { children: ReactNode }) => createElement(
+      'MenuView',
+      { ...props, testID: 'pantry-food-sort-menu' },
+      children,
+    ),
+  };
+});
 vi.mock('@tanstack/react-query', () => ({ useQuery: mocks.useQuery }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -47,7 +61,7 @@ vi.mock('../../../../theme/useThemeColors.js', () => ({
 
 import PantryScreen from '../../../../app/(tabs)/pantry/index.js';
 
-const foods = [
+const foods: Food[] = [
   {
     createdAt: '2026-10-20T12:00:00.000Z',
     currentStock: { amount: 1200, unit: 'g' as const },
@@ -116,7 +130,15 @@ async function renderPantry({
   await render(createElement(PantryScreen));
 }
 
-beforeEach(() => vi.clearAllMocks());
+function renderedFoodCardIds() {
+  return screen.getAllByTestId(/^pantry-food-[0-9a-f-]+$/)
+    .map(({ props }) => props.testID);
+}
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+  vi.clearAllMocks();
+});
 
 describe('Pantry screen', () => {
   it('registers Food and Meal queries and renders their loading state', async () => {
@@ -186,6 +208,7 @@ describe('Pantry screen', () => {
       foodsResult: { data: [], isError: false, isPending: false },
     });
 
+    expect(screen.queryByTestId('pantry-food-controls')).toBeNull();
     expect(screen.getByTestId('pantry-empty-state-title')).toHaveTextContent(
       'Your pantry is empty',
     );
@@ -201,10 +224,17 @@ describe('Pantry screen', () => {
   it('renders Food cards and formats their quantities', async () => {
     await renderPantry();
 
+    expect(screen.getByTestId('pantry-food-controls')).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-search-input')).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-sort-field-button')).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-sort-direction-button')).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}-name`)).toHaveTextContent(
       'Chicken breast',
     );
+    expect(
+      screen.getByTestId(`pantry-food-${foods[0].id}-calories`),
+    ).toHaveTextContent('165 kcal per serving');
     expect(
       screen.getByTestId(`pantry-food-${foods[0].id}-serving-size`),
     ).toHaveTextContent('Serving: 100 g');
@@ -225,6 +255,139 @@ describe('Pantry screen', () => {
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
+  });
+
+  it('filters Foods by name and renders a distinct no-results state', async () => {
+    await renderPantry();
+    const searchInput = screen.getByTestId('pantry-food-search-input');
+
+    await fireEvent.changeText(searchInput, 'YOG');
+
+    expect(screen.queryByTestId(`pantry-food-${foods[0].id}`)).toBeNull();
+    expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
+
+    await fireEvent.changeText(searchInput, 'missing');
+
+    expect(screen.queryByTestId('pantry-food-list')).toBeNull();
+    expect(screen.getByTestId('pantry-food-search-empty-title')).toHaveTextContent(
+      'No foods found',
+    );
+    expect(
+      screen.getByTestId('pantry-food-search-empty-description'),
+    ).toHaveTextContent('Try a different search');
+  });
+
+  it('toggles Food sort direction independently from the selected field', async () => {
+    await renderPantry();
+
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[0].id}`,
+      `pantry-food-${foods[1].id}`,
+    ]);
+    expect(
+      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
+    ).toBe('Choose Food sort field, currently Name');
+    expect(screen.getByTestId('pantry-food-sort-name-label')).toHaveTextContent(
+      'A-Z',
+    );
+    expect(
+      StyleSheet.flatten(screen.getByTestId('pantry-food-sort-field-button').props.style),
+    ).toMatchObject({ height: 46, width: 46 });
+    expect(
+      StyleSheet.flatten(screen.getByTestId('pantry-food-sort-direction-button').props.style),
+    ).toMatchObject({ height: 46, width: 46 });
+    expect(screen.queryByTestId('pantry-food-sort-calories-icon')).toBeNull();
+    expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
+      'arrow-up-outline',
+    );
+
+    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
+
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[1].id}`,
+      `pantry-food-${foods[0].id}`,
+    ]);
+    expect(
+      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
+    ).toBe('Choose Food sort field, currently Name');
+    expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
+      'arrow-down-outline',
+    );
+  });
+
+  it('sorts Foods by the field selected from the anchored menu', async () => {
+    await renderPantry();
+    const sortMenu = screen.getByTestId('pantry-food-sort-menu');
+
+    expect(sortMenu.props.actions).toEqual([
+      { id: 'name', state: 'on', title: 'Name' },
+      { id: 'calories', state: 'off', title: 'Calories' },
+    ]);
+
+    await fireEvent(sortMenu, 'pressAction', {
+      nativeEvent: { event: 'calories' },
+    });
+
+    expect(screen.getByTestId('pantry-food-sort-menu').props.actions).toEqual([
+      { id: 'name', state: 'off', title: 'Name' },
+      { id: 'calories', state: 'on', title: 'Calories' },
+    ]);
+    expect(
+      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
+    ).toBe('Choose Food sort field, currently Calories');
+    expect(screen.queryByTestId('pantry-food-sort-name-label')).toBeNull();
+    expect(screen.getByTestId('pantry-food-sort-calories-icon').props.name).toBe(
+      'flame-outline',
+    );
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[1].id}`,
+      `pantry-food-${foods[0].id}`,
+    ]);
+
+    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
+
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[0].id}`,
+      `pantry-food-${foods[1].id}`,
+    ]);
+
+    await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
+      nativeEvent: { event: 'name' },
+    });
+
+    expect(
+      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
+    ).toBe('Choose Food sort field, currently Name');
+    expect(screen.getByTestId('pantry-food-sort-name-label')).toHaveTextContent(
+      'A-Z',
+    );
+    expect(screen.queryByTestId('pantry-food-sort-calories-icon')).toBeNull();
+  });
+
+  it('uses Food name to break equal-calorie ties', async () => {
+    const equalCalorieFoods = [
+      foods[1],
+      {
+        ...foods[0],
+        nutritionFacts: { ...foods[0].nutritionFacts, caloriesKcal: 100 },
+      },
+    ];
+    await renderPantry({
+      foodsResult: {
+        data: equalCalorieFoods,
+        isError: false,
+        isPending: false,
+      },
+    });
+
+    await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
+      nativeEvent: { event: 'calories' },
+    });
+
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[0].id}`,
+      `pantry-food-${foods[1].id}`,
+    ]);
   });
 
   it('directs users without Foods to add Food from the Meals section', async () => {
@@ -280,6 +443,7 @@ describe('Pantry screen', () => {
 
     await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
 
+    expect(screen.queryByTestId('pantry-food-controls')).toBeNull();
     expect(screen.getByTestId('pantry-meal-list')).toBeTruthy();
     expect(screen.getByTestId(`pantry-meal-${meals[0].id}-name`)).toHaveTextContent(
       'Chicken bowl',
