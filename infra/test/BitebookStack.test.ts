@@ -136,15 +136,14 @@ describe('BitebookStack', () => {
       AllowedOAuthScopes: ['email', 'openid'],
       CallbackURLs: ['bitebook://auth/callback'],
       EnableTokenRevocation: true,
-      ExplicitAuthFlows: ['ALLOW_USER_PASSWORD_AUTH'],
+      ExplicitAuthFlows: [
+        'ALLOW_USER_PASSWORD_AUTH',
+        'ALLOW_REFRESH_TOKEN_AUTH',
+      ],
       GenerateSecret: false,
       IdTokenValidity: 60,
       LogoutURLs: ['bitebook://auth/signout'],
       PreventUserExistenceErrors: 'ENABLED',
-      RefreshTokenRotation: {
-        Feature: 'ENABLED',
-        RetryGracePeriodSeconds: 10,
-      },
       RefreshTokenValidity: 129_600,
       SupportedIdentityProviders: ['COGNITO'],
     });
