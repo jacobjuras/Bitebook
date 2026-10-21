@@ -7,5 +7,5 @@
     "rootDir": "src",
     "sourceMap": true
   },
-  "exclude": ["dist", "test"]
+  "exclude": ["dist", "test", "src/**/tests"]
 }
