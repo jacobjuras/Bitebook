@@ -24,7 +24,7 @@ export default function SignInScreen() {
   const isLoading = status === AuthStatus.Loading;
   const isDisabled =
     isLoading
-    || password.length < MIN_PASSWORD_LENGTH
+    || !password
     || (!needsNewPassword && !email.trim());
 
   async function submit() {
