@@ -14,12 +14,12 @@ function AuthenticatedRoutes() {
       {/* Signed-out routes */}
       <Stack.Protected guard={!isSignedIn}>
         {/* Sign-in route */}
-        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="sign-in" options={{animation: 'fade'}}/>
       </Stack.Protected>
       {/* Signed-in routes */}
       <Stack.Protected guard={isSignedIn}>
         {/* Tabbed application route */}
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs)" options={{animation: 'fade'}}/>
       </Stack.Protected>
     </Stack>
   );

@@ -153,7 +153,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Add mobile email sign-up and verification.
 - [ ] Handle duplicate email registration by directing existing users to sign in or recover their password.
 - [x] Add first-party email/password sign-in and required-password UI.
-- [ ] Add authenticated sign-out to the Me tab.
+- [x] Add authenticated sign-out to the Me tab.
 - [x] Add first-party Cognito password authentication and admin-created-user password challenges.
 - [x] Store tokens in platform-backed secure storage.
 - [ ] Refresh access and ID tokens silently.
