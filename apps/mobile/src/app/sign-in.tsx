@@ -99,7 +99,8 @@ export default function SignInScreen() {
             <Text
               style={[styles.buttonText, { color: colors.onAccent }]}
               testID="sign-in-submit-button-label"
-            >              {needsNewPassword ? 'Set password' : 'Sign in'}
+            >
+              {needsNewPassword ? 'Set password' : 'Sign in'}
             </Text>
           )}
         </Pressable>

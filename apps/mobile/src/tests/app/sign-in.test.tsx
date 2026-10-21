@@ -45,7 +45,7 @@ describe('Sign In screen', () => {
     expect(screen.getByTestId('sign-in-instructions')).toHaveTextContent(
       'Sign in to access your foods, meals, goals, and reports.',
     );
-    expect(screen.getByTestId('sign-in-submit-button-label')).toHaveTextContent(
+    expect(screen.getByTestId('sign-in-submit-button-label').props.children).toBe(
       'Sign in',
     );
 
@@ -89,7 +89,7 @@ describe('Sign In screen', () => {
     expect(screen.getByTestId('sign-in-instructions')).toHaveTextContent(
       'Choose a permanent password to finish signing in.',
     );
-    expect(screen.getByTestId('sign-in-submit-button-label')).toHaveTextContent(
+    expect(screen.getByTestId('sign-in-submit-button-label').props.children).toBe(
       'Set password',
     );
     await fireEvent.changeText(screen.getByTestId('sign-in-password-input'), 'new-password');
