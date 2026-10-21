@@ -167,7 +167,9 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [x] Load Foods from the authenticated API.
 - [x] Load Meals from the authenticated API.
 - [x] Connect Pantry empty states to live Foods and Meals.
-- [x] Build the Food list with search and sorting.
+- [x] Build the Food list with search and Recent, Name, and Calories sorting.
+- [x] Add Food favorite toggles and Favorites/custom-tag filtering.
+- [ ] Add custom tag editing to Food creation and details.
 - [ ] Build manual Food creation.
 - [ ] Build Food details and metadata editing.
 - [ ] Build the Food deletion interface.

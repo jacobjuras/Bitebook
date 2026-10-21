@@ -30,6 +30,29 @@ describe('foodSchema', () => {
     expect(foodSchema.safeParse(food).success).toBe(false);
   });
 
+  it('normalizes optional Food organization metadata', () => {
+    expect(foodSchema.parse({
+      ...validFood,
+      isFavorite: true,
+      lastLoggedAt: '2026-10-20T01:00:00Z',
+      tags: [' Fruit ', 'HIGH-CARB', 'fruit'],
+    })).toEqual({
+      ...validFood,
+      isFavorite: true,
+      lastLoggedAt: '2026-10-20T01:00:00Z',
+      tags: ['fruit', 'high-carb'],
+    });
+  });
+
+  it.each([
+    { ...validFood, tags: ['favorite'] },
+    { ...validFood, tags: Array.from({ length: 11 }, (_, index) => `tag-${index}`) },
+    { ...validFood, tags: [''] },
+    { ...validFood, lastLoggedAt: 'yesterday' },
+  ])('rejects invalid Food organization metadata: %o', (food) => {
+    expect(foodSchema.safeParse(food).success).toBe(false);
+  });
+
   it('rejects fields outside the persisted Food contract', () => {
     expect(
       foodSchema.safeParse({ ...validFood, barcode: '012345678905' }).success,

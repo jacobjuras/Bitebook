@@ -80,12 +80,34 @@ describe('handler', () => {
       });
   });
 
+  it('creates normalized Food organization metadata', async () => {
+    const response = await handler(createEvent(
+      'POST /foods',
+      JSON.stringify({
+        ...validFoodInput,
+        isFavorite: true,
+        tags: [' Breakfast ', 'HIGH-CARB', 'breakfast'],
+      }),
+    ));
+    const food = foodSchema.parse(JSON.parse(response.body ?? ''));
+
+    expect(response.statusCode).toBe(201);
+    expect(food).toMatchObject({
+      isFavorite: true,
+      tags: ['breakfast', 'high-carb'],
+    });
+  });
+
   it.each([
     ['malformed JSON', '{'],
     ['undeclared ownership fields', JSON.stringify({ ...validFoodInput, userId: 'attacker' })],
     ['obsolete stock field', JSON.stringify({
       ...validFoodInput,
       currentStock: { amount: 1, unit: 'g' },
+    })],
+    ['server-managed recency', JSON.stringify({
+      ...validFoodInput,
+      lastLoggedAt: '2026-10-20T01:00:00.000Z',
     })],
     ['invalid values', JSON.stringify({ ...validFoodInput, name: '' })],
   ])('rejects Food creation with %s', async (_case, body) => {
@@ -96,13 +118,22 @@ describe('handler', () => {
   });
 
   it('updates mutable Food metadata', async () => {
-    const updatedFood = { ...storedFood, name: 'Rolled oats' };
+    const updatedFood = {
+      ...storedFood,
+      isFavorite: true,
+      name: 'Rolled oats',
+      tags: ['breakfast', 'high-carb'],
+    };
     documentClientMock.on(UpdateCommand).resolves({
       Attributes: { ...updatedFood, entityKey: `FOOD#${storedFood.id}` },
     });
     const event = createEvent(
       'PATCH /foods/{foodId}',
-      JSON.stringify({ name: 'Rolled oats' }),
+      JSON.stringify({
+        isFavorite: true,
+        name: 'Rolled oats',
+        tags: [' Breakfast ', 'HIGH-CARB', 'breakfast'],
+      }),
     );
     event.pathParameters = { foodId: storedFood.id };
 
@@ -116,12 +147,23 @@ describe('handler', () => {
         ReturnValues: 'ALL_NEW',
         TableName: 'UserDataTable',
       });
+    expect(Object.values(
+      documentClientMock.commandCalls(UpdateCommand)[0]?.args[0].input
+        .ExpressionAttributeValues ?? {},
+    )).toEqual(expect.arrayContaining([
+      true,
+      'Rolled oats',
+      ['breakfast', 'high-carb'],
+    ]));
   });
 
   it.each([
     ['invalid Food ID', 'not-a-uuid', JSON.stringify({ name: 'New name' })],
     ['malformed body', storedFood.id, '{'],
     ['obsolete stock field', storedFood.id, JSON.stringify({ currentStock: { amount: 1, unit: 'g' } })],
+    ['server-managed recency', storedFood.id, JSON.stringify({
+      lastLoggedAt: '2026-10-20T01:00:00.000Z',
+    })],
   ])('rejects a Food update with %s', async (_case, foodId, body) => {
     const event = createEvent('PATCH /foods/{foodId}', body);
     event.pathParameters = { foodId };

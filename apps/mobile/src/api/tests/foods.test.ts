@@ -8,7 +8,7 @@ vi.mock('../apiClient.js', () => ({
   authenticatedApiRequest: mocks.authenticatedApiRequest,
 }));
 
-import { listFoods } from '../foods.js';
+import { listFoods, updateFood } from '../foods.js';
 
 const foods = [
   {
@@ -89,6 +89,40 @@ describe('Foods API', () => {
     );
 
     await expect(listFoods()).rejects.toThrow();
+  });
+
+  it('updates Food organization metadata', async () => {
+    const updatedFood = {
+      ...foods[0],
+      isFavorite: true,
+      tags: ['high-protein'],
+    };
+    mocks.authenticatedApiRequest.mockResolvedValue(
+      new Response(JSON.stringify({ food: updatedFood })),
+    );
+
+    await expect(updateFood(foods[0].id, {
+      isFavorite: true,
+      tags: ['high-protein'],
+    })).resolves.toEqual(updatedFood);
+    expect(mocks.authenticatedApiRequest).toHaveBeenCalledWith(
+      `foods/${foods[0].id}`,
+      {
+        body: JSON.stringify({
+          isFavorite: true,
+          tags: ['high-protein'],
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'PATCH',
+      },
+    );
+  });
+
+  it('rejects an invalid Food update response', async () => {
+    mocks.authenticatedApiRequest.mockResolvedValue(new Response('{}'));
+
+    await expect(updateFood(foods[0].id, { isFavorite: true }))
+      .rejects.toThrow('invalid Food response');
   });
 
   it('rejects a Food that violates the domain schema', async () => {

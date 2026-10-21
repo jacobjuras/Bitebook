@@ -21,9 +21,11 @@ import {
 import { getUserProfile, putUserProfile } from './userProfiles.js';
 
 const createFoodInputSchema = foodSchema.pick({
+  isFavorite: true,
   name: true,
   nutritionFacts: true,
   servingSize: true,
+  tags: true,
 });
 const updateFoodInputSchema = createFoodInputSchema
   .partial()

@@ -2,6 +2,18 @@ import { foodSchema, type Food } from '@bitebook/domain';
 
 import { authenticatedApiRequest } from './apiClient';
 
+type FoodUpdate = Partial<Pick<
+  Food,
+  'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize' | 'tags'
+>>;
+
+function parseFood(value: unknown): Food {
+  if (!value || typeof value !== 'object') return foodSchema.parse(value);
+  const food = { ...(value as Record<string, unknown>) };
+  delete food.currentStock;
+  return foodSchema.parse(food);
+}
+
 /** Loads and validates the authenticated user's Foods. */
 export async function listFoods(): Promise<Food[]> {
   const response = await authenticatedApiRequest('foods');
@@ -9,12 +21,23 @@ export async function listFoods(): Promise<Food[]> {
   if (!body || typeof body !== 'object' || !('foods' in body)) {
     throw new Error('Bitebook API returned an invalid Foods response');
   }
-  const foods = Array.isArray(body.foods)
-    ? body.foods.map((food) => {
-        if (!food || typeof food !== 'object') return food;
-        const { currentStock: _legacyStock, ...currentFood } = food;
-        return currentFood;
-      })
-    : body.foods;
-  return foodSchema.array().parse(foods);
+  if (!Array.isArray(body.foods)) return foodSchema.array().parse(body.foods);
+  return body.foods.map(parseFood);
+}
+
+/** Updates mutable metadata for one authenticated user's Food. */
+export async function updateFood(
+  foodId: string,
+  update: FoodUpdate,
+): Promise<Food> {
+  const response = await authenticatedApiRequest(`foods/${foodId}`, {
+    body: JSON.stringify(update),
+    headers: { 'content-type': 'application/json' },
+    method: 'PATCH',
+  });
+  const body: unknown = await response.json();
+  if (!body || typeof body !== 'object' || !('food' in body)) {
+    throw new Error('Bitebook API returned an invalid Food response');
+  }
+  return parseFood(body.food);
 }
