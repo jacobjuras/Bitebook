@@ -6,6 +6,9 @@ import { AuthStatus } from '../../auth/AuthStatus.js';
 
 const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
+  listFoods: vi.fn(),
+  listMeals: vi.fn(),
+  query: vi.fn(() => Promise.resolve()),
   status: 'loading',
 }));
 
@@ -49,6 +52,18 @@ vi.mock('expo-status-bar', async () => {
     ),
   };
 });
+vi.mock('../../query/pantryQueries.js', () => ({
+  foodsQueryOptions: {
+    queryFn: mocks.listFoods,
+    queryKey: ['foods'],
+    staleTime: Infinity,
+  },
+  mealsQueryOptions: {
+    queryFn: mocks.listMeals,
+    queryKey: ['meals'],
+    staleTime: Infinity,
+  },
+}));
 vi.mock('../../auth/AuthProvider.js', async () => {
   const { createElement } = await vi.importActual<typeof import('react')>('react');
   return {
@@ -58,7 +73,10 @@ vi.mock('../../auth/AuthProvider.js', async () => {
   };
 });
 vi.mock('../../query/queryClient.js', () => ({
-  queryClient: { clear: mocks.clear },
+  queryClient: {
+    clear: mocks.clear,
+    query: mocks.query,
+  },
 }));
 
 import RootLayout from '../../app/_layout.js';
@@ -68,7 +86,10 @@ async function renderRootLayout(status: AuthStatus) {
   await render(createElement(RootLayout));
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.query.mockResolvedValue(undefined);
+});
 
 describe('root layout', () => {
   it('nests authentication and routes inside the query provider', async () => {
@@ -83,13 +104,13 @@ describe('root layout', () => {
   });
 
   it.each([
-    [AuthStatus.Loading, true, false, 0],
-    [AuthStatus.NewPasswordRequired, true, false, 0],
-    [AuthStatus.SignedOut, true, false, 1],
-    [AuthStatus.SignedIn, false, true, 0],
+    [AuthStatus.Loading, true, false, 0, 0],
+    [AuthStatus.NewPasswordRequired, true, false, 0, 0],
+    [AuthStatus.SignedOut, true, false, 1, 0],
+    [AuthStatus.SignedIn, false, true, 0, 2],
   ])(
     'configures guarded routes for %s',
-    async (status, signedOutGuard, signedInGuard, clearCalls) => {
+    async (status, signedOutGuard, signedInGuard, clearCalls, preloadCalls) => {
       await renderRootLayout(status);
 
       expect(screen.getByTestId('root-sign-in-guard').props.guard).toBe(
@@ -105,6 +126,31 @@ describe('root layout', () => {
         animation: 'fade',
       });
       expect(mocks.clear).toHaveBeenCalledTimes(clearCalls);
+      expect(mocks.query).toHaveBeenCalledTimes(preloadCalls);
     },
   );
+
+  it('prefetches Pantry data after authentication succeeds', async () => {
+    await renderRootLayout(AuthStatus.SignedIn);
+
+    expect(mocks.query).toHaveBeenNthCalledWith(1, {
+      queryFn: mocks.listFoods,
+      queryKey: ['foods'],
+      staleTime: Infinity,
+    });
+    expect(mocks.query).toHaveBeenNthCalledWith(2, {
+      queryFn: mocks.listMeals,
+      queryKey: ['meals'],
+      staleTime: Infinity,
+    });
+  });
+
+  it('keeps authenticated routes available when startup loading fails', async () => {
+    mocks.query.mockRejectedValue(new Error('network unavailable'));
+
+    await renderRootLayout(AuthStatus.SignedIn);
+
+    expect(screen.getByTestId('root-(tabs)-guard').props.guard).toBe(true);
+    expect(mocks.query).toHaveBeenCalledTimes(2);
+  });
 });
