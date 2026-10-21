@@ -12,7 +12,6 @@ import { mockClient } from 'aws-sdk-client-mock';
 export const documentClientMock = mockClient(DynamoDBDocumentClient);
 
 export const validFoodInput = {
-  currentStock: { amount: 500, unit: 'g' as const },
   name: 'Oats',
   nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
   servingSize: { amount: 40, unit: 'g' as const },

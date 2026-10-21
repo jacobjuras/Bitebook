@@ -174,7 +174,6 @@ export class BitebookStack extends Stack {
     const routes: [string, HttpMethod[]][] = [
       ['/foods', [HttpMethod.GET, HttpMethod.POST]],
       ['/foods/{foodId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
-      ['/foods/{foodId}/stock-adjustments', [HttpMethod.POST]],
       ['/meals', [HttpMethod.GET, HttpMethod.POST]],
       ['/meals/{mealId}', [HttpMethod.DELETE, HttpMethod.GET, HttpMethod.PATCH]],
       ['/nutrition-goals', [HttpMethod.POST]],

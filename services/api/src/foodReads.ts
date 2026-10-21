@@ -5,11 +5,14 @@ import { documentClient } from './dynamodb.js';
 
 /** Validates a DynamoDB Food item and returns its domain fields. */
 export function parseStoredFood(item: Record<string, unknown>): Food {
-  const { entityKey, ...food } = item;
+  const { entityKey } = item;
   if (typeof entityKey !== 'string' || !entityKey.startsWith('FOOD#')) {
     throw new Error('Stored Food has an invalid entity key');
   }
 
+  const food = { ...item };
+  delete food.entityKey;
+  delete food.currentStock;
   return foodSchema.parse(food);
 }
 

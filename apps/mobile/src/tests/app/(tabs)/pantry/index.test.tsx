@@ -64,7 +64,6 @@ import PantryScreen from '../../../../app/(tabs)/pantry/index.js';
 const foods: Food[] = [
   {
     createdAt: '2026-10-20T12:00:00.000Z',
-    currentStock: { amount: 1200, unit: 'g' as const },
     id: '11111111-1111-4111-8111-111111111111',
     name: 'Chicken breast',
     nutritionFacts: { caloriesKcal: 165, micronutrients: {}, proteinG: 31 },
@@ -74,7 +73,6 @@ const foods: Food[] = [
   },
   {
     createdAt: '2026-10-20T13:00:00.000Z',
-    currentStock: { amount: 3, unit: 'item' as const },
     id: '22222222-2222-4222-8222-222222222222',
     name: 'Greek yogurt',
     nutritionFacts: { caloriesKcal: 100, micronutrients: {} },
@@ -238,9 +236,6 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-food-${foods[0].id}-serving-size`),
     ).toHaveTextContent('Serving: 100 g');
-    expect(
-      screen.getByTestId(`pantry-food-${foods[0].id}-current-stock`),
-    ).toHaveTextContent('Stock: 1200 g');
     expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-name`)).toHaveTextContent(
       'Greek yogurt',
@@ -248,9 +243,6 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-food-${foods[1].id}-serving-size`),
     ).toHaveTextContent('Serving: 1 item');
-    expect(
-      screen.getByTestId(`pantry-food-${foods[1].id}-current-stock`),
-    ).toHaveTextContent('Stock: 3 items');
     const addFoodButton = screen.getByTestId('pantry-add-food-button');
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);

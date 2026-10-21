@@ -23,7 +23,6 @@ const entry = {
   ],
   scheduledAt: '2026-10-19T12:00:00Z',
   preparation: 'homePrepared',
-  affectsStock: true,
   createdAt: '2026-10-19T12:00:00Z',
   updatedAt: '2026-10-19T12:00:00Z',
 };

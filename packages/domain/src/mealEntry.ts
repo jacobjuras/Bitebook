@@ -31,8 +31,6 @@ export const mealEntrySchema = z.strictObject({
   ingredients: z.array(loggedIngredientSchema).min(1),
   scheduledAt: z.iso.datetime(),
   preparation: preparationSchema,
-  affectsStock: z.boolean(),
-  stockAppliedAt: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
