@@ -16,11 +16,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { updateFood } from '../../../api/foods';
+import {
+  FoodSortField,
+  foodSortDefinitions,
+  foodSortFields,
+  isFoodSortField,
+} from '../../../pantry/foodSorting';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
-type FoodSortField = 'recent' | 'name' | 'calories';
 type FoodSortDirection = 'ascending' | 'descending';
 
 type EmptyState = {
@@ -57,28 +62,13 @@ function formatQuantity({ amount, unit }: Quantity) {
   return `${amount} ${label}`;
 }
 
-function foodSortFieldLabel(field: FoodSortField) {
-  if (field === 'recent') return 'Recent';
-  if (field === 'name') return 'Name';
-  return 'Calories';
-}
-
-function compareFoods(first: Food, second: Food, field: FoodSortField) {
-  if (field === 'recent') {
-    return Date.parse(first.lastLoggedAt ?? first.createdAt)
-      - Date.parse(second.lastLoggedAt ?? second.createdAt);
-  }
-  if (field === 'name') return first.name.localeCompare(second.name);
-  return first.nutritionFacts.caloriesKcal - second.nutritionFacts.caloriesKcal;
-}
-
 export default function PantryScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
   const [foodSearch, setFoodSearch] = useState('');
-  const [foodSortField, setFoodSortField] = useState<FoodSortField>('recent');
+  const [foodSortField, setFoodSortField] = useState(FoodSortField.Recent);
   const [foodSortDirection, setFoodSortDirection] =
     useState<FoodSortDirection>('descending');
   const [favoriteFoodsOnly, setFavoriteFoodsOnly] = useState(false);
@@ -111,7 +101,10 @@ export default function PantryScreen() {
     .filter(({ isFavorite }) => !favoriteFoodsOnly || isFavorite === true)
     .filter(({ tags }) => selectedFoodTags.every((tag) => tags?.includes(tag)))
     .sort((first, second) => {
-      const fieldComparison = compareFoods(first, second, foodSortField);
+      const fieldComparison = foodSortDefinitions[foodSortField].compare(
+        first,
+        second,
+      );
       const comparison = fieldComparison || first.name.localeCompare(second.name);
       return foodSortDirection === 'ascending' ? comparison : -comparison;
     });
@@ -250,47 +243,31 @@ export default function PantryScreen() {
             </View>
           </MenuView>
           <MenuView
-            actions={[
-              {
-                id: 'recent',
-                state: foodSortField === 'recent' ? 'on' : 'off',
-                title: 'Recent',
-              },
-              {
-                id: 'name',
-                state: foodSortField === 'name' ? 'on' : 'off',
-                title: 'Name',
-              },
-              {
-                id: 'calories',
-                state: foodSortField === 'calories' ? 'on' : 'off',
-                title: 'Calories',
-              },
-            ]}
+            actions={foodSortFields.map((field) => ({
+              id: field,
+              state: foodSortField === field ? 'on' : 'off',
+              title: foodSortDefinitions[field].label,
+            }))}
             onPressAction={({ nativeEvent }) => {
-              if (
-                nativeEvent.event === 'recent'
-                || nativeEvent.event === 'name'
-                || nativeEvent.event === 'calories'
-              ) {
+              if (isFoodSortField(nativeEvent.event)) {
                 setFoodSortField(nativeEvent.event);
               }
             }}
           >
             <View
-              accessibilityLabel={`Choose Food sort field, currently ${foodSortFieldLabel(foodSortField)}`}
+              accessibilityLabel={`Choose Food sort field, currently ${foodSortDefinitions[foodSortField].label}`}
               accessibilityRole="button"
               style={[styles.sortButton, { borderColor: colors.border }]}
               testID="pantry-food-sort-field-button"
             >
-              {foodSortField === 'recent' ? (
+              {foodSortField === FoodSortField.Recent ? (
                 <Ionicons
                   color={colors.textPrimary}
                   name="time-outline"
                   size={20}
                   testID="pantry-food-sort-recent-icon"
                 />
-              ) : foodSortField === 'name' ? (
+              ) : foodSortField === FoodSortField.Name ? (
                 <Text
                   style={[styles.sortButtonText, { color: colors.textPrimary }]}
                   testID="pantry-food-sort-name-label"
