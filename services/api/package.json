@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "vitest run",
+    "test": "bash ../../scripts/run-with-project-node.sh vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
