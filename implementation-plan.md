@@ -132,6 +132,7 @@ This is the current phase.
 - [x] Automatically promote the same tested artifact to Production when both Beta pipeline gates pass.
 - [x] Run Production smoke tests after deployment and mark promotion successful only when they pass.
 - [x] Automatically roll Production back to its last successful revision when Production smoke tests fail.
+- [ ] Send one SNS notification when a pipeline execution or test gate fails; do not separately notify its automatic rollback.
 - [x] Add environment-specific mobile configuration for local development, Beta, and Production.
 
 ## 9. Authentication infrastructure
@@ -322,6 +323,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 
 - [ ] Add API throttling and abuse limits.
 - [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, USDA failures, and subscription-notification failures.
+- [ ] Deliver actionable CloudWatch alarm state changes through SNS to an Amazon-managed email address.
 - [ ] Add operational runbooks for deployment failures and rollbacks.
 - [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
 - [ ] Inspect representative logs for prohibited user data and credentials.
