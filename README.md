@@ -51,6 +51,18 @@ Run all automated tests:
 npm test
 ```
 
+Run one test suite from the repository root:
+
+```bash
+npm test app
+npm test domain
+npm test api
+npm test integ
+npm test infra
+```
+
+`app` and `mobile` both select the `@bitebook/mobile` suite.
+
 Run the Expo project checks:
 
 ```bash
