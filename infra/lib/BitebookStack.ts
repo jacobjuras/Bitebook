@@ -148,7 +148,6 @@ export class BitebookStack extends Stack {
         scopes: [OAuthScope.EMAIL, OAuthScope.OPENID],
       },
       preventUserExistenceErrors: true,
-      refreshTokenRotationGracePeriod: Duration.seconds(10),
       refreshTokenValidity: Duration.days(90),
       supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
     });
