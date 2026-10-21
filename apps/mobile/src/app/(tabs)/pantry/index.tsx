@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import type { Food, Quantity } from '@bitebook/domain';
+import type { Food, Meal, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listFoods } from '../../../api/foods';
+import { listMeals } from '../../../api/meals';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
@@ -57,15 +58,22 @@ export default function PantryScreen() {
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
   const foodsQuery = useQuery({ queryKey: ['foods'], queryFn: listFoods });
+  const mealsQuery = useQuery({ queryKey: ['meals'], queryFn: listMeals });
   const foods = foodsQuery.data ?? [];
+  const meals = mealsQuery.data ?? [];
   const hasFoods = foods.length > 0;
+  const hasMeals = meals.length > 0;
+  const isPending = foodsQuery.isPending
+    || (selectedSection === 'meals' && mealsQuery.isPending);
+  const isError = foodsQuery.isError
+    || (selectedSection === 'meals' && mealsQuery.isError);
   const shouldAddFood = selectedSection === 'foods' || !hasFoods;
   const selectedSectionEmptyState = selectedSection === 'foods'
     ? foodEmptyState
     : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
-  const actionLabel = selectedSection === 'foods' && hasFoods
-    ? 'Add food'
-    : selectedSectionEmptyState.action;
+  const actionLabel = selectedSection === 'foods'
+    ? hasFoods ? 'Add food' : foodEmptyState.action
+    : hasMeals && hasFoods ? 'Add meal' : selectedSectionEmptyState.action;
   const actionTestId = shouldAddFood
     ? 'pantry-add-food-button'
     : 'pantry-add-meal-button';
@@ -76,6 +84,11 @@ export default function PantryScreen() {
       return;
     }
     router.push('/pantry/meal/new');
+  };
+
+  const retryLoading = () => {
+    if (foodsQuery.isError) void foodsQuery.refetch();
+    if (mealsQuery.isError) void mealsQuery.refetch();
   };
 
   // Pantry screen
@@ -116,14 +129,14 @@ export default function PantryScreen() {
           );
         })}
       </View>
-      {foodsQuery.isPending ? (
+      {isPending ? (
         // Pantry loading state
         <ActivityIndicator
           color={colors.accent}
           style={styles.centeredState}
           testID="pantry-loading-indicator"
         />
-      ) : foodsQuery.isError ? (
+      ) : isError ? (
         // Pantry error state
         <View style={styles.centeredState} testID="pantry-error">
           {/* Pantry error message */}
@@ -134,7 +147,7 @@ export default function PantryScreen() {
           {/* Pantry retry button */}
           <Pressable
             accessibilityRole="button"
-            onPress={() => void foodsQuery.refetch()}
+            onPress={retryLoading}
             testID="pantry-retry-load-button"
             style={({ pressed }) => [
               styles.retryButton,
@@ -177,6 +190,32 @@ export default function PantryScreen() {
             </View>
           ))}
         </ScrollView>
+      ) : selectedSection === 'meals' && hasMeals ? (
+        // Meal card list
+        <ScrollView contentContainerStyle={styles.mealList} testID="pantry-meal-list">
+          {meals.map((meal: Meal) => (
+            // Meal card
+            <View
+              key={meal.id}
+              style={[styles.mealCard, { borderColor: colors.border }]}
+              testID={`pantry-meal-${meal.id}`}
+            >
+              {/* Meal name */}
+              <Text
+                style={[styles.mealName, { color: colors.textPrimary }]}
+                testID={`pantry-meal-${meal.id}-name`}
+              >{meal.name}</Text>
+              {/* Meal ingredient count */}
+              <Text
+                style={[styles.mealDetail, { color: colors.textSecondary }]}
+                testID={`pantry-meal-${meal.id}-ingredient-count`}
+              >
+                {meal.ingredients.length}{' '}
+                {meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         // Pantry empty state
         <View style={styles.emptyState} testID="pantry-empty-state">
@@ -196,7 +235,7 @@ export default function PantryScreen() {
           >{selectedSectionEmptyState.description}</Text>
         </View>
       )}
-      {!foodsQuery.isPending && !foodsQuery.isError ? (
+      {!isPending && !isError ? (
         // Pantry primary action
         <Pressable
           accessibilityRole="button"
@@ -231,6 +270,10 @@ const styles = StyleSheet.create({
   foodName: { fontSize: 17, fontWeight: '600' },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
   iconCircle: { alignItems: 'center', borderRadius: 30, height: 60, justifyContent: 'center', width: 60 },
+  mealCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
+  mealDetail: { fontSize: 14 },
+  mealList: { gap: 10, padding: 24 },
+  mealName: { fontSize: 17, fontWeight: '600' },
   retryButton: { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
