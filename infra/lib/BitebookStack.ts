@@ -107,6 +107,9 @@ export class BitebookStack extends Stack {
       'dynamodb:UpdateItem',
     );
 
+    // @secure_recommendation: Grant only the cryptographic operations required for table access.
+    userDataKey.grantEncryptDecrypt(apiFunctionRole);
+
     // @secure_recommendation: Protect accounts with verified, case-insensitive email identities.
     const userPool = new UserPool(this, 'UserPool', {
       accountRecovery: AccountRecovery.EMAIL_ONLY,

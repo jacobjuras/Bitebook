@@ -1,13 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useQuery } from '@tanstack/react-query';
+import type { Food, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { listFoods } from '../../../api/foods';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
@@ -41,47 +47,58 @@ const mealEmptyStates: Record<'withFoods' | 'withoutFoods', EmptyState> = {
   },
 };
 
+function formatQuantity({ amount, unit }: Quantity) {
+  const label = unit === 'flOz' ? 'fl oz' : unit === 'item' && amount !== 1 ? 'items' : unit;
+  return `${amount} ${label}`;
+}
+
 export default function PantryScreen() {
   const router = useRouter();
   const colors = useThemeColors();
-  const [section, setSection] = useState<PantrySection>('foods');
+  const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
+  const foodsQuery = useQuery({ queryKey: ['foods'], queryFn: listFoods });
+  const foods = foodsQuery.data ?? [];
+  const hasFoods = foods.length > 0;
+  const selectedSectionEmptyState = selectedSection === 'foods'
+    ? foodEmptyState
+    : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
+  const actionLabel = selectedSection === 'foods' && hasFoods
+    ? 'Add food'
+    : selectedSectionEmptyState.action;
 
-  const hasFoods = false;
-  const emptyState =
-    section === 'foods'
-      ? foodEmptyState
-      : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
-
-  const handleAction = () => {
-    if (section === 'foods' || !hasFoods) {
+  const navigateToAddItem = () => {
+    if (selectedSection === 'foods' || !hasFoods) {
       router.push('/pantry/food/new');
       return;
     }
-
     router.push('/pantry/meal/new');
   };
 
+  // Pantry screen
   return (
     <SafeAreaView
       edges={['top']}
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
+      {/* Screen title */}
       <Text style={[styles.heading, { color: colors.textPrimary }]}>Pantry</Text>
+      {/* Pantry section control */}
       <View style={[styles.segmentedControl, { backgroundColor: colors.control }]}>
         {(['foods', 'meals'] as const).map((value) => {
-          const selected = section === value;
-
+          const selected = selectedSection === value;
           return (
+            // Pantry section tab
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected }}
               key={value}
-              onPress={() => setSection(value)}
+              onPress={() => setSelectedSection(value)}
               style={[
                 styles.segment,
                 selected && { backgroundColor: colors.controlSelected },
               ]}
             >
+              {/* Pantry section label */}
               <Text
                 style={[
                   styles.segmentText,
@@ -94,67 +111,99 @@ export default function PantryScreen() {
           );
         })}
       </View>
-      <View style={styles.emptyState}>
-        <View
-          style={[styles.iconCircle, { backgroundColor: colors.accentSubtle }]}
-        >
-          <Ionicons color={colors.accent} name={emptyState.icon} size={30} />
+      {foodsQuery.isPending ? (
+        // Pantry loading state
+        <ActivityIndicator color={colors.accent} style={styles.centeredState} />
+      ) : foodsQuery.isError ? (
+        // Pantry error state
+        <View style={styles.centeredState}>
+          {/* Pantry error message */}
+          <Text style={[styles.description, { color: colors.textSecondary }]}>Unable to load your pantry</Text>
+          {/* Pantry retry button */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void foodsQuery.refetch()}
+            style={({ pressed }) => [
+              styles.retryButton,
+              { backgroundColor: colors.control },
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            {/* Pantry retry label */}
+            <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Try again</Text>
+          </Pressable>
         </View>
-        <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-          {emptyState.title}
-        </Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
-          {emptyState.description}
-        </Text>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={handleAction}
-        style={({ pressed }) => [
-          styles.button,
-          { backgroundColor: colors.accent },
-          pressed && styles.buttonPressed,
-        ]}
-      >
-        <Text style={[styles.buttonText, { color: colors.onAccent }]}>{emptyState.action}</Text>
-      </Pressable>
+      ) : selectedSection === 'foods' && hasFoods ? (
+        // Food card list
+        <ScrollView contentContainerStyle={styles.foodList}>
+          {foods.map((food: Food) => (
+            // Food card
+            <View
+              key={food.id}
+              style={[styles.foodCard, { borderColor: colors.border }]}
+            >
+              {/* Food name */}
+              <Text style={[styles.foodName, { color: colors.textPrimary }]}>{food.name}</Text>
+              {/* Food quantities */}
+              <View style={styles.foodDetails}>
+                {/* Serving size */}
+                <Text style={[styles.foodDetail, { color: colors.textSecondary }]}>Serving: {formatQuantity(food.servingSize)}</Text>
+                {/* Current stock */}
+                <Text style={[styles.foodDetail, { color: colors.textSecondary }]}>Stock: {formatQuantity(food.currentStock)}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        // Pantry empty state
+        <View style={styles.emptyState}>
+          {/* Empty-state icon */}
+          <View style={[styles.iconCircle, { backgroundColor: colors.accentSubtle }]}>
+            <Ionicons color={colors.accent} name={selectedSectionEmptyState.icon} size={30} />
+          </View>
+          {/* Empty-state title */}
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{selectedSectionEmptyState.title}</Text>
+          {/* Empty-state description */}
+          <Text style={[styles.description, { color: colors.textSecondary }]}>{selectedSectionEmptyState.description}</Text>
+        </View>
+      )}
+      {!foodsQuery.isPending && !foodsQuery.isError ? (
+        // Pantry primary action
+        <Pressable
+          accessibilityRole="button"
+          onPress={navigateToAddItem}
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: colors.accent },
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          {/* Pantry primary-action label */}
+          <Text style={[styles.buttonText, { color: colors.onAccent }]}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    alignItems: 'center',
-    borderRadius: 12,
-    margin: 24,
-    padding: 14,
-  },
+  button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
+  centeredState: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center' },
   description: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
-  emptyState: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 10,
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
+  emptyState: { alignItems: 'center', flex: 1, gap: 10, justifyContent: 'center', paddingHorizontal: 40 },
   emptyTitle: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
+  foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
+  foodDetail: { fontSize: 14 },
+  foodDetails: { flexDirection: 'row', justifyContent: 'space-between' },
+  foodList: { gap: 10, padding: 24 },
+  foodName: { fontSize: 17, fontWeight: '600' },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
-  iconCircle: {
-    alignItems: 'center',
-    borderRadius: 30,
-    height: 60,
-    justifyContent: 'center',
-    width: 60,
-  },
+  iconCircle: { alignItems: 'center', borderRadius: 30, height: 60, justifyContent: 'center', width: 60 },
+  retryButton: { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
-  segmentedControl: {
-    borderRadius: 10,
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    padding: 3,
-  },
+  segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
   segmentText: { fontSize: 15, fontWeight: '600' },
 });
