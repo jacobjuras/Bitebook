@@ -17,10 +17,16 @@ export function PlaceholderScreen({
     <View
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <Text style={[styles.title, { color: colors.textPrimary }]}>
+      <Text
+        style={[styles.title, { color: colors.textPrimary }]}
+        testID="placeholder-screen-title"
+      >
         {title}
       </Text>
-      <Text style={[styles.description, { color: colors.textSecondary }]}>
+      <Text
+        style={[styles.description, { color: colors.textSecondary }]}
+        testID="placeholder-screen-description"
+      >
         {description}
       </Text>
     </View>

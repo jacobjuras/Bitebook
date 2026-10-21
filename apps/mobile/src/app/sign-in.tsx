@@ -1,4 +1,3 @@
-import { MIN_PASSWORD_LENGTH } from '@bitebook/domain/authentication';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -46,7 +45,10 @@ export default function SignInScreen() {
         {/* App title */}
         <Text style={[styles.title, { color: colors.textPrimary }]}>Bitebook</Text>
         {/* Sign-in instructions */}
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
+        <Text
+          style={[styles.description, { color: colors.textSecondary }]}
+          testID="sign-in-instructions"
+        >
           {needsNewPassword
             ? 'Choose a permanent password to finish signing in.'
             : 'Sign in to access your foods, meals, goals, and reports.'}
@@ -60,6 +62,7 @@ export default function SignInScreen() {
             onChangeText={setEmail}
             placeholder="Email address"
             style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]}
+            testID="sign-in-email-input"
             value={email}
           />
         ) : null}
@@ -72,6 +75,7 @@ export default function SignInScreen() {
           placeholder={needsNewPassword ? 'New password' : 'Password'}
           secureTextEntry
           style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]}
+          testID="sign-in-password-input"
           value={password}
         />
         {/* Sign-in button */}
@@ -80,6 +84,7 @@ export default function SignInScreen() {
           accessibilityState={{ disabled: isDisabled }}
           disabled={isDisabled}
           onPress={() => void submit()}
+          testID="sign-in-submit-button"
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.accent },
@@ -88,17 +93,23 @@ export default function SignInScreen() {
         >
           {isLoading ? (
             // Sign-in progress indicator
-            <ActivityIndicator color={colors.onAccent} />
+            <ActivityIndicator color={colors.onAccent} testID="sign-in-loading-indicator" />
           ) : (
             // Sign-in button label
-            <Text style={[styles.buttonText, { color: colors.onAccent }]}>
-              {needsNewPassword ? 'Set password' : 'Sign in'}
+            <Text
+              style={[styles.buttonText, { color: colors.onAccent }]}
+              testID="sign-in-submit-button-label"
+            >              {needsNewPassword ? 'Set password' : 'Sign in'}
             </Text>
           )}
         </Pressable>
         {/* Authentication error */}
         {error ? (
-          <Text accessibilityRole="alert" style={{ color: colors.textSecondary }}>
+          <Text
+            accessibilityRole="alert"
+            style={{ color: colors.textSecondary }}
+            testID="sign-in-error"
+          >
             {error}
           </Text>
         ) : null}

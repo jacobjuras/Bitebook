@@ -52,7 +52,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Apply theme colors to the tab bar and screen backgrounds.
 - [ ] Centralize user-interface strings before adding additional languages.
 - [ ] Add shared spacing, typography, and radius tokens when repeated UI patterns justify them.
-- [ ] Add component-level tests for route and layout UI trees across state inputs, user interactions, and mutations.
+- [x] Add component-level tests for route and layout UI trees across state inputs, user interactions, and mutations.
 
 ## 4. Core AWS infrastructure
 
