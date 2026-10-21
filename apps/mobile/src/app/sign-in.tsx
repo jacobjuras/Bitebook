@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,6 +22,19 @@ import { useThemeColors } from '../theme/useThemeColors';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function triggerValidationFeedback(shake: Animated.Value) {
+  shake.stopAnimation();
+  shake.setValue(0);
+  Animated.sequence([
+    Animated.timing(shake, { duration: 40, toValue: -4, useNativeDriver: true }),
+    Animated.timing(shake, { duration: 40, toValue: 4, useNativeDriver: true }),
+    Animated.timing(shake, { duration: 40, toValue: -2, useNativeDriver: true }),
+    Animated.timing(shake, { duration: 40, toValue: 2, useNativeDriver: true }),
+    Animated.timing(shake, { duration: 40, toValue: 0, useNativeDriver: true }),
+  ]).start();
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+}
+
 /** Presents first-party Cognito authentication before the tabbed app is available. */
 export default function SignInScreen() {
   const colors = useThemeColors();
@@ -28,10 +43,12 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [hasValidatedEmail, setHasValidatedEmail] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const emailShake = useRef(new Animated.Value(0)).current;
   const needsNewPassword = status === AuthStatus.NewPasswordRequired;
   const isLoading = status === AuthStatus.Loading;
   const hasValidEmail = EMAIL_PATTERN.test(email.trim());
-  const showEmailError = hasValidatedEmail && !hasValidEmail;
+  const hasEmailValue = email.trim().length > 0;
+  const showEmailError = hasValidatedEmail && hasEmailValue && !hasValidEmail;
   const isDisabled =
     isLoading
     || !password
@@ -47,6 +64,13 @@ export default function SignInScreen() {
       return;
     }
     await signIn(email.trim(), password);
+  }
+
+  function validateEmail() {
+    setHasValidatedEmail(true);
+    if (hasEmailValue && !hasValidEmail) {
+      triggerValidationFeedback(emailShake);
+    }
   }
 
   function updateEmail(value: string) {
@@ -131,24 +155,29 @@ export default function SignInScreen() {
                   <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
                 </View>
                 <View style={styles.field}>
-                  <TextInput
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    onBlur={() => setHasValidatedEmail(true)}
-                    onChangeText={updateEmail}
-                    onFocus={() => setHasValidatedEmail(false)}
-                    placeholder="Email address"
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: showEmailError ? colors.danger : colors.border,
-                        color: colors.textPrimary,
-                      },
-                    ]}
-                    testID="sign-in-email-input"
-                    value={email}
-                  />
+                  <Animated.View
+                    style={{ transform: [{ translateX: emailShake }] }}
+                    testID="sign-in-email-input-container"
+                  >
+                    <TextInput
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      onBlur={validateEmail}
+                      onChangeText={updateEmail}
+                      onFocus={() => setHasValidatedEmail(false)}
+                      placeholder="Email address"
+                      style={[
+                        styles.input,
+                        {
+                          borderColor: showEmailError ? colors.danger : colors.border,
+                          color: colors.textPrimary,
+                        },
+                      ]}
+                      testID="sign-in-email-input"
+                      value={email}
+                    />
+                  </Animated.View>
                   {showEmailError ? (
                     <View
                       style={[styles.errorMessage, { backgroundColor: colors.dangerSubtle }]}

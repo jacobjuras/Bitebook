@@ -101,7 +101,7 @@ function authErrorMessage(fallback: string, error: unknown) {
 }
 
 function logAuthError(operation: string, error: unknown) {
-  if (__DEV__) console.error(`[auth] ${operation} failed: ${errorDiagnostic(error)}`);
+  if (__DEV__) console.log(`[auth] ${operation} failed: ${errorDiagnostic(error)}`);
 }
 
 function signInErrorMessage(error: unknown) {

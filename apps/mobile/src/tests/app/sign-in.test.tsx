@@ -6,6 +6,7 @@ import {
 } from '@testing-library/react-native';
 import {
   Alert,
+  Animated,
   Platform,
   StyleSheet,
 } from 'react-native';
@@ -21,9 +22,15 @@ const mocks = vi.hoisted(() => ({
     signIn: vi.fn(),
     status: 'signed-out',
   },
+  haptic: vi.fn(() => Promise.resolve()),
+  startAnimation: vi.fn(),
 }));
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
+vi.mock('expo-haptics', () => ({
+  NotificationFeedbackType: { Error: 'error' },
+  notificationAsync: mocks.haptic,
+}));
 vi.mock('../../auth/AuthProvider.js', () => ({
   useAuth: () => mocks.auth,
 }));
@@ -43,7 +50,11 @@ vi.mock('../../theme/useThemeColors.js', () => ({
 import SignInScreen from '../../app/sign-in.js';
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.clearAllMocks();
+  vi.spyOn(Animated, 'sequence').mockReturnValue({
+    start: mocks.startAnimation,
+  } as never);
   mocks.auth.error = null;
   mocks.auth.status = AuthStatus.SignedOut;
 });
@@ -72,7 +83,7 @@ describe('Sign In screen', () => {
     expect(screen.getByTestId('sign-in-social-buttons')).toBeTruthy();
     expect(screen.getByTestId('sign-in-apple-button')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByTestId('sign-in-apple-logo').props.style))
-      .toMatchObject({ transform: [{ translateY: -2 }] });
+      .toMatchObject({ transform: [{ translateY: -1 }] });
     expect(screen.getByTestId('sign-in-google-button')).toBeTruthy();
     expect(screen.getByTestId('sign-in-divider')).toBeTruthy();
     expect(screen.queryByTestId('sign-in-email-error')).toBeNull();
@@ -81,6 +92,21 @@ describe('Sign In screen', () => {
     expect(screen.getByTestId('sign-in-sign-up-prompt')).toHaveTextContent(
       "Don't have an account? Sign up",
     );
+  });
+
+  it('does not mark a blank email as invalid after blur', async () => {
+    await render(<SignInScreen />);
+    const emailInput = screen.getByTestId('sign-in-email-input');
+
+    await fireEvent(emailInput, 'focus');
+    await fireEvent(emailInput, 'blur');
+
+    expect(screen.queryByTestId('sign-in-email-error')).toBeNull();
+    expect(StyleSheet.flatten(emailInput.props.style)).toMatchObject({
+      borderColor: 'border',
+    });
+    expect(mocks.startAnimation).not.toHaveBeenCalled();
+    expect(mocks.haptic).not.toHaveBeenCalled();
   });
 
   it('marks an invalid email only after the input loses focus', async () => {
@@ -98,6 +124,8 @@ describe('Sign In screen', () => {
 
     await fireEvent(emailInput, 'blur');
 
+    expect(mocks.startAnimation).toHaveBeenCalledOnce();
+    expect(mocks.haptic).toHaveBeenCalledWith('error');
     expect(StyleSheet.flatten(screen.getByTestId('sign-in-email-input').props.style))
       .toMatchObject({ borderColor: 'danger' });
     expect(screen.getByTestId('sign-in-email-error')).toHaveTextContent(
@@ -236,6 +264,8 @@ describe('Sign In screen', () => {
 
     const error = within(screen.getByTestId('sign-in-password-field'))
       .getByTestId('sign-in-error');
+    expect(mocks.startAnimation).not.toHaveBeenCalled();
+    expect(mocks.haptic).not.toHaveBeenCalled();
     expect(error).toHaveTextContent('Invalid email and password combination');
     expect(StyleSheet.flatten(error.props.style)).toMatchObject({
       backgroundColor: 'danger-subtle',
