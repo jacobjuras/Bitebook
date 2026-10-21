@@ -17,16 +17,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { updateFood } from '../../../api/foods';
 import {
+  FoodSortDirection,
   FoodSortField,
   foodSortDefinitions,
   foodSortFields,
-  isFoodSortField,
+  parseFoodSortSelection,
 } from '../../../pantry/foodSorting';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
-type FoodSortDirection = 'ascending' | 'descending';
 
 type EmptyState = {
   action: string;
@@ -69,8 +69,9 @@ export default function PantryScreen() {
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
   const [foodSearch, setFoodSearch] = useState('');
   const [foodSortField, setFoodSortField] = useState(FoodSortField.Recent);
-  const [foodSortDirection, setFoodSortDirection] =
-    useState<FoodSortDirection>('descending');
+  const [foodSortDirection, setFoodSortDirection] = useState(
+    FoodSortDirection.Descending,
+  );
   const [favoriteFoodsOnly, setFavoriteFoodsOnly] = useState(false);
   const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
   const foodsQuery = useQuery(foodsQueryOptions);
@@ -106,7 +107,9 @@ export default function PantryScreen() {
         second,
       );
       const comparison = fieldComparison || first.name.localeCompare(second.name);
-      return foodSortDirection === 'ascending' ? comparison : -comparison;
+      return foodSortDirection === FoodSortDirection.Ascending
+        ? comparison
+        : -comparison;
     });
   const isPending = foodsQuery.isPending
     || (selectedSection === 'meals' && mealsQuery.isPending);
@@ -129,11 +132,6 @@ export default function PantryScreen() {
       return;
     }
     router.push('/pantry/meal/new');
-  };
-
-  const toggleFoodSortDirection = () => {
-    setFoodSortDirection((direction) =>
-      direction === 'ascending' ? 'descending' : 'ascending');
   };
 
   const toggleFoodTag = (tag: string) => {
@@ -208,101 +206,72 @@ export default function PantryScreen() {
           <MenuView
             actions={[
               {
-                id: 'favorites',
-                state: favoriteFoodsOnly ? 'on' : 'off',
-                title: 'Favorites',
+                displayInline: true,
+                id: 'filter-section',
+                subactions: [
+                  {
+                    id: 'favorites',
+                    state: favoriteFoodsOnly ? 'on' : 'off',
+                    title: 'Favorites',
+                  },
+                  ...availableFoodTags.map((tag) => ({
+                    id: `tag:${tag}`,
+                    state: selectedFoodTags.includes(tag) ? 'on' as const : 'off' as const,
+                    title: tag,
+                  })),
+                ],
+                title: 'Filter',
               },
-              ...availableFoodTags.map((tag) => ({
-                id: `tag:${tag}`,
-                state: selectedFoodTags.includes(tag) ? 'on' as const : 'off' as const,
-                title: tag,
-              })),
+              {
+                displayInline: true,
+                id: 'sort-section',
+                subactions: foodSortFields.map((field) => ({
+                  id: `sort:${field}`,
+                  subactions: foodSortDefinitions[field].directionOrder.map(
+                    (direction) => ({
+                      id: `sort:${field}:${direction}`,
+                      state: foodSortField === field
+                        && foodSortDirection === direction
+                        ? 'on' as const
+                        : 'off' as const,
+                      title: foodSortDefinitions[field]
+                        .directionLabels[direction],
+                    }),
+                  ),
+                  title: foodSortDefinitions[field].label,
+                })),
+                title: 'Sort',
+              },
             ]}
             onPressAction={({ nativeEvent }) => {
+              const sortSelection = parseFoodSortSelection(nativeEvent.event);
               if (nativeEvent.event === 'favorites') {
                 setFavoriteFoodsOnly((favoriteOnly) => !favoriteOnly);
               } else if (nativeEvent.event.startsWith('tag:')) {
                 toggleFoodTag(nativeEvent.event.slice(4));
+              } else if (sortSelection !== undefined) {
+                setFoodSortField(sortSelection.field);
+                setFoodSortDirection(sortSelection.direction);
               }
             }}
+            testID="pantry-food-filter-sort-menu"
           >
             <View
-              accessibilityLabel="Filter Foods"
+              accessibilityLabel={`Filter and sort Foods, currently ${foodSortDefinitions[foodSortField].label}, ${foodSortDefinitions[foodSortField].directionLabels[foodSortDirection]}${favoriteFoodsOnly || selectedFoodTags.length > 0 ? ', filters active' : ''}`}
               accessibilityRole="button"
-              style={[styles.filterButton, { borderColor: colors.border }]}
-              testID="pantry-food-filter-button"
+              style={[styles.filterSortButton, { borderColor: colors.border }]}
+              testID="pantry-food-filter-sort-button"
             >
               <Ionicons
                 color={colors.textPrimary}
                 name={favoriteFoodsOnly || selectedFoodTags.length > 0
-                  ? 'filter'
-                  : 'filter-outline'}
+                  ? 'options'
+                  : 'options-outline'}
                 size={20}
-                testID="pantry-food-filter-icon"
+                testID="pantry-food-filter-sort-icon"
               />
             </View>
           </MenuView>
-          <MenuView
-            actions={foodSortFields.map((field) => ({
-              id: field,
-              state: foodSortField === field ? 'on' : 'off',
-              title: foodSortDefinitions[field].label,
-            }))}
-            onPressAction={({ nativeEvent }) => {
-              if (isFoodSortField(nativeEvent.event)) {
-                setFoodSortField(nativeEvent.event);
-              }
-            }}
-          >
-            <View
-              accessibilityLabel={`Choose Food sort field, currently ${foodSortDefinitions[foodSortField].label}`}
-              accessibilityRole="button"
-              style={[styles.sortButton, { borderColor: colors.border }]}
-              testID="pantry-food-sort-field-button"
-            >
-              {foodSortField === FoodSortField.Recent ? (
-                <Ionicons
-                  color={colors.textPrimary}
-                  name="time-outline"
-                  size={20}
-                  testID="pantry-food-sort-recent-icon"
-                />
-              ) : foodSortField === FoodSortField.Name ? (
-                <Text
-                  style={[styles.sortButtonText, { color: colors.textPrimary }]}
-                  testID="pantry-food-sort-name-label"
-                >A-Z</Text>
-              ) : (
-                <Ionicons
-                  color={colors.textPrimary}
-                  name="flame-outline"
-                  size={20}
-                  testID="pantry-food-sort-calories-icon"
-                />
-              )}
-            </View>
-          </MenuView>
-          {/* Food sort direction button */}
-          <Pressable
-            accessibilityLabel={`Sort Foods ${foodSortDirection}`}
-            accessibilityRole="button"
-            onPress={toggleFoodSortDirection}
-            style={({ pressed }) => [
-              styles.sortDirectionButton,
-              { borderColor: colors.border },
-              pressed && styles.buttonPressed,
-            ]}
-            testID="pantry-food-sort-direction-button"
-          >
-            <Ionicons
-              color={colors.textPrimary}
-              name={foodSortDirection === 'ascending'
-                ? 'arrow-up-outline'
-                : 'arrow-down-outline'}
-              size={20}
-              testID="pantry-food-sort-direction-icon"
-            />
-          </Pressable>
         </View>
       ) : null}
       {isPending ? (
@@ -490,7 +459,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', flex: 1, gap: 10, justifyContent: 'center', paddingHorizontal: 40 },
   emptyTitle: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
   favoriteError: { fontSize: 13 },
-  filterButton: {
+  filterSortButton: {
     alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
@@ -527,21 +496,4 @@ const styles = StyleSheet.create({
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
   segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
   segmentText: { fontSize: 15, fontWeight: '600' },
-  sortButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
-  },
-  sortButtonText: { fontSize: 14, fontWeight: '700' },
-  sortDirectionButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
-  },
 });
