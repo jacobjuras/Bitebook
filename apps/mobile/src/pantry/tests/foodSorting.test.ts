@@ -2,12 +2,10 @@ import type { Food } from '@bitebook/domain';
 import { describe, expect, it } from 'vitest';
 
 import {
-  FoodSortDirection,
+  SortDirection,
   FoodSortField,
   foodSortDefinitions,
   foodSortFields,
-  isFoodSortField,
-  parseFoodSortSelection,
 } from '../foodSorting.js';
 
 const baseFood: Food = {
@@ -78,34 +76,5 @@ describe('Food sort definitions', () => {
       (direction) =>
         foodSortDefinitions[FoodSortField.Calories].directionLabels[direction],
     )).toEqual(['Low to high', 'High to low']);
-  });
-});
-
-describe('isFoodSortField', () => {
-  it('accepts every sortable field and rejects unsupported menu events', () => {
-    for (const field of foodSortFields) {
-      expect(isFoodSortField(field)).toBe(true);
-    }
-
-    expect(isFoodSortField('protein')).toBe(false);
-  });
-});
-
-
-describe('parseFoodSortSelection', () => {
-  it('parses a supported field and direction', () => {
-    expect(parseFoodSortSelection('sort:calories:descending')).toEqual({
-      direction: FoodSortDirection.Descending,
-      field: FoodSortField.Calories,
-    });
-  });
-
-  it.each([
-    'favorites',
-    'sort:protein:ascending',
-    'sort:name:sideways',
-    'sort:name:ascending:extra',
-  ])('rejects unsupported menu event %s', (event) => {
-    expect(parseFoodSortSelection(event)).toBeUndefined();
   });
 });

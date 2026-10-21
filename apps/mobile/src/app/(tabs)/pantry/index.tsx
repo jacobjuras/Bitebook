@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { MenuView } from '@expo/ui/community/menu';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Food, Meal, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
@@ -11,19 +10,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { updateFood } from '../../../api/foods';
+import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
-  FoodSortDirection,
+  SortDirection,
   FoodSortField,
   foodSortDefinitions,
   foodSortFields,
-  parseFoodSortSelection,
 } from '../../../pantry/foodSorting';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
@@ -72,7 +70,7 @@ export default function PantryScreen() {
   const [foodSearch, setFoodSearch] = useState('');
   const [foodSortField, setFoodSortField] = useState(FoodSortField.Recent);
   const [foodSortDirection, setFoodSortDirection] = useState(
-    FoodSortDirection.Descending,
+    SortDirection.Descending,
   );
   const [favoritesFilterEnabled, setFavoritesFilterEnabled] = useState(false);
   const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
@@ -109,7 +107,7 @@ export default function PantryScreen() {
         second,
       );
       const comparison = fieldComparison || first.name.localeCompare(second.name);
-      return foodSortDirection === FoodSortDirection.Ascending
+      return foodSortDirection === SortDirection.Ascending
         ? comparison
         : -comparison;
     });
@@ -191,165 +189,52 @@ export default function PantryScreen() {
         })}
       </View>
       {selectedSection === 'foods' && hasFoods && !isPending && !isError ? (
-        <>
-          {/* Food list controls */}
-          <View style={styles.foodControls} testID="pantry-food-controls">
-          {/* Food search field */}
-          <View
-            style={[styles.searchField, { borderColor: colors.border }]}
-            testID="pantry-food-search-field"
-          >
-            <Ionicons color={colors.textSecondary} name="search-outline" size={20} />
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              onChangeText={setFoodSearch}
-              placeholder="Search foods"
-              returnKeyType="search"
-              style={[styles.searchInput, { color: colors.textPrimary }]}
-              testID="pantry-food-search-input"
-              value={foodSearch}
-            />
-            {foodSearch.length > 0 ? (
-              <Pressable
-                accessibilityLabel="Clear Food search"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => setFoodSearch('')}
-                testID="pantry-food-search-clear-button"
-              >
-                <Ionicons
-                  color={colors.textSecondary}
-                  name="close-circle"
-                  size={18}
-                  testID="pantry-food-search-clear-icon"
-                />
-              </Pressable>
-            ) : null}
-          </View>
-          <MenuView
-            actions={[
-              {
-                displayInline: true,
-                id: 'filter-section',
-                subactions: [
-                  {
-                    id: 'favorites',
-                    state: favoritesFilterEnabled ? 'on' : 'off',
-                    title: 'Favorites',
-                  },
-                  ...availableFoodTags.map((tag) => ({
-                    id: `tag:${tag}`,
-                    state: selectedFoodTags.includes(tag) ? 'on' as const : 'off' as const,
-                    title: tag,
-                  })),
-                ],
-                title: 'Filter',
-              },
-              {
-                displayInline: true,
-                id: 'sort-section',
-                subactions: foodSortFields.map((field) => ({
-                  id: `sort:${field}`,
-                  subactions: foodSortDefinitions[field].directionOrder.map(
-                    (direction) => ({
-                      id: `sort:${field}:${direction}`,
-                      state: foodSortField === field
-                        && foodSortDirection === direction
-                        ? 'on' as const
-                        : 'off' as const,
-                      title: foodSortDefinitions[field]
-                        .directionLabels[direction],
-                    }),
-                  ),
-                  title: foodSortDefinitions[field].label,
-                })),
-                title: 'Sort',
-              },
-            ]}
-            onPressAction={({ nativeEvent }) => {
-              const sortSelection = parseFoodSortSelection(nativeEvent.event);
-              if (nativeEvent.event === 'favorites') {
-                setFavoritesFilterEnabled((enabled) => !enabled);
-              } else if (nativeEvent.event.startsWith('tag:')) {
-                toggleFoodTag(nativeEvent.event.slice(4));
-              } else if (sortSelection !== undefined) {
-                setFoodSortField(sortSelection.field);
-                setFoodSortDirection(sortSelection.direction);
-              }
-            }}
-            testID="pantry-food-filter-sort-menu"
-          >
-            <View
-              accessibilityLabel={`Filter and sort Foods, currently ${foodSortDefinitions[foodSortField].label}, ${foodSortDefinitions[foodSortField].directionLabels[foodSortDirection]}${favoritesFilterEnabled || selectedFoodTags.length > 0 ? ', filters active' : ''}`}
-              accessibilityRole="button"
-              style={[styles.filterSortButton, { borderColor: colors.border }]}
-              testID="pantry-food-filter-sort-button"
-            >
-              <Ionicons
-                color={colors.textPrimary}
-                name={favoritesFilterEnabled || selectedFoodTags.length > 0
-                  ? 'options'
-                  : 'options-outline'}
-                size={20}
-                testID="pantry-food-filter-sort-icon"
-              />
-            </View>
-          </MenuView>
-        </View>
-          {favoritesFilterEnabled || selectedFoodTags.length > 0 ? (
-            <View style={styles.activeFilters} testID="pantry-food-active-filters">
-              {favoritesFilterEnabled ? (
-                <Pressable
-                  accessibilityLabel="Remove Favorites filter"
-                  accessibilityRole="button"
-                  onPress={() => setFavoritesFilterEnabled(false)}
-                  style={({ pressed }) => [
-                    styles.activeFilterChip,
-                    { backgroundColor: colors.control },
-                    pressed && styles.buttonPressed,
-                  ]}
-                  testID="pantry-food-active-filter-favorites"
-                >
-                  <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>Favorites</Text>
-                  <Ionicons color={colors.textSecondary} name="close" size={14} />
-                </Pressable>
-              ) : null}
-              {selectedFoodTags.map((tag) => (
-                <Pressable
-                  accessibilityLabel={`Remove ${tag} filter`}
-                  accessibilityRole="button"
-                  key={tag}
-                  onPress={() => toggleFoodTag(tag)}
-                  style={({ pressed }) => [
-                    styles.activeFilterChip,
-                    { backgroundColor: colors.control },
-                    pressed && styles.buttonPressed,
-                  ]}
-                  testID={`pantry-food-active-filter-tag-${tag}`}
-                >
-                  <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>{tag}</Text>
-                  <Ionicons color={colors.textSecondary} name="close" size={14} />
-                </Pressable>
-              ))}
-              <Pressable
-                accessibilityLabel="Clear all Food filters"
-                accessibilityRole="button"
-                onPress={() => {
-                  setFavoritesFilterEnabled(false);
-                  setSelectedFoodTags([]);
-                }}
-                style={({ pressed }) => [
-                  styles.clearFiltersButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                testID="pantry-food-clear-filters-button"
-              >
-                <Text style={[styles.clearFiltersText, { color: colors.accent }]}>Clear all</Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </>
+        <SearchFilterSortControls
+          activeSortDirectionId={foodSortDirection}
+          activeSortId={foodSortField}
+          filters={[
+            {
+              id: 'favorites',
+              label: 'Favorites',
+              selected: favoritesFilterEnabled,
+            },
+            ...availableFoodTags.map((tag) => ({
+              id: `tag:${tag}`,
+              label: tag,
+              selected: selectedFoodTags.includes(tag),
+            })),
+          ]}
+          itemName="Food"
+          itemNamePlural="Foods"
+          onClearFilters={() => {
+            setFavoritesFilterEnabled(false);
+            setSelectedFoodTags([]);
+          }}
+          onSearchChange={setFoodSearch}
+          onSelectSort={(field, direction) => {
+            setFoodSortField(field);
+            setFoodSortDirection(direction);
+          }}
+          onToggleFilter={(filter) => {
+            if (filter === 'favorites') {
+              setFavoritesFilterEnabled((enabled) => !enabled);
+              return;
+            }
+            toggleFoodTag(filter.slice(4));
+          }}
+          searchValue={foodSearch}
+          sortOptions={foodSortFields.map((field) => ({
+            directions: foodSortDefinitions[field].directionOrder.map(
+              (direction) => ({
+                id: direction,
+                label: foodSortDefinitions[field].directionLabels[direction],
+              }),
+            ),
+            id: field,
+            label: foodSortDefinitions[field].label,
+          }))}
+          testIDPrefix="pantry-food"
+        />
       ) : null}
       {isPending ? (
         // Pantry loading state
@@ -529,25 +414,6 @@ export default function PantryScreen() {
 }
 
 const styles = StyleSheet.create({
-  activeFilterChip: {
-    alignItems: 'center',
-    borderRadius: 16,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  activeFilterText: { fontSize: 13, fontWeight: '500' },
-  activeFilters: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginHorizontal: 24,
-    marginTop: 10,
-  },
-  clearFiltersButton: { paddingHorizontal: 4, paddingVertical: 6 },
-  clearFiltersText: { fontSize: 13, fontWeight: '600' },
   button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
@@ -556,16 +422,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', flex: 1, gap: 10, justifyContent: 'center', paddingHorizontal: 40 },
   emptyTitle: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
   favoriteError: { fontSize: 13 },
-  filterSortButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
-  },
   foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
-  foodControls: { flexDirection: 'row', gap: 10, marginHorizontal: 24, marginTop: 16 },
   foodDetail: { fontSize: 14 },
   foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
   foodName: { flex: 1, fontSize: 17, fontWeight: '600' },
@@ -580,16 +437,6 @@ const styles = StyleSheet.create({
   mealName: { fontSize: 17, fontWeight: '600' },
   retryButton: { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   screen: { flex: 1 },
-  searchField: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-  },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 12 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
   segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
   segmentText: { fontSize: 15, fontWeight: '600' },
