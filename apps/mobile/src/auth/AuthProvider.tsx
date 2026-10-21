@@ -1,4 +1,4 @@
-import { Amplify } from 'aws-amplify';
+import { Amplify, type ResourcesConfig } from 'aws-amplify';
 import {
   confirmSignIn,
   fetchAuthSession,
@@ -20,7 +20,7 @@ import { AuthStatus } from './AuthStatus';
 import { secureTokenStorage } from './secureTokenStorage';
 
 const config = getMobileConfig();
-Amplify.configure({
+const amplifyConfig: ResourcesConfig = {
   Auth: {
     Cognito: {
       loginWith: { email: true },
@@ -28,8 +28,22 @@ Amplify.configure({
       userPoolId: config.userPoolId,
     },
   },
-});
+};
+const userPoolOnlyCredentialsProvider = {
+  async clearCredentialsAndIdentityId() {},
+  async getCredentialsAndIdentityId() {
+    return undefined;
+  },
+};
+
+cognitoUserPoolsTokenProvider.setAuthConfig(amplifyConfig.Auth!);
 cognitoUserPoolsTokenProvider.setKeyValueStorage(secureTokenStorage);
+Amplify.configure(amplifyConfig, {
+  Auth: {
+    credentialsProvider: userPoolOnlyCredentialsProvider,
+    tokenProvider: cognitoUserPoolsTokenProvider,
+  },
+});
 
 /** Maps supported Cognito sign-in results to Bitebook authentication states. */
 export function resolveSignInStatus(result: SignInOutput): AuthStatus {
@@ -69,17 +83,24 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function signInErrorMessage(error: unknown) {
-  const fallback = 'Unable to sign in with those credentials';
-  if (!__DEV__ || !(error instanceof Error)) return fallback;
+function errorDiagnostic(error: unknown) {
+  if (!(error instanceof Error)) return 'Unknown error';
 
   const underlyingError = 'underlyingError' in error
     ? error.underlyingError
     : undefined;
-  const diagnostic = underlyingError instanceof Error
+  return underlyingError instanceof Error
     ? `${underlyingError.name}: ${underlyingError.message}`
     : `${error.name}: ${error.message}`;
-  return `${fallback} (${diagnostic})`;
+}
+
+function authErrorMessage(fallback: string, error: unknown) {
+  if (!__DEV__) return fallback;
+  return `${fallback} (${errorDiagnostic(error)})`;
+}
+
+function logAuthError(operation: string, error: unknown) {
+  if (__DEV__) console.error(`[auth] ${operation} failed: ${errorDiagnostic(error)}`);
 }
 
 /** Provides one first-party Cognito authentication lifecycle to every route. */
@@ -102,7 +123,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       setStatus(await signInWithPassword(email, password));
     } catch (error) {
-      setError(signInErrorMessage(error));
+      logAuthError('sign in', error);
+      setError(authErrorMessage('Unable to sign in with those credentials', error));
       setStatus(AuthStatus.SignedOut);
     }
   }
@@ -112,8 +134,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setStatus(AuthStatus.Loading);
     try {
       setStatus(await completeRequiredPassword(password));
-    } catch {
-      setError('Unable to set the new password');
+    } catch (error) {
+      logAuthError('set new password', error);
+      setError(authErrorMessage('Unable to set the new password', error));
       setStatus(AuthStatus.NewPasswordRequired);
     }
   }
@@ -124,8 +147,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       await endAuthSession();
       setStatus(AuthStatus.SignedOut);
-    } catch {
-      setError('Sign out failed');
+    } catch (error) {
+      logAuthError('sign out', error);
+      setError(authErrorMessage('Sign out failed', error));
       setStatus(AuthStatus.SignedIn);
     }
   }

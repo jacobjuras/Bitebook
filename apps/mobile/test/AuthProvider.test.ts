@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   configure: vi.fn(),
   confirmSignIn: vi.fn(),
   fetchAuthSession: vi.fn(),
+  setAuthConfig: vi.fn(),
   setStorage: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('aws-amplify/auth', () => ({
 }));
 vi.mock('aws-amplify/auth/cognito', () => ({
   cognitoUserPoolsTokenProvider: {
+    setAuthConfig: mocks.setAuthConfig,
     setKeyValueStorage: mocks.setStorage,
   },
 }));
