@@ -22,7 +22,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "mobile": "npm run start --workspace @bitebook/mobile",
-    "test": "bash scripts/run-with-project-node.sh npm run test --workspaces --if-present",
+    "test": "bash scripts/run-with-project-node.sh bash scripts/run-tests.sh",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }
