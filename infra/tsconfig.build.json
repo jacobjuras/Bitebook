@@ -7,5 +7,5 @@
     "rootDir": ".",
     "sourceMap": true
   },
-  "exclude": ["dist", "test"]
+  "exclude": ["bin/**/tests", "dist", "lib/**/tests", "test"]
 }
