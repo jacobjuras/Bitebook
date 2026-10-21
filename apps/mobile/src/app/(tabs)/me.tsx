@@ -22,9 +22,15 @@ export default function MeScreen() {
       {/* Profile content */}
       <View style={styles.content}>
         {/* Screen title */}
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Me</Text>
+        <Text
+          style={[styles.title, { color: colors.textPrimary }]}
+          testID="me-tab-title"
+        >Me</Text>
         {/* Profile description */}
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
+        <Text
+          style={[styles.description, { color: colors.textSecondary }]}
+          testID="me-tab-description"
+        >
           Manage your profile and goals.
         </Text>
       </View>
@@ -32,6 +38,7 @@ export default function MeScreen() {
       <Pressable
         accessibilityRole="button"
         onPress={() => void signOut()}
+        testID="me-tab-sign-out-button"
         style={({ pressed }) => [
           styles.button,
           { backgroundColor: colors.control },
@@ -46,6 +53,7 @@ export default function MeScreen() {
         <Text
           accessibilityRole="alert"
           style={[styles.error, { color: colors.textSecondary }]}
+          testID="me-tab-sign-out-error"
         >
           {error}
         </Text>

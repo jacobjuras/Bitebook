@@ -59,15 +59,19 @@ export default function PantryScreen() {
   const foodsQuery = useQuery({ queryKey: ['foods'], queryFn: listFoods });
   const foods = foodsQuery.data ?? [];
   const hasFoods = foods.length > 0;
+  const shouldAddFood = selectedSection === 'foods' || !hasFoods;
   const selectedSectionEmptyState = selectedSection === 'foods'
     ? foodEmptyState
     : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
   const actionLabel = selectedSection === 'foods' && hasFoods
     ? 'Add food'
     : selectedSectionEmptyState.action;
+  const actionTestId = shouldAddFood
+    ? 'pantry-add-food-button'
+    : 'pantry-add-meal-button';
 
   const navigateToAddItem = () => {
-    if (selectedSection === 'foods' || !hasFoods) {
+    if (shouldAddFood) {
       router.push('/pantry/food/new');
       return;
     }
@@ -93,6 +97,7 @@ export default function PantryScreen() {
               accessibilityState={{ selected }}
               key={value}
               onPress={() => setSelectedSection(value)}
+              testID={`pantry-${value}-tab`}
               style={[
                 styles.segment,
                 selected && { backgroundColor: colors.controlSelected },
@@ -113,16 +118,24 @@ export default function PantryScreen() {
       </View>
       {foodsQuery.isPending ? (
         // Pantry loading state
-        <ActivityIndicator color={colors.accent} style={styles.centeredState} />
+        <ActivityIndicator
+          color={colors.accent}
+          style={styles.centeredState}
+          testID="pantry-loading-indicator"
+        />
       ) : foodsQuery.isError ? (
         // Pantry error state
-        <View style={styles.centeredState}>
+        <View style={styles.centeredState} testID="pantry-error">
           {/* Pantry error message */}
-          <Text style={[styles.description, { color: colors.textSecondary }]}>Unable to load your pantry</Text>
+          <Text
+            style={[styles.description, { color: colors.textSecondary }]}
+            testID="pantry-error-message"
+          >Unable to load your pantry</Text>
           {/* Pantry retry button */}
           <Pressable
             accessibilityRole="button"
             onPress={() => void foodsQuery.refetch()}
+            testID="pantry-retry-load-button"
             style={({ pressed }) => [
               styles.retryButton,
               { backgroundColor: colors.control },
@@ -135,36 +148,52 @@ export default function PantryScreen() {
         </View>
       ) : selectedSection === 'foods' && hasFoods ? (
         // Food card list
-        <ScrollView contentContainerStyle={styles.foodList}>
+        <ScrollView contentContainerStyle={styles.foodList} testID="pantry-food-list">
           {foods.map((food: Food) => (
             // Food card
             <View
               key={food.id}
               style={[styles.foodCard, { borderColor: colors.border }]}
+              testID={`pantry-food-${food.id}`}
             >
               {/* Food name */}
-              <Text style={[styles.foodName, { color: colors.textPrimary }]}>{food.name}</Text>
+              <Text
+                style={[styles.foodName, { color: colors.textPrimary }]}
+                testID={`pantry-food-${food.id}-name`}
+              >{food.name}</Text>
               {/* Food quantities */}
               <View style={styles.foodDetails}>
                 {/* Serving size */}
-                <Text style={[styles.foodDetail, { color: colors.textSecondary }]}>Serving: {formatQuantity(food.servingSize)}</Text>
+                <Text
+                  style={[styles.foodDetail, { color: colors.textSecondary }]}
+                  testID={`pantry-food-${food.id}-serving-size`}
+                >Serving: {formatQuantity(food.servingSize)}</Text>
                 {/* Current stock */}
-                <Text style={[styles.foodDetail, { color: colors.textSecondary }]}>Stock: {formatQuantity(food.currentStock)}</Text>
+                <Text
+                  style={[styles.foodDetail, { color: colors.textSecondary }]}
+                  testID={`pantry-food-${food.id}-current-stock`}
+                >Stock: {formatQuantity(food.currentStock)}</Text>
               </View>
             </View>
           ))}
         </ScrollView>
       ) : (
         // Pantry empty state
-        <View style={styles.emptyState}>
+        <View style={styles.emptyState} testID="pantry-empty-state">
           {/* Empty-state icon */}
           <View style={[styles.iconCircle, { backgroundColor: colors.accentSubtle }]}>
             <Ionicons color={colors.accent} name={selectedSectionEmptyState.icon} size={30} />
           </View>
           {/* Empty-state title */}
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{selectedSectionEmptyState.title}</Text>
+          <Text
+            style={[styles.emptyTitle, { color: colors.textPrimary }]}
+            testID="pantry-empty-state-title"
+          >{selectedSectionEmptyState.title}</Text>
           {/* Empty-state description */}
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{selectedSectionEmptyState.description}</Text>
+          <Text
+            style={[styles.description, { color: colors.textSecondary }]}
+            testID="pantry-empty-state-description"
+          >{selectedSectionEmptyState.description}</Text>
         </View>
       )}
       {!foodsQuery.isPending && !foodsQuery.isError ? (
@@ -172,6 +201,7 @@ export default function PantryScreen() {
         <Pressable
           accessibilityRole="button"
           onPress={navigateToAddItem}
+          testID={actionTestId}
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.accent },
