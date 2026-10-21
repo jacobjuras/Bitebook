@@ -38,7 +38,7 @@ The app should contain five core views, separated through a bottom nav bar. From
 The Calendar view will display the user's meal calendar, with selectable month- and day-at-a-glance views. In month view, a typical stack of Sunday-Saturday weeks with is shown, with each past day having a green or red dot indicating whether or not the user met their eating goal that day; success = calories within 5% of their goal calories (either direction). To switch to a day view, the user can just click on a specific day from the month view. To switch back to month view, can just press / swipe back. The day view will support much more than the month view. It will show 2 things: on top, a scrollable window starting at 12a and ending at 12a (the start of the next day), showing meals eaten at which times of the day. These meal cards will be clickable to open up details on the meal. On the bottom, it will have a statistical summary on the day, showing macro and mitro nutrient data.
 
 #### Pantry View
-The Pantry view will display the user's pantry-at-a-glance. It displays a list of everything the user has ever added to their pantry, with sorting options like alphabetically or most recently eaten. It also supports searching for items and updating their nutritional metadata. Future entries are considered planned until their scheduled time passes, at which point they are automatically considered eaten.
+The Pantry view will display the user's pantry-at-a-glance. It displays a list of everything the user has ever added to their pantry, with sorting by most recently logged, name, or calories. Users can mark items as favorites, add custom tags, and filter by Favorites or Foods containing all selected tags. It also supports searching for items and updating their nutritional metadata. Future entries are considered planned until their scheduled time passes, at which point they are automatically considered eaten.
 
 #### Eat View
 The Eat view will allow the user to record an eaten meal or record a new item or food into their pantry. So it will prompt the user for what food or meal was eaten from their pantry with the option to directly add something new to their pantry from that view via barcode scan or manual entry, then let the user log it to a certain date/time or just "Now", or simply add it to the pantry without logging it as eaten. Users log meals with a future timestamp to plan out meals for the future (viewable in Calendar).
@@ -96,12 +96,15 @@ type Food = {
   name: string;                   // User-visible and user-configured name of the food
   servingSize: Quantity;          // Quantity represented by one serving
   nutritionFacts: NutritionFacts; // Nutritional values for one serving
+  isFavorite?: boolean;           // Whether the user marked the food as a favorite
+  tags?: string[];                // Normalized custom labels used for filtering
+  lastLoggedAt?: string;          // Server-managed UTC timestamp of the latest explicit Food log
   createdAt: string;              // UTC timestamp recording when the food was created
   updatedAt: string;              // UTC timestamp recording when the food was last edited
 };
 ```
 
-Each user owns and edits an independent copy of a food.
+Each user owns and edits an independent copy of a food. Tags are trimmed, lowercased, deduplicated, and limited to ten labels of up to 30 characters. `lastLoggedAt` records when the user most recently logged that Food directly, regardless of the entry's scheduled time. Logging a saved Meal does not update its ingredient Foods. Recent sorting falls back to `createdAt` until the Food has been logged directly.
 
 For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to the backend. The backend queries USDA FoodData Central and returns the matching product information for confirmation. Bitebook does not persist the barcode, USDA identifier, brand, or shared product cache. If no usable match is found, the user can enter the food manually.
 

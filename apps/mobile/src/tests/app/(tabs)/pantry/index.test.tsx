@@ -13,9 +13,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   listFoods: vi.fn(),
   listMeals: vi.fn(),
+  mutateFavorite: vi.fn(),
   push: vi.fn(),
   refetchFoods: vi.fn(),
   refetchMeals: vi.fn(),
+  setQueryData: vi.fn(),
+  updateFood: vi.fn(),
+  useMutation: vi.fn(),
   useQuery: vi.fn(),
 }));
 
@@ -23,14 +27,28 @@ vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
 vi.mock('@expo/ui/community/menu', async () => {
   const { createElement } = await vi.importActual<typeof import('react')>('react');
   return {
-    MenuView: ({ children, ...props }: { children: ReactNode }) => createElement(
+    MenuView: ({ actions, children, ...props }: {
+      actions: { id: string }[];
+      children: ReactNode;
+    }) => createElement(
       'MenuView',
-      { ...props, testID: 'pantry-food-sort-menu' },
+      {
+        ...props,
+        actions,
+        testID: actions.some(({ id }) => id === 'favorites')
+          ? 'pantry-food-filter-menu'
+          : 'pantry-food-sort-menu',
+      },
       children,
     ),
   };
 });
-vi.mock('@tanstack/react-query', () => ({ useQuery: mocks.useQuery }));
+vi.mock('@tanstack/react-query', () => ({
+  useMutation: mocks.useMutation,
+  useQuery: mocks.useQuery,
+  useQueryClient: () => ({ setQueryData: mocks.setQueryData }),
+}));
+vi.mock('../../../../api/foods.js', () => ({ updateFood: mocks.updateFood }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 vi.mock('../../../../query/pantryQueries.js', () => ({
@@ -53,6 +71,7 @@ vi.mock('../../../../theme/useThemeColors.js', () => ({
     border: 'border',
     control: 'control',
     controlSelected: 'control-selected',
+    danger: 'danger',
     onAccent: 'on-accent',
     textPrimary: 'text-primary',
     textSecondary: 'text-secondary',
@@ -65,18 +84,22 @@ const foods: Food[] = [
   {
     createdAt: '2026-10-20T12:00:00.000Z',
     id: '11111111-1111-4111-8111-111111111111',
+    lastLoggedAt: '2026-10-21T10:00:00.000Z',
     name: 'Chicken breast',
     nutritionFacts: { caloriesKcal: 165, micronutrients: {}, proteinG: 31 },
     servingSize: { amount: 100, unit: 'g' as const },
+    tags: ['high-protein', 'savory'],
     updatedAt: '2026-10-20T12:00:00.000Z',
     userId: 'user-123',
   },
   {
     createdAt: '2026-10-20T13:00:00.000Z',
     id: '22222222-2222-4222-8222-222222222222',
+    isFavorite: true,
     name: 'Greek yogurt',
     nutritionFacts: { caloriesKcal: 100, micronutrients: {} },
     servingSize: { amount: 1, unit: 'item' as const },
+    tags: ['breakfast', 'high-protein'],
     updatedAt: '2026-10-20T13:00:00.000Z',
     userId: 'user-123',
   },
@@ -136,6 +159,10 @@ function renderedFoodCardIds() {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  mocks.useMutation.mockReturnValue({
+    isError: false,
+    mutate: mocks.mutateFavorite,
+  });
 });
 
 describe('Pantry screen', () => {
@@ -219,11 +246,12 @@ describe('Pantry screen', () => {
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
   });
 
-  it('renders Food cards and formats their quantities', async () => {
+  it('renders Food cards with organization metadata and quantities', async () => {
     await renderPantry();
 
     expect(screen.getByTestId('pantry-food-controls')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-search-input')).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-filter-button')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-sort-field-button')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-sort-direction-button')).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}`)).toBeTruthy();
@@ -236,6 +264,15 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-food-${foods[0].id}-serving-size`),
     ).toHaveTextContent('Serving: 100 g');
+    expect(screen.getByTestId(
+      `pantry-food-${foods[0].id}-favorite-icon`,
+    ).props.name).toBe('star-outline');
+    expect(screen.getByTestId(
+      `pantry-food-${foods[0].id}-tag-high-protein`,
+    )).toHaveTextContent('high-protein');
+    expect(screen.getByTestId(
+      `pantry-food-${foods[0].id}-tag-savory`,
+    )).toHaveTextContent('savory');
     expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-name`)).toHaveTextContent(
       'Greek yogurt',
@@ -243,6 +280,9 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-food-${foods[1].id}-serving-size`),
     ).toHaveTextContent('Serving: 1 item');
+    expect(screen.getByTestId(
+      `pantry-food-${foods[1].id}-favorite-icon`,
+    ).props.name).toBe('star');
     const addFoodButton = screen.getByTestId('pantry-add-food-button');
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);
@@ -266,10 +306,90 @@ describe('Pantry screen', () => {
     );
     expect(
       screen.getByTestId('pantry-food-search-empty-description'),
-    ).toHaveTextContent('Try a different search');
+    ).toHaveTextContent('Try a different search or filter');
   });
 
-  it('toggles Food sort direction independently from the selected field', async () => {
+  it('filters Foods by Favorites and selected tags', async () => {
+    await renderPantry();
+    const filterMenu = screen.getByTestId('pantry-food-filter-menu');
+
+    expect(filterMenu.props.actions).toEqual([
+      { id: 'favorites', state: 'off', title: 'Favorites' },
+      { id: 'tag:breakfast', state: 'off', title: 'breakfast' },
+      { id: 'tag:high-protein', state: 'off', title: 'high-protein' },
+      { id: 'tag:savory', state: 'off', title: 'savory' },
+    ]);
+
+    await fireEvent(filterMenu, 'pressAction', {
+      nativeEvent: { event: 'favorites' },
+    });
+    expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[1].id}`]);
+    expect(screen.getByTestId('pantry-food-filter-icon').props.name).toBe('filter');
+
+    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
+      nativeEvent: { event: 'favorites' },
+    });
+    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
+      nativeEvent: { event: 'tag:high-protein' },
+    });
+    expect(renderedFoodCardIds()).toHaveLength(2);
+
+    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
+      nativeEvent: { event: 'tag:savory' },
+    });
+    expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[0].id}`]);
+  });
+
+  it('updates a Food favorite and replaces its cached record', async () => {
+    const updatedFood = { ...foods[0], isFavorite: true };
+    mocks.updateFood.mockResolvedValue(updatedFood);
+    await renderPantry();
+
+    await fireEvent.press(
+      screen.getByTestId(`pantry-food-${foods[0].id}-favorite-button`),
+    );
+    expect(mocks.mutateFavorite).toHaveBeenCalledWith({
+      foodId: foods[0].id,
+      isFavorite: true,
+    });
+
+    const mutationOptions = mocks.useMutation.mock.calls[0][0];
+    await expect(mutationOptions.mutationFn({
+      foodId: foods[0].id,
+      isFavorite: true,
+    })).resolves.toEqual(updatedFood);
+    expect(mocks.updateFood).toHaveBeenCalledWith(foods[0].id, {
+      isFavorite: true,
+    });
+
+    mutationOptions.onSuccess(updatedFood);
+    expect(mocks.setQueryData).toHaveBeenCalledWith(
+      ['foods'],
+      expect.any(Function),
+    );
+    const updateCache = mocks.setQueryData.mock.calls[0][1];
+    expect(updateCache(foods)).toEqual([updatedFood, foods[1]]);
+    expect(updateCache(undefined)).toBeUndefined();
+  });
+
+  it('shows a favorite update error on only the affected Food', async () => {
+    mocks.useMutation.mockReturnValue({
+      isError: true,
+      mutate: mocks.mutateFavorite,
+      variables: { foodId: foods[0].id },
+    });
+
+    await renderPantry();
+
+    expect(screen.getByTestId(
+      `pantry-food-${foods[0].id}-favorite-error`,
+    )).toHaveTextContent('Unable to update favorite');
+    expect(screen.queryByTestId(
+      `pantry-food-${foods[1].id}-favorite-error`,
+    )).toBeNull();
+  });
+
+  it('defaults to recent Foods and toggles sort direction independently', async () => {
     await renderPantry();
 
     expect(renderedFoodCardIds()).toEqual([
@@ -278,19 +398,21 @@ describe('Pantry screen', () => {
     ]);
     expect(
       screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Name');
-    expect(screen.getByTestId('pantry-food-sort-name-label')).toHaveTextContent(
-      'A-Z',
+    ).toBe('Choose Food sort field, currently Recent');
+    expect(screen.getByTestId('pantry-food-sort-recent-icon').props.name).toBe(
+      'time-outline',
     );
+    expect(
+      StyleSheet.flatten(screen.getByTestId('pantry-food-filter-button').props.style),
+    ).toMatchObject({ height: 46, width: 46 });
     expect(
       StyleSheet.flatten(screen.getByTestId('pantry-food-sort-field-button').props.style),
     ).toMatchObject({ height: 46, width: 46 });
     expect(
       StyleSheet.flatten(screen.getByTestId('pantry-food-sort-direction-button').props.style),
     ).toMatchObject({ height: 46, width: 46 });
-    expect(screen.queryByTestId('pantry-food-sort-calories-icon')).toBeNull();
     expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
-      'arrow-up-outline',
+      'arrow-down-outline',
     );
 
     await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
@@ -301,9 +423,9 @@ describe('Pantry screen', () => {
     ]);
     expect(
       screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Name');
+    ).toBe('Choose Food sort field, currently Recent');
     expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
-      'arrow-down-outline',
+      'arrow-up-outline',
     );
   });
 
@@ -312,7 +434,8 @@ describe('Pantry screen', () => {
     const sortMenu = screen.getByTestId('pantry-food-sort-menu');
 
     expect(sortMenu.props.actions).toEqual([
-      { id: 'name', state: 'on', title: 'Name' },
+      { id: 'recent', state: 'on', title: 'Recent' },
+      { id: 'name', state: 'off', title: 'Name' },
       { id: 'calories', state: 'off', title: 'Calories' },
     ]);
 
@@ -321,6 +444,7 @@ describe('Pantry screen', () => {
     });
 
     expect(screen.getByTestId('pantry-food-sort-menu').props.actions).toEqual([
+      { id: 'recent', state: 'off', title: 'Recent' },
       { id: 'name', state: 'off', title: 'Name' },
       { id: 'calories', state: 'on', title: 'Calories' },
     ]);
@@ -328,19 +452,20 @@ describe('Pantry screen', () => {
       screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
     ).toBe('Choose Food sort field, currently Calories');
     expect(screen.queryByTestId('pantry-food-sort-name-label')).toBeNull();
+    expect(screen.queryByTestId('pantry-food-sort-recent-icon')).toBeNull();
     expect(screen.getByTestId('pantry-food-sort-calories-icon').props.name).toBe(
       'flame-outline',
     );
     expect(renderedFoodCardIds()).toEqual([
-      `pantry-food-${foods[1].id}`,
       `pantry-food-${foods[0].id}`,
+      `pantry-food-${foods[1].id}`,
     ]);
 
     await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
 
     expect(renderedFoodCardIds()).toEqual([
-      `pantry-food-${foods[0].id}`,
       `pantry-food-${foods[1].id}`,
+      `pantry-food-${foods[0].id}`,
     ]);
 
     await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
@@ -372,6 +497,7 @@ describe('Pantry screen', () => {
       },
     });
 
+    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
     await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
       nativeEvent: { event: 'calories' },
     });

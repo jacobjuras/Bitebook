@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuView } from '@expo/ui/community/menu';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Food, Meal, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { updateFood } from '../../../api/foods';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
-type FoodSortField = 'name' | 'calories';
+type FoodSortField = 'recent' | 'name' | 'calories';
 type FoodSortDirection = 'ascending' | 'descending';
 
 type EmptyState = {
@@ -56,27 +57,61 @@ function formatQuantity({ amount, unit }: Quantity) {
   return `${amount} ${label}`;
 }
 
+function foodSortFieldLabel(field: FoodSortField) {
+  if (field === 'recent') return 'Recent';
+  if (field === 'name') return 'Name';
+  return 'Calories';
+}
+
+function compareFoods(first: Food, second: Food, field: FoodSortField) {
+  if (field === 'recent') {
+    return Date.parse(first.lastLoggedAt ?? first.createdAt)
+      - Date.parse(second.lastLoggedAt ?? second.createdAt);
+  }
+  if (field === 'name') return first.name.localeCompare(second.name);
+  return first.nutritionFacts.caloriesKcal - second.nutritionFacts.caloriesKcal;
+}
+
 export default function PantryScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
   const [foodSearch, setFoodSearch] = useState('');
-  const [foodSortField, setFoodSortField] = useState<FoodSortField>('name');
+  const [foodSortField, setFoodSortField] = useState<FoodSortField>('recent');
   const [foodSortDirection, setFoodSortDirection] =
-    useState<FoodSortDirection>('ascending');
+    useState<FoodSortDirection>('descending');
+  const [favoriteFoodsOnly, setFavoriteFoodsOnly] = useState(false);
+  const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
+  const favoriteMutation = useMutation({
+    mutationFn: ({ foodId, isFavorite }: {
+      foodId: string;
+      isFavorite: boolean;
+    }) => updateFood(foodId, { isFavorite }),
+    onSuccess: (updatedFood) => {
+      queryClient.setQueryData<Food[]>(
+        foodsQueryOptions.queryKey,
+        (currentFoods) => currentFoods?.map((food) =>
+          food.id === updatedFood.id ? updatedFood : food),
+      );
+    },
+  });
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
+  const availableFoodTags = [...new Set(
+    foods.flatMap(({ tags }) => tags ?? []),
+  )].sort();
   const normalizedFoodSearch = foodSearch.trim().toLowerCase();
   const visibleFoods = foods
     .filter(({ name }) => name.toLowerCase().includes(normalizedFoodSearch))
+    .filter(({ isFavorite }) => !favoriteFoodsOnly || isFavorite === true)
+    .filter(({ tags }) => selectedFoodTags.every((tag) => tags?.includes(tag)))
     .sort((first, second) => {
-      const fieldComparison = foodSortField === 'name'
-        ? first.name.localeCompare(second.name)
-        : first.nutritionFacts.caloriesKcal - second.nutritionFacts.caloriesKcal;
+      const fieldComparison = compareFoods(first, second, foodSortField);
       const comparison = fieldComparison || first.name.localeCompare(second.name);
       return foodSortDirection === 'ascending' ? comparison : -comparison;
     });
@@ -106,6 +141,12 @@ export default function PantryScreen() {
   const toggleFoodSortDirection = () => {
     setFoodSortDirection((direction) =>
       direction === 'ascending' ? 'descending' : 'ascending');
+  };
+
+  const toggleFoodTag = (tag: string) => {
+    setSelectedFoodTags((selectedTags) => selectedTags.includes(tag)
+      ? selectedTags.filter((selectedTag) => selectedTag !== tag)
+      : [...selectedTags, tag]);
   };
 
   const retryLoading = () => {
@@ -171,9 +212,50 @@ export default function PantryScreen() {
               value={foodSearch}
             />
           </View>
-          {/* Food sort field menu */}
           <MenuView
             actions={[
+              {
+                id: 'favorites',
+                state: favoriteFoodsOnly ? 'on' : 'off',
+                title: 'Favorites',
+              },
+              ...availableFoodTags.map((tag) => ({
+                id: `tag:${tag}`,
+                state: selectedFoodTags.includes(tag) ? 'on' as const : 'off' as const,
+                title: tag,
+              })),
+            ]}
+            onPressAction={({ nativeEvent }) => {
+              if (nativeEvent.event === 'favorites') {
+                setFavoriteFoodsOnly((favoriteOnly) => !favoriteOnly);
+              } else if (nativeEvent.event.startsWith('tag:')) {
+                toggleFoodTag(nativeEvent.event.slice(4));
+              }
+            }}
+          >
+            <View
+              accessibilityLabel="Filter Foods"
+              accessibilityRole="button"
+              style={[styles.filterButton, { borderColor: colors.border }]}
+              testID="pantry-food-filter-button"
+            >
+              <Ionicons
+                color={colors.textPrimary}
+                name={favoriteFoodsOnly || selectedFoodTags.length > 0
+                  ? 'filter'
+                  : 'filter-outline'}
+                size={20}
+                testID="pantry-food-filter-icon"
+              />
+            </View>
+          </MenuView>
+          <MenuView
+            actions={[
+              {
+                id: 'recent',
+                state: foodSortField === 'recent' ? 'on' : 'off',
+                title: 'Recent',
+              },
               {
                 id: 'name',
                 state: foodSortField === 'name' ? 'on' : 'off',
@@ -186,18 +268,29 @@ export default function PantryScreen() {
               },
             ]}
             onPressAction={({ nativeEvent }) => {
-              if (nativeEvent.event === 'name' || nativeEvent.event === 'calories') {
+              if (
+                nativeEvent.event === 'recent'
+                || nativeEvent.event === 'name'
+                || nativeEvent.event === 'calories'
+              ) {
                 setFoodSortField(nativeEvent.event);
               }
             }}
           >
             <View
-              accessibilityLabel={`Choose Food sort field, currently ${foodSortField === 'name' ? 'Name' : 'Calories'}`}
+              accessibilityLabel={`Choose Food sort field, currently ${foodSortFieldLabel(foodSortField)}`}
               accessibilityRole="button"
               style={[styles.sortButton, { borderColor: colors.border }]}
               testID="pantry-food-sort-field-button"
             >
-              {foodSortField === 'name' ? (
+              {foodSortField === 'recent' ? (
+                <Ionicons
+                  color={colors.textPrimary}
+                  name="time-outline"
+                  size={20}
+                  testID="pantry-food-sort-recent-icon"
+                />
+              ) : foodSortField === 'name' ? (
                 <Text
                   style={[styles.sortButtonText, { color: colors.textPrimary }]}
                   testID="pantry-food-sort-name-label"
@@ -277,7 +370,7 @@ export default function PantryScreen() {
           <Text
             style={[styles.description, { color: colors.textSecondary }]}
             testID="pantry-food-search-empty-description"
-          >Try a different search</Text>
+          >Try a different search or filter</Text>
         </View>
       ) : selectedSection === 'foods' && hasFoods ? (
         // Food card list
@@ -289,11 +382,29 @@ export default function PantryScreen() {
               style={[styles.foodCard, { borderColor: colors.border }]}
               testID={`pantry-food-${food.id}`}
             >
-              {/* Food name */}
-              <Text
-                style={[styles.foodName, { color: colors.textPrimary }]}
-                testID={`pantry-food-${food.id}-name`}
-              >{food.name}</Text>
+              <View style={styles.foodTitleRow}>
+                <Text
+                  style={[styles.foodName, { color: colors.textPrimary }]}
+                  testID={`pantry-food-${food.id}-name`}
+                >{food.name}</Text>
+                <Pressable
+                  accessibilityLabel={food.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: food.isFavorite === true }}
+                  onPress={() => favoriteMutation.mutate({
+                    foodId: food.id,
+                    isFavorite: food.isFavorite !== true,
+                  })}
+                  testID={`pantry-food-${food.id}-favorite-button`}
+                >
+                  <Ionicons
+                    color={colors.accent}
+                    name={food.isFavorite ? 'star' : 'star-outline'}
+                    size={22}
+                    testID={`pantry-food-${food.id}-favorite-icon`}
+                  />
+                </Pressable>
+              </View>
               {/* Calories per serving */}
               <Text
                 style={[styles.foodDetail, { color: colors.textSecondary }]}
@@ -304,6 +415,27 @@ export default function PantryScreen() {
                 style={[styles.foodDetail, { color: colors.textSecondary }]}
                 testID={`pantry-food-${food.id}-serving-size`}
               >Serving: {formatQuantity(food.servingSize)}</Text>
+              {food.tags && food.tags.length > 0 ? (
+                <View style={styles.foodTags} testID={`pantry-food-${food.id}-tags`}>
+                  {food.tags.map((tag) => (
+                    <Text
+                      key={tag}
+                      style={[
+                        styles.foodTag,
+                        { backgroundColor: colors.control, color: colors.textSecondary },
+                      ]}
+                      testID={`pantry-food-${food.id}-tag-${tag}`}
+                    >{tag}</Text>
+                  ))}
+                </View>
+              ) : null}
+              {favoriteMutation.isError
+                && favoriteMutation.variables?.foodId === food.id ? (
+                  <Text
+                    style={[styles.favoriteError, { color: colors.danger }]}
+                    testID={`pantry-food-${food.id}-favorite-error`}
+                  >Unable to update favorite</Text>
+                ) : null}
             </View>
           ))}
         </ScrollView>
@@ -380,11 +512,23 @@ const styles = StyleSheet.create({
   description: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
   emptyState: { alignItems: 'center', flex: 1, gap: 10, justifyContent: 'center', paddingHorizontal: 40 },
   emptyTitle: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
+  favoriteError: { fontSize: 13 },
+  filterButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
   foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   foodControls: { flexDirection: 'row', gap: 10, marginHorizontal: 24, marginTop: 16 },
   foodDetail: { fontSize: 14 },
   foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
-  foodName: { fontSize: 17, fontWeight: '600' },
+  foodName: { flex: 1, fontSize: 17, fontWeight: '600' },
+  foodTag: { borderRadius: 8, fontSize: 12, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
+  foodTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  foodTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
   iconCircle: { alignItems: 'center', borderRadius: 30, height: 60, justifyContent: 'center', width: 60 },
   mealCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
