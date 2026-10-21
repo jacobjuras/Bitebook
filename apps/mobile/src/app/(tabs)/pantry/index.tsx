@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { listFoods } from '../../../api/foods';
-import { listMeals } from '../../../api/meals';
+import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
 type PantrySection = 'foods' | 'meals';
@@ -57,8 +56,8 @@ export default function PantryScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
-  const foodsQuery = useQuery({ queryKey: ['foods'], queryFn: listFoods });
-  const mealsQuery = useQuery({ queryKey: ['meals'], queryFn: listMeals });
+  const foodsQuery = useQuery(foodsQueryOptions);
+  const mealsQuery = useQuery(mealsQueryOptions);
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
   const hasFoods = foods.length > 0;

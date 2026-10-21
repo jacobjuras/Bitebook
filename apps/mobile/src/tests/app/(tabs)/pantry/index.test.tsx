@@ -19,8 +19,18 @@ vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
 vi.mock('@tanstack/react-query', () => ({ useQuery: mocks.useQuery }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-vi.mock('../../../../api/foods.js', () => ({ listFoods: mocks.listFoods }));
-vi.mock('../../../../api/meals.js', () => ({ listMeals: mocks.listMeals }));
+vi.mock('../../../../query/pantryQueries.js', () => ({
+  foodsQueryOptions: {
+    queryFn: mocks.listFoods,
+    queryKey: ['foods'],
+    staleTime: Infinity,
+  },
+  mealsQueryOptions: {
+    queryFn: mocks.listMeals,
+    queryKey: ['meals'],
+    staleTime: Infinity,
+  },
+}));
 vi.mock('../../../../theme/useThemeColors.js', () => ({
   useThemeColors: () => ({
     accent: 'accent',
@@ -118,10 +128,12 @@ describe('Pantry screen', () => {
     expect(mocks.useQuery).toHaveBeenCalledWith({
       queryFn: mocks.listFoods,
       queryKey: ['foods'],
+      staleTime: Infinity,
     });
     expect(mocks.useQuery).toHaveBeenCalledWith({
       queryFn: mocks.listMeals,
       queryKey: ['meals'],
+      staleTime: Infinity,
     });
     expect(screen.getByTestId('pantry-loading-indicator')).toBeTruthy();
     expect(screen.queryByTestId('pantry-add-food-button')).toBeNull();

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { AuthStatus } from '../auth/AuthStatus';
+import { foodsQueryOptions, mealsQueryOptions } from '../query/pantryQueries';
 import { queryClient } from '../query/queryClient';
 
 function AuthenticatedRoutes() {
@@ -12,6 +13,11 @@ function AuthenticatedRoutes() {
   const isSignedIn = status === AuthStatus.SignedIn;
 
   useEffect(() => {
+    if (status === AuthStatus.SignedIn) {
+      void queryClient.query(foodsQueryOptions).catch(() => undefined);
+      void queryClient.query(mealsQueryOptions).catch(() => undefined);
+      return;
+    }
     if (status === AuthStatus.SignedOut) queryClient.clear();
   }, [status]);
 
