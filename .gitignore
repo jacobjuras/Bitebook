@@ -5,6 +5,7 @@ dist/
 cdk.out/
 web-build/
 .env
+coverage/
 .env.*
 !.env.example
 .DS_Store
