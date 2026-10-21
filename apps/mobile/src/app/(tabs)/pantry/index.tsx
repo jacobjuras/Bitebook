@@ -6,11 +6,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -72,7 +74,7 @@ export default function PantryScreen() {
   const [foodSortDirection, setFoodSortDirection] = useState(
     FoodSortDirection.Descending,
   );
-  const [favoriteFoodsOnly, setFavoriteFoodsOnly] = useState(false);
+  const [favoritesFilterEnabled, setFavoritesFilterEnabled] = useState(false);
   const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
@@ -99,7 +101,7 @@ export default function PantryScreen() {
   const normalizedFoodSearch = foodSearch.trim().toLowerCase();
   const visibleFoods = foods
     .filter(({ name }) => name.toLowerCase().includes(normalizedFoodSearch))
-    .filter(({ isFavorite }) => !favoriteFoodsOnly || isFavorite === true)
+    .filter(({ isFavorite }) => !favoritesFilterEnabled || isFavorite === true)
     .filter(({ tags }) => selectedFoodTags.every((tag) => tags?.includes(tag)))
     .sort((first, second) => {
       const fieldComparison = foodSortDefinitions[foodSortField].compare(
@@ -147,10 +149,15 @@ export default function PantryScreen() {
 
   // Pantry screen
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={[styles.screen, { backgroundColor: colors.background }]}
+    <TouchableWithoutFeedback
+      accessible={false}
+      onPress={Keyboard.dismiss}
+      testID="pantry-dismiss-keyboard"
     >
+      <SafeAreaView
+        edges={['top']}
+        style={[styles.screen, { backgroundColor: colors.background }]}
+      >
       {/* Screen title */}
       <Text style={[styles.heading, { color: colors.textPrimary }]}>Pantry</Text>
       {/* Pantry section control */}
@@ -184,8 +191,9 @@ export default function PantryScreen() {
         })}
       </View>
       {selectedSection === 'foods' && hasFoods && !isPending && !isError ? (
-        // Food list controls
-        <View style={styles.foodControls} testID="pantry-food-controls">
+        <>
+          {/* Food list controls */}
+          <View style={styles.foodControls} testID="pantry-food-controls">
           {/* Food search field */}
           <View
             style={[styles.searchField, { borderColor: colors.border }]}
@@ -202,6 +210,22 @@ export default function PantryScreen() {
               testID="pantry-food-search-input"
               value={foodSearch}
             />
+            {foodSearch.length > 0 ? (
+              <Pressable
+                accessibilityLabel="Clear Food search"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => setFoodSearch('')}
+                testID="pantry-food-search-clear-button"
+              >
+                <Ionicons
+                  color={colors.textSecondary}
+                  name="close-circle"
+                  size={18}
+                  testID="pantry-food-search-clear-icon"
+                />
+              </Pressable>
+            ) : null}
           </View>
           <MenuView
             actions={[
@@ -211,7 +235,7 @@ export default function PantryScreen() {
                 subactions: [
                   {
                     id: 'favorites',
-                    state: favoriteFoodsOnly ? 'on' : 'off',
+                    state: favoritesFilterEnabled ? 'on' : 'off',
                     title: 'Favorites',
                   },
                   ...availableFoodTags.map((tag) => ({
@@ -246,7 +270,7 @@ export default function PantryScreen() {
             onPressAction={({ nativeEvent }) => {
               const sortSelection = parseFoodSortSelection(nativeEvent.event);
               if (nativeEvent.event === 'favorites') {
-                setFavoriteFoodsOnly((favoriteOnly) => !favoriteOnly);
+                setFavoritesFilterEnabled((enabled) => !enabled);
               } else if (nativeEvent.event.startsWith('tag:')) {
                 toggleFoodTag(nativeEvent.event.slice(4));
               } else if (sortSelection !== undefined) {
@@ -257,14 +281,14 @@ export default function PantryScreen() {
             testID="pantry-food-filter-sort-menu"
           >
             <View
-              accessibilityLabel={`Filter and sort Foods, currently ${foodSortDefinitions[foodSortField].label}, ${foodSortDefinitions[foodSortField].directionLabels[foodSortDirection]}${favoriteFoodsOnly || selectedFoodTags.length > 0 ? ', filters active' : ''}`}
+              accessibilityLabel={`Filter and sort Foods, currently ${foodSortDefinitions[foodSortField].label}, ${foodSortDefinitions[foodSortField].directionLabels[foodSortDirection]}${favoritesFilterEnabled || selectedFoodTags.length > 0 ? ', filters active' : ''}`}
               accessibilityRole="button"
               style={[styles.filterSortButton, { borderColor: colors.border }]}
               testID="pantry-food-filter-sort-button"
             >
               <Ionicons
                 color={colors.textPrimary}
-                name={favoriteFoodsOnly || selectedFoodTags.length > 0
+                name={favoritesFilterEnabled || selectedFoodTags.length > 0
                   ? 'options'
                   : 'options-outline'}
                 size={20}
@@ -273,6 +297,59 @@ export default function PantryScreen() {
             </View>
           </MenuView>
         </View>
+          {favoritesFilterEnabled || selectedFoodTags.length > 0 ? (
+            <View style={styles.activeFilters} testID="pantry-food-active-filters">
+              {favoritesFilterEnabled ? (
+                <Pressable
+                  accessibilityLabel="Remove Favorites filter"
+                  accessibilityRole="button"
+                  onPress={() => setFavoritesFilterEnabled(false)}
+                  style={({ pressed }) => [
+                    styles.activeFilterChip,
+                    { backgroundColor: colors.control },
+                    pressed && styles.buttonPressed,
+                  ]}
+                  testID="pantry-food-active-filter-favorites"
+                >
+                  <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>Favorites</Text>
+                  <Ionicons color={colors.textSecondary} name="close" size={14} />
+                </Pressable>
+              ) : null}
+              {selectedFoodTags.map((tag) => (
+                <Pressable
+                  accessibilityLabel={`Remove ${tag} filter`}
+                  accessibilityRole="button"
+                  key={tag}
+                  onPress={() => toggleFoodTag(tag)}
+                  style={({ pressed }) => [
+                    styles.activeFilterChip,
+                    { backgroundColor: colors.control },
+                    pressed && styles.buttonPressed,
+                  ]}
+                  testID={`pantry-food-active-filter-tag-${tag}`}
+                >
+                  <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>{tag}</Text>
+                  <Ionicons color={colors.textSecondary} name="close" size={14} />
+                </Pressable>
+              ))}
+              <Pressable
+                accessibilityLabel="Clear all Food filters"
+                accessibilityRole="button"
+                onPress={() => {
+                  setFavoritesFilterEnabled(false);
+                  setSelectedFoodTags([]);
+                }}
+                style={({ pressed }) => [
+                  styles.clearFiltersButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                testID="pantry-food-clear-filters-button"
+              >
+                <Text style={[styles.clearFiltersText, { color: colors.accent }]}>Clear all</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </>
       ) : null}
       {isPending ? (
         // Pantry loading state
@@ -446,11 +523,31 @@ export default function PantryScreen() {
           <Text style={[styles.buttonText, { color: colors.onAccent }]}>{actionLabel}</Text>
         </Pressable>
       ) : null}
-    </SafeAreaView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
+  activeFilterChip: {
+    alignItems: 'center',
+    borderRadius: 16,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  activeFilterText: { fontSize: 13, fontWeight: '500' },
+  activeFilters: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: 10,
+  },
+  clearFiltersButton: { paddingHorizontal: 4, paddingVertical: 6 },
+  clearFiltersText: { fontSize: 13, fontWeight: '600' },
   button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },

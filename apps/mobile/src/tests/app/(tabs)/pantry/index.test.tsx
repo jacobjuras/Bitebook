@@ -6,6 +6,7 @@ import {
   screen,
 } from '@testing-library/react-native';
 import {
+  Keyboard,
   StyleSheet,
 } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -283,14 +284,33 @@ describe('Pantry screen', () => {
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
   });
 
-  it('filters Foods by name and renders a distinct no-results state', async () => {
+  it('dismisses the focused Food search keyboard on a background tap', async () => {
+    const dismissKeyboard = vi.spyOn(Keyboard, 'dismiss').mockImplementation(
+      () => undefined,
+    );
+    await renderPantry();
+
+    await fireEvent(screen.getByTestId('pantry-food-search-input'), 'focus');
+    await fireEvent.press(screen.getByTestId('pantry-dismiss-keyboard'));
+
+    expect(dismissKeyboard).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('pantry-dismiss-keyboard').props.accessible)
+      .toBe(false);
+  });
+
+  it('filters Foods by name and clears the search from its trailing button', async () => {
     await renderPantry();
     const searchInput = screen.getByTestId('pantry-food-search-input');
+
+    expect(screen.queryByTestId('pantry-food-search-clear-button')).toBeNull();
 
     await fireEvent.changeText(searchInput, 'YOG');
 
     expect(screen.queryByTestId(`pantry-food-${foods[0].id}`)).toBeNull();
     expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-search-clear-icon').props.name).toBe(
+      'close-circle',
+    );
 
     await fireEvent.changeText(searchInput, 'missing');
 
@@ -301,9 +321,16 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId('pantry-food-search-empty-description'),
     ).toHaveTextContent('Try a different search or filter');
+
+    await fireEvent.press(screen.getByTestId('pantry-food-search-clear-button'));
+
+    expect(screen.getByTestId('pantry-food-search-input').props.value).toBe('');
+    expect(screen.queryByTestId('pantry-food-search-clear-button')).toBeNull();
+    expect(screen.queryByTestId('pantry-food-search-empty')).toBeNull();
+    expect(renderedFoodCardIds()).toHaveLength(2);
   });
 
-  it('filters Foods from the divided filter and sort menu', async () => {
+  it('shows removable chips for active Favorites and tag filters', async () => {
     await renderPantry();
     const filterSortMenu = screen.getByTestId('pantry-food-filter-sort-menu');
 
@@ -318,11 +345,15 @@ describe('Pantry screen', () => {
       ],
       title: 'Filter',
     });
+    expect(screen.queryByTestId('pantry-food-active-filters')).toBeNull();
 
     await fireEvent(filterSortMenu, 'pressAction', {
       nativeEvent: { event: 'favorites' },
     });
+
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[1].id}`]);
+    expect(screen.getByTestId('pantry-food-active-filter-favorites'))
+      .toHaveTextContent('Favorites');
     expect(screen.getByTestId('pantry-food-filter-sort-icon').props.name).toBe(
       'options',
     );
@@ -332,24 +363,43 @@ describe('Pantry screen', () => {
       'Filter and sort Foods, currently Recent, Newest first, filters active',
     );
 
-    await fireEvent(
-      screen.getByTestId('pantry-food-filter-sort-menu'),
-      'pressAction',
-      { nativeEvent: { event: 'favorites' } },
-    );
-    await fireEvent(
-      screen.getByTestId('pantry-food-filter-sort-menu'),
-      'pressAction',
-      { nativeEvent: { event: 'tag:high-protein' } },
+    await fireEvent.press(
+      screen.getByTestId('pantry-food-active-filter-favorites'),
     );
     expect(renderedFoodCardIds()).toHaveLength(2);
+    expect(screen.queryByTestId('pantry-food-active-filters')).toBeNull();
 
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'tag:high-protein' },
+    });
     await fireEvent(
       screen.getByTestId('pantry-food-filter-sort-menu'),
       'pressAction',
       { nativeEvent: { event: 'tag:savory' } },
     );
+
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[0].id}`]);
+    expect(screen.getByTestId('pantry-food-active-filter-tag-high-protein'))
+      .toHaveTextContent('high-protein');
+    expect(screen.getByTestId('pantry-food-active-filter-tag-savory'))
+      .toHaveTextContent('savory');
+
+    await fireEvent.press(
+      screen.getByTestId('pantry-food-active-filter-tag-high-protein'),
+    );
+
+    expect(screen.queryByTestId(
+      'pantry-food-active-filter-tag-high-protein',
+    )).toBeNull();
+    expect(screen.getByTestId('pantry-food-active-filter-tag-savory')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('pantry-food-clear-filters-button'));
+
+    expect(screen.queryByTestId('pantry-food-active-filters')).toBeNull();
+    expect(screen.getByTestId('pantry-food-filter-sort-icon').props.name).toBe(
+      'options-outline',
+    );
+    expect(renderedFoodCardIds()).toHaveLength(2);
   });
 
   it('updates a Food favorite and replaces its cached record', async () => {
