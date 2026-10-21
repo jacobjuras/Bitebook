@@ -145,7 +145,7 @@ describe('BitebookStack', () => {
         Feature: 'ENABLED',
         RetryGracePeriodSeconds: 10,
       },
-      RefreshTokenValidity: 43_200,
+      RefreshTokenValidity: 129_600,
       SupportedIdentityProviders: ['COGNITO'],
     });
   });
