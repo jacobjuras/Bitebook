@@ -9,7 +9,7 @@
     "synth:beta": "npm run build && cdk synth -c stage=beta --output cdk.out/beta",
     "synth:pipeline": "npm run build && cdk synth -c pipeline=true --output cdk.out/pipeline",
     "synth:production": "npm run build && cdk synth -c stage=production --output cdk.out/production",
-    "test": "vitest run",
+    "test": "bash ../scripts/run-with-project-node.sh vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

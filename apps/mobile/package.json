@@ -9,7 +9,7 @@
     "doctor": "expo-doctor",
     "ios": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --dev-client --localhost --ios",
     "ios:build": "expo run:ios --no-bundler",
-    "test": "vitest run",
+    "test": "bash ../../scripts/run-with-project-node.sh vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
