@@ -169,9 +169,9 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 **Stack:** Expo React Native mobile app (`@bitebook/mobile`), consuming the completed Food and Meal APIs
 
 - [x] Load Foods from the authenticated API.
-- [ ] Load Meals from the authenticated API.
-- [ ] Connect Pantry empty states to live Foods and Meals.
-- [ ] Build the Food list with search and sorting.
+- [x] Load Meals from the authenticated API.
+- [x] Connect Pantry empty states to live Foods and Meals.
+- [x] Build the Food list with search and sorting.
 - [ ] Build manual Food creation.
 - [ ] Build Food details and metadata editing.
 - [ ] Build the Food deletion interface.
