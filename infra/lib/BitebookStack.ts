@@ -149,7 +149,7 @@ export class BitebookStack extends Stack {
       },
       preventUserExistenceErrors: true,
       refreshTokenRotationGracePeriod: Duration.seconds(10),
-      refreshTokenValidity: Duration.days(30),
+      refreshTokenValidity: Duration.days(90),
       supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
     });
 
