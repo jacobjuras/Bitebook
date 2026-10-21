@@ -299,19 +299,11 @@ export default function PantryScreen() {
                 style={[styles.foodDetail, { color: colors.textSecondary }]}
                 testID={`pantry-food-${food.id}-calories`}
               >{food.nutritionFacts.caloriesKcal} kcal per serving</Text>
-              {/* Food quantities */}
-              <View style={styles.foodDetails}>
-                {/* Serving size */}
-                <Text
-                  style={[styles.foodDetail, { color: colors.textSecondary }]}
-                  testID={`pantry-food-${food.id}-serving-size`}
-                >Serving: {formatQuantity(food.servingSize)}</Text>
-                {/* Current stock */}
-                <Text
-                  style={[styles.foodDetail, { color: colors.textSecondary }]}
-                  testID={`pantry-food-${food.id}-current-stock`}
-                >Stock: {formatQuantity(food.currentStock)}</Text>
-              </View>
+              {/* Serving size */}
+              <Text
+                style={[styles.foodDetail, { color: colors.textSecondary }]}
+                testID={`pantry-food-${food.id}-serving-size`}
+              >Serving: {formatQuantity(food.servingSize)}</Text>
             </View>
           ))}
         </ScrollView>
@@ -391,7 +383,6 @@ const styles = StyleSheet.create({
   foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   foodControls: { flexDirection: 'row', gap: 10, marginHorizontal: 24, marginTop: 16 },
   foodDetail: { fontSize: 14 },
-  foodDetails: { flexDirection: 'row', justifyContent: 'space-between' },
   foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
   foodName: { fontSize: 17, fontWeight: '600' },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },

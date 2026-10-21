@@ -27,7 +27,6 @@ const validMealEntry = {
   ],
   scheduledAt: '2026-10-19T12:30:00Z',
   preparation: 'homePrepared',
-  affectsStock: true,
   createdAt: '2026-10-19T01:00:00Z',
   updatedAt: '2026-10-19T01:00:00Z',
 };
@@ -35,15 +34,6 @@ const validMealEntry = {
 describe('mealEntrySchema', () => {
   it('accepts exact logged quantities and Food snapshots', () => {
     expect(mealEntrySchema.parse(validMealEntry)).toEqual(validMealEntry);
-  });
-
-  it('accepts a completed stock application timestamp', () => {
-    const mealEntry = {
-      ...validMealEntry,
-      stockAppliedAt: '2026-10-19T12:30:00Z',
-    };
-
-    expect(mealEntrySchema.parse(mealEntry)).toEqual(mealEntry);
   });
 
   it.each([

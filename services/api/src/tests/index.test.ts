@@ -83,6 +83,10 @@ describe('handler', () => {
   it.each([
     ['malformed JSON', '{'],
     ['undeclared ownership fields', JSON.stringify({ ...validFoodInput, userId: 'attacker' })],
+    ['obsolete stock field', JSON.stringify({
+      ...validFoodInput,
+      currentStock: { amount: 1, unit: 'g' },
+    })],
     ['invalid values', JSON.stringify({ ...validFoodInput, name: '' })],
   ])('rejects Food creation with %s', async (_case, body) => {
     const response = await handler(createEvent('POST /foods', body));
@@ -117,7 +121,7 @@ describe('handler', () => {
   it.each([
     ['invalid Food ID', 'not-a-uuid', JSON.stringify({ name: 'New name' })],
     ['malformed body', storedFood.id, '{'],
-    ['stock mutation', storedFood.id, JSON.stringify({ currentStock: { amount: 1, unit: 'g' } })],
+    ['obsolete stock field', storedFood.id, JSON.stringify({ currentStock: { amount: 1, unit: 'g' } })],
   ])('rejects a Food update with %s', async (_case, foodId, body) => {
     const event = createEvent('PATCH /foods/{foodId}', body);
     event.pathParameters = { foodId };

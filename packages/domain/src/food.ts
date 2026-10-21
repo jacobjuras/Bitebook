@@ -14,7 +14,6 @@ export const foodSchema = z.strictObject({
   name: z.string().trim().min(1).max(100),
   servingSize: servingSizeSchema,
   nutritionFacts: nutritionFactsSchema,
-  currentStock: quantitySchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

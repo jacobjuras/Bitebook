@@ -2,7 +2,7 @@
 
 ## Summary
 
-Bitebook is an app designed to host a living record of everything meal-related. From planning out groceries to simply tracking everything you are eating day or will eat tomorrow or ate yesterday, Bitebook will be your companion every step of the way. It targets individuals who find themselves spending too much manual effort on planning out meals, thinking about when the next Costco run will be and what it will need, and tracking calories, macronutrients, and micronutrients.
+Bitebook is an app designed to host a living record of everything meal-related. From planning meals to tracking everything you are eating today, will eat tomorrow, or ate yesterday, Bitebook will be your companion every step of the way. It targets individuals who find themselves spending too much manual effort planning meals and tracking calories, macronutrients, and micronutrients.
 
 ## Goals
 
@@ -20,10 +20,6 @@ In this section, we will cover all of the functionality the app should support
 - Users can use pre-saved "meals" to contribute to their meal calendar
 - Users flag logged foods/meals with whether or not they were eaten out or made at home, which contributes to the "Locked In" statistic that tracks % of meals eaten home-cooked vs out
 - Users can view their pantry to see all food items and meals they have ever added
-- A food in the user's pantry stores metadata on its macronutrients, micronutrients, and current stock; for meals, this is computed from its constituent ingredients, not stored
-- Each logged food or meal has a user-settable flag that determines whether the entry updates pantry stock
-- When a user wants a food or meal to affect stock, it appropriately updates the in-stock counts for the foods/ingredients in that meal
-- When a user wants a food or meal to affect stock, they will be soft-blocked from logging it if they don't have enough stock of any of the ingredients in the meal (bypassable by the user)
 - Users can create login credentials to access their data from different devices, so their data is backed up to their account
 - Users can link a Google or Apple account to use for sign-in rather than creating a Bitebook-specific username and password
 - The free experience will include advertising through at least one format; banner versus interstitial placement remains a product decision
@@ -39,13 +35,13 @@ First-time setup and a simple "logged out" experience should be the same. The us
 The app should contain five core views, separated through a bottom nav bar. From left to right, the selectable core views should be: Calendar, Pantry, Eat, Reports, Me.
 
 #### Calendar View
-The Calendar view will display the user's meal calendar, with selectable month- and day-at-a-glance views. In month view, a typical stack of Sunday-Saturday weeks with is shown, with each past day having a green or red dot indicating whether or not the user met their eating goal that day; success = calories within 5% of their goal calories (either direction). To switch to a day view, the user can just click on a specific day from the month view. To switch back to month view, can just press / swipe back. The day view will support much more than the month view. It will show 2 things: on top, a scrollable window starting at 12a and ending at 12a (the start of the next day), showing meals eaten at which times of the day. These meal cards will be clickable to open up details on the meal. On the bottom, it will have a statistical summary on the day, showing macro and mitro nutrient data. Future days can also have a warning message for when there is a food or meal planned that is out of stock.
+The Calendar view will display the user's meal calendar, with selectable month- and day-at-a-glance views. In month view, a typical stack of Sunday-Saturday weeks with is shown, with each past day having a green or red dot indicating whether or not the user met their eating goal that day; success = calories within 5% of their goal calories (either direction). To switch to a day view, the user can just click on a specific day from the month view. To switch back to month view, can just press / swipe back. The day view will support much more than the month view. It will show 2 things: on top, a scrollable window starting at 12a and ending at 12a (the start of the next day), showing meals eaten at which times of the day. These meal cards will be clickable to open up details on the meal. On the bottom, it will have a statistical summary on the day, showing macro and mitro nutrient data.
 
 #### Pantry View
-The Pantry view will display the user's pantry-at-a-glance. It displays a list of everything the user has ever added to their pantry, with sorting options like alphabetically or most recently eaten. It also supports searching for items and updating their metadata (nutrients, stock, etc). It will also support a "stock" action to batch-execute an update of food item quantities, following a real-life grocery run. Meals themselves do not have a settable stock, they derive their stock from the minimum stock of its constituent ingredients. Future entries are considered planned until their scheduled time passes, at which point they are automatically considered eaten. A future entry changes stock at that time only when its `affectsStock` flag is enabled.
+The Pantry view will display the user's pantry-at-a-glance. It displays a list of everything the user has ever added to their pantry, with sorting options like alphabetically or most recently eaten. It also supports searching for items and updating their nutritional metadata. Future entries are considered planned until their scheduled time passes, at which point they are automatically considered eaten.
 
 #### Eat View
-The Eat view will allow the user to record an eaten meal or record a new item or food into their pantry. So it will prompt the user for what food or meal was eaten from their pantry with the option to directly add something new to their pantry from that view via barcode scan or manual entry, then let the user log it to a certain date/time or just "Now", or simply add it to the pantry without logging it as eaten. When logging an entry, the user chooses whether it affects pantry stock. If enabled, Bitebook checks availability and updates stock according to the entry's scheduled time; if disabled, Bitebook neither validates nor changes stock. Users log meals with a future timestamp to plan out meals for the future (viewable in Calendar).
+The Eat view will allow the user to record an eaten meal or record a new item or food into their pantry. So it will prompt the user for what food or meal was eaten from their pantry with the option to directly add something new to their pantry from that view via barcode scan or manual entry, then let the user log it to a certain date/time or just "Now", or simply add it to the pantry without logging it as eaten. Users log meals with a future timestamp to plan out meals for the future (viewable in Calendar).
 
 #### Reports View
 The Reports view will allow the user to view breakdowns of their eating habits. It can create reports on average caloric intake, nutrient breakdown, locked in %, etc on absolute time ranges (e.g. sept 1st to 22nd) or relative (e.g. last 7 days).
@@ -74,7 +70,7 @@ Apple App Store and Google Play billing will process subscriptions because premi
 Advertising will use a mobile ad network SDK. Bitebook will not use pantry, meal, nutrition, profile, or precise health-related behavior to target advertisements. Before ads launch, the implementation will define consent, tracking, age, regional privacy, and platform-disclosure behavior and will default to the least data-intensive viable ad configuration.
 
 #### Database and File Storage
-Application data will be stored in Amazon DynamoDB using on-demand capacity. Records will be scoped to the authenticated user's Cognito identifier. Operations that must update several records together, such as recording a meal and reducing ingredient stock, will use transactional writes so that either every change succeeds or none do. Point-in-time recovery will be enabled.
+Application data will be stored in Amazon DynamoDB using on-demand capacity. Records will be scoped to the authenticated user's Cognito identifier. Point-in-time recovery will be enabled.
 
 Bitebook will not store user-uploaded files initially because the current requirements do not need them. The database will store confirmed food metadata but will not persist barcode values or images. If file uploads are added later, they will use private Amazon S3 storage accessed only through authorized backend operations.
 
@@ -100,13 +96,12 @@ type Food = {
   name: string;                   // User-visible and user-configured name of the food
   servingSize: Quantity;          // Quantity represented by one serving
   nutritionFacts: NutritionFacts; // Nutritional values for one serving
-  currentStock: Quantity;         // Quantity currently available in the pantry
   createdAt: string;              // UTC timestamp recording when the food was created
   updatedAt: string;              // UTC timestamp recording when the food was last edited
 };
 ```
 
-A food remains in the pantry when its current stock reaches zero and is removed only when the user explicitly deletes it. Each user owns and edits an independent copy of a food.
+Each user owns and edits an independent copy of a food.
 
 For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to the backend. The backend queries USDA FoodData Central and returns the matching product information for confirmation. Bitebook does not persist the barcode, USDA identifier, brand, or shared product cache. If no usable match is found, the user can enter the food manually.
 
@@ -114,7 +109,7 @@ For barcode entry, the frontend scans a GTIN or UPC and sends it temporarily to 
 
 #### Quantity / Unit
 
-A Quantity represents serving sizes, pantry stock, meal ingredients, and logged amounts.
+A Quantity represents serving sizes, meal ingredients, and logged amounts.
 
 ```
 type Unit =
@@ -186,11 +181,9 @@ type LoggedIngredient = Ingredient & {
 };
 ```
 
-The Pantry uses a Meal's default ingredient quantities when calculating its availability. When a MealEntry is saved, Bitebook validates stock and calculates nutrition using that entry's actual quantities. One-off quantity changes therefore affect only that entry's nutrition, stock usage, and reports.
+When a MealEntry is saved, Bitebook calculates nutrition using that entry's actual quantities. One-off quantity changes therefore affect only that entry's nutrition and reports.
 
 Planned entries retain the quantities selected when they were created, even if the saved Meal is later edited. MealEntry ingredient snapshots also preserve historical names, serving sizes, and nutrition facts so later Food or Meal edits do not rewrite history. These snapshots will be embedded directly in the MealEntry rather than stored as separate DynamoDB records.
-
-When an already-eaten MealEntry has `affectsStock` enabled, changing an ingredient quantity applies only the stock difference. Deleting the entry restores the stock it consumed. Future entries do not affect stock until their scheduled time passes.
 
 #### Meal Entry
 
@@ -212,8 +205,6 @@ type MealEntry = {
   ingredients: LoggedIngredient[]; // Exact Foods and quantities for this occurrence
   scheduledAt: string;             // UTC timestamp when the entry is considered eaten
   preparation: Preparation;        // Classification used by the Locked In statistic
-  affectsStock: boolean;           // Whether this entry consumes pantry stock
-  stockAppliedAt?: string;         // When its stock reduction was successfully applied
   createdAt: string;               // UTC timestamp recording when the entry was created
   updatedAt: string;               // UTC timestamp recording when the entry was last edited
 };
@@ -223,7 +214,7 @@ Logging a food creates a MealEntry containing one LoggedIngredient. Logging a sa
 
 An entry with a future scheduledAt value is considered planned until that time passes. Once the scheduled time passes, it is automatically considered eaten; Bitebook does not store a separate planned or eaten status.
 
-When affectsStock is enabled, Bitebook validates and reduces stock at the scheduled time. stockAppliedAt records that the reduction completed, preventing the same entry from reducing stock more than once. Editing or deleting an entry whose stock was already applie adjusts or restores the appropriate quantities. MealEntry nutrition is calculated from its LoggedIngredient snapshots rather than stored separately.
+MealEntry nutrition is calculated from its LoggedIngredient snapshots rather than stored separately.
 
 CalendarMeal records are calculated by gruoping nearby MealEntry records. They do not replace or modify the underlying entities.
 
@@ -244,34 +235,6 @@ For example, a Food logged at 12:00 and a saved Meal logged at 12:30 appear in o
 CalendarMeals are calculated from stored MealEntries and are not stored separately in DDB. nutritionTotals is also calculated rather than persisted.
 
 Entries from the same local calendar day are grouped when they occur within 30 minutes of each other. This means that a CalendarMeal's start and end times are dynamic, with detection logic allowing a meal eaten less than 30 minutes before or after the window of a CalendarMeal to be automatically added to it and its start/end time appropriately updated. Adding, editing, moving, or deleting a MealEntry may change its CalendarMeal grouping and calculated nutrition.
-
-#### Stock Transaction
-
-A StockTransaction records one change to the current stock of a Food. Transactions provide a history of restocks, consumption, corrections, and reversals without replacing the Food's current stock value.
-
-```
-type StockTransactionReason =
-  | "restock"
-  | "mealEntry"
-  | "mealEntryAdjustment"
-  | "mealEntryDeletion"
-  | "manualAdjustment";
-
-type StockTransaction = {
-  id: string;                       // Globally unique UUID
-  userId: string;                   // Cognito identifier of the user who owns the Food
-  foodId: string;                   // Food whose stock changed
-  direction: "increase" | "decrease";
-  quantity: Quantity;               // Positive quantity added or removed
-  reason: StockTransactionReason;   // Operation that caused the change
-  mealEntryId?: string;             // Related MealEntry when applicable
-  createdAt: string;                // UTC timestamp when the change occurred
-};
-```
-
-StockTransaction records are immutable. Correcting a stock change creates another transaction rather than editing or deleting the original record.
-
-Bitebook will update the Food's currentStock and create its StockTransaction in one DDB transaction so they cannot become inconsistent. Logging a MealEntry creates one StockTransaction for each affected Food. Editing or deleting an entry creates additional transactions representing the quantities adjusted or restored. Manual stock updates and grocery restocks also create transactions. StockTransaction history does not need to be visible in the initial application, but it preserves enough information to support troubleshooting and a future stock-history view.
 
 #### User Profile
 
@@ -315,7 +278,7 @@ Bitebook collects only the information required to provide its features:
 
 - Cognito account information, including email address and linked Google or Apple identity.
 - Profile information, including an optional display name and time zone.
-- User-created pantry foods, meals, nutrition information, stock history, meal entries, preparation classifications, and nutrition goals.
+- User-created pantry foods, meals, nutrition information, meal entries, preparation classifications, and nutrition goals.
 - Operational metadata such as request identifiers, timestamps, outcomes, and error categories.
 
 Passwords and social-login credentials are handled by Cognito and the identity provider; the Bitebook backend never receives or stores plaintext passwords. Bitebook does not collect precise location, contacts, photos, or raw camera frames. Barcode scanning occurs on the device. The decoded GTIN or UPC is sent temporarily to the backend for a USDA lookup, but neither the identifier nor the camera image is persisted.
@@ -352,7 +315,7 @@ Before public release, Bitebook will publish a privacy notice describing the col
 
 ## Testing and Operations
 
-Amazon CloudWatch will collect backend logs and metrics from API Gateway and Lambda. Application logs will be structured and limited to operational information such as request identifiers, operation names, latency, external-service outcomes, stock-update outcomes, and unexpected errors. Logs must not contain authentication tokens, email addresses, request bodies, meal details, or nutrition data, and will initially be retained for 30 days.
+Amazon CloudWatch will collect backend logs and metrics from API Gateway and Lambda. Application logs will be structured and limited to operational information such as request identifiers, operation names, latency, external-service outcomes, and unexpected errors. Logs must not contain authentication tokens, email addresses, request bodies, meal details, or nutrition data, and will initially be retained for 30 days.
 
 CloudWatch metrics and alarms will monitor API and Lambda request volume, errors, latency, and throttling, along with failures when communicating with USDA FoodData Central. Testing will include unit tests, iOS and Android device and simulator testing, and backend API integration testing. Backup and recovery procedures will cover DynamoDB point-in-time recovery.
 

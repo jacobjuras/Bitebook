@@ -9,5 +9,12 @@ export async function listFoods(): Promise<Food[]> {
   if (!body || typeof body !== 'object' || !('foods' in body)) {
     throw new Error('Bitebook API returned an invalid Foods response');
   }
-  return foodSchema.array().parse(body.foods);
+  const foods = Array.isArray(body.foods)
+    ? body.foods.map((food) => {
+        if (!food || typeof food !== 'object') return food;
+        const { currentStock: _legacyStock, ...currentFood } = food;
+        return currentFood;
+      })
+    : body.foods;
+  return foodSchema.array().parse(foods);
 }

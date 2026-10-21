@@ -30,7 +30,6 @@ function createEntry(
     ],
     scheduledAt,
     preparation: 'homePrepared',
-    affectsStock: true,
     createdAt: '2026-10-19T01:00:00Z',
     updatedAt: '2026-10-19T01:00:00Z',
   };

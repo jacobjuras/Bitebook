@@ -11,9 +11,10 @@ import {
 describe('foodReads', () => {
   beforeEach(resetDocumentClientMock);
 
-  it('parses a stored Food without its entity key', () => {
+  it('parses a stored Food without internal or legacy attributes', () => {
     expect(parseStoredFood({
       ...storedFood,
+      currentStock: { amount: 12, unit: 'item' },
       entityKey: `FOOD#${storedFood.id}`,
     })).toEqual(storedFood);
   });

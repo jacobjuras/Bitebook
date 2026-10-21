@@ -12,7 +12,6 @@ const validFood = {
     proteinG: 6,
     micronutrients: {},
   },
-  currentStock: { amount: 12, unit: 'item' },
   createdAt: '2026-10-19T01:00:00Z',
   updatedAt: '2026-10-19T01:00:00Z',
 };

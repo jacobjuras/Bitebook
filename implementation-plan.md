@@ -27,7 +27,6 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Define and validate Ingredient and Meal.
 - [x] Define and validate MealEntry and ingredient snapshots.
 - [x] Define and validate CalendarMeal.
-- [x] Define and validate StockTransaction.
 - [x] Define and validate UserProfile.
 - [x] Define and validate NutritionGoal.
 - [x] Convert compatible mass and volume quantities.
@@ -35,8 +34,6 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Sum nutrition facts while treating absent nutrient values as zero.
 - [x] Group nearby MealEntries into local-day CalendarMeals.
 - [x] Select the effective NutritionGoal for a local date.
-- [x] Calculate Meal availability from current Food stock.
-- [x] Calculate validated Food stock increases and decreases.
 - [x] Add concise function documentation for non-obvious public domain operations.
 
 ## 3. Mobile shell and visual foundation
@@ -81,7 +78,6 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Get one owned Food by ID.
 - [x] Update mutable Food metadata.
 - [x] Delete an owned Food conditionally.
-- [x] Adjust Food stock and record an immutable StockTransaction atomically.
 - [x] Refactor Food reads and DynamoDB client setup into focused modules.
 
 ## 6. Meal backend API
@@ -175,27 +171,20 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Build manual Food creation.
 - [ ] Build Food details and metadata editing.
 - [ ] Build the Food deletion interface.
-- [ ] Build Food stock adjustment and grocery-restock interfaces.
 - [ ] Build the Meal list with search and sorting.
 - [ ] Build Meal creation with Food selection and quantities.
 - [ ] Build Meal details and editing.
-- [ ] Display Meal nutrition and available servings.
+- [ ] Display Meal nutrition.
 - [ ] Build the Meal deletion interface.
 
-## 12. MealEntry and scheduled-stock backend
+## 12. MealEntry backend
 
-**Stack:** Shared domain package, Lambda backend, DynamoDB, and scheduled AWS infrastructure
+**Stack:** Shared domain package, Lambda backend, and DynamoDB
 
 - [ ] Add MealEntry creation from a Food or saved Meal using ingredient snapshots.
 - [ ] Add MealEntry reads by ID and date range.
 - [ ] Add MealEntry updates.
 - [ ] Add MealEntry deletion.
-- [ ] Apply stock atomically for current and past entries when `affectsStock` is enabled.
-- [ ] Soft-block insufficient stock while allowing an explicit user override.
-- [ ] Apply only the stock difference when an applied entry changes.
-- [ ] Restore stock when an applied entry is deleted.
-- [ ] Add scheduled processing for future entries.
-- [ ] Record `stockAppliedAt` idempotently so future entries apply once.
 
 ## 13. Eat mobile experience
 
@@ -205,8 +194,6 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Support custom logged quantities.
 - [ ] Support home-prepared and prepared-elsewhere classification.
 - [ ] Support logging for now, the past, or a future scheduled time.
-- [ ] Let the user choose whether an entry affects stock.
-- [ ] Show the insufficient-stock warning and explicit override.
 
 ## 14. Calendar backend API
 
@@ -215,7 +202,6 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Add MealEntry date-range queries.
 - [ ] Compose calendar-day responses from MealEntries and effective goals.
 - [ ] Return grouped CalendarMeals and daily nutrition totals.
-- [ ] Return future-entry stock warnings.
 
 ## 15. Calendar, profile, and goals mobile experience
 
@@ -225,7 +211,6 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Show daily goal status in the month view.
 - [ ] Build the Calendar day timeline.
 - [ ] Build CalendarMeal details and combined nutrition.
-- [ ] Show future-entry stock warnings.
 - [ ] Build profile viewing and editing.
 - [ ] Build NutritionGoal history and update flows.
 
@@ -322,7 +307,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 **Stack:** AWS CDK infrastructure and runbooks
 
 - [ ] Add API throttling and abuse limits.
-- [ ] Add CloudWatch metrics and alarms for API, Lambda, stock processing, USDA failures, and subscription-notification failures.
+- [ ] Add CloudWatch metrics and alarms for API, Lambda, USDA failures, and subscription-notification failures.
 - [ ] Deliver actionable CloudWatch alarm state changes through SNS to an Amazon-managed email address.
 - [ ] Add operational runbooks for deployment failures and rollbacks.
 - [ ] Add account deletion for Cognito and every user-owned DynamoDB record.
@@ -337,7 +322,6 @@ This phase intentionally runs near the end, after the product workflows and oper
 
 - [ ] Create comprehensive deployed API integration tests for authentication, Foods, Meals, MealEntries, profile, goals, barcode lookup, reports, subscriptions, and ads.
 - [ ] Add deployed API tests for malformed input, unauthenticated access, and cross-user access.
-- [ ] Add deployed API tests for rollback-sensitive stock operations.
 - [ ] Select and configure a mobile UI test framework and execution environment for iOS and Android.
 - [ ] Create mobile UI tests for authentication, Pantry, meal logging, Calendar, Reports, subscriptions, and ads.
 - [ ] Verify the completed API integration and mobile UI suites pass through their existing Beta pipeline gates.
