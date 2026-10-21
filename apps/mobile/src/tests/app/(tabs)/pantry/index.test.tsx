@@ -28,17 +28,12 @@ vi.mock('@expo/ui/community/menu', async () => {
   const { createElement } = await vi.importActual<typeof import('react')>('react');
   return {
     MenuView: ({ actions, children, ...props }: {
-      actions: { id: string }[];
+      actions: unknown[];
       children: ReactNode;
+      testID?: string;
     }) => createElement(
       'MenuView',
-      {
-        ...props,
-        actions,
-        testID: actions.some(({ id }) => id === 'favorites')
-          ? 'pantry-food-filter-menu'
-          : 'pantry-food-sort-menu',
-      },
+      { ...props, actions },
       children,
     ),
   };
@@ -251,9 +246,8 @@ describe('Pantry screen', () => {
 
     expect(screen.getByTestId('pantry-food-controls')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-search-input')).toBeTruthy();
-    expect(screen.getByTestId('pantry-food-filter-button')).toBeTruthy();
-    expect(screen.getByTestId('pantry-food-sort-field-button')).toBeTruthy();
-    expect(screen.getByTestId('pantry-food-sort-direction-button')).toBeTruthy();
+    expect(screen.getByTestId('pantry-food-filter-sort-button')).toBeTruthy();
+    expect(screen.queryByTestId('pantry-food-sort-direction-button')).toBeNull();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}-name`)).toHaveTextContent(
       'Chicken breast',
@@ -309,34 +303,52 @@ describe('Pantry screen', () => {
     ).toHaveTextContent('Try a different search or filter');
   });
 
-  it('filters Foods by Favorites and selected tags', async () => {
+  it('filters Foods from the divided filter and sort menu', async () => {
     await renderPantry();
-    const filterMenu = screen.getByTestId('pantry-food-filter-menu');
+    const filterSortMenu = screen.getByTestId('pantry-food-filter-sort-menu');
 
-    expect(filterMenu.props.actions).toEqual([
-      { id: 'favorites', state: 'off', title: 'Favorites' },
-      { id: 'tag:breakfast', state: 'off', title: 'breakfast' },
-      { id: 'tag:high-protein', state: 'off', title: 'high-protein' },
-      { id: 'tag:savory', state: 'off', title: 'savory' },
-    ]);
+    expect(filterSortMenu.props.actions[0]).toEqual({
+      displayInline: true,
+      id: 'filter-section',
+      subactions: [
+        { id: 'favorites', state: 'off', title: 'Favorites' },
+        { id: 'tag:breakfast', state: 'off', title: 'breakfast' },
+        { id: 'tag:high-protein', state: 'off', title: 'high-protein' },
+        { id: 'tag:savory', state: 'off', title: 'savory' },
+      ],
+      title: 'Filter',
+    });
 
-    await fireEvent(filterMenu, 'pressAction', {
+    await fireEvent(filterSortMenu, 'pressAction', {
       nativeEvent: { event: 'favorites' },
     });
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[1].id}`]);
-    expect(screen.getByTestId('pantry-food-filter-icon').props.name).toBe('filter');
+    expect(screen.getByTestId('pantry-food-filter-sort-icon').props.name).toBe(
+      'options',
+    );
+    expect(
+      screen.getByTestId('pantry-food-filter-sort-button').props.accessibilityLabel,
+    ).toBe(
+      'Filter and sort Foods, currently Recent, Newest first, filters active',
+    );
 
-    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
-      nativeEvent: { event: 'favorites' },
-    });
-    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
-      nativeEvent: { event: 'tag:high-protein' },
-    });
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'favorites' } },
+    );
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'tag:high-protein' } },
+    );
     expect(renderedFoodCardIds()).toHaveLength(2);
 
-    await fireEvent(screen.getByTestId('pantry-food-filter-menu'), 'pressAction', {
-      nativeEvent: { event: 'tag:savory' },
-    });
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'tag:savory' } },
+    );
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[0].id}`]);
   });
 
@@ -389,7 +401,7 @@ describe('Pantry screen', () => {
     )).toBeNull();
   });
 
-  it('defaults to recent Foods and toggles sort direction independently', async () => {
+  it('defaults to newest recent Foods without a direction button', async () => {
     await renderPantry();
 
     expect(renderedFoodCardIds()).toEqual([
@@ -397,88 +409,117 @@ describe('Pantry screen', () => {
       `pantry-food-${foods[1].id}`,
     ]);
     expect(
-      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Recent');
-    expect(screen.getByTestId('pantry-food-sort-recent-icon').props.name).toBe(
-      'time-outline',
+      screen.getByTestId('pantry-food-filter-sort-button').props.accessibilityLabel,
+    ).toBe('Filter and sort Foods, currently Recent, Newest first');
+    expect(screen.getByTestId('pantry-food-filter-sort-icon').props.name).toBe(
+      'options-outline',
     );
     expect(
-      StyleSheet.flatten(screen.getByTestId('pantry-food-filter-button').props.style),
+      StyleSheet.flatten(
+        screen.getByTestId('pantry-food-filter-sort-button').props.style,
+      ),
     ).toMatchObject({ height: 46, width: 46 });
-    expect(
-      StyleSheet.flatten(screen.getByTestId('pantry-food-sort-field-button').props.style),
-    ).toMatchObject({ height: 46, width: 46 });
-    expect(
-      StyleSheet.flatten(screen.getByTestId('pantry-food-sort-direction-button').props.style),
-    ).toMatchObject({ height: 46, width: 46 });
-    expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
-      'arrow-down-outline',
-    );
+    expect(screen.queryByTestId('pantry-food-sort-direction-button')).toBeNull();
 
-    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'sort:recent:ascending' } },
+    );
 
     expect(renderedFoodCardIds()).toEqual([
       `pantry-food-${foods[1].id}`,
       `pantry-food-${foods[0].id}`,
     ]);
     expect(
-      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Recent');
-    expect(screen.getByTestId('pantry-food-sort-direction-icon').props.name).toBe(
-      'arrow-up-outline',
-    );
+      screen.getByTestId('pantry-food-filter-sort-button').props.accessibilityLabel,
+    ).toBe('Filter and sort Foods, currently Recent, Oldest first');
   });
 
-  it('sorts Foods by the field selected from the anchored menu', async () => {
+  it('sorts Foods through contextual field submenus', async () => {
     await renderPantry();
-    const sortMenu = screen.getByTestId('pantry-food-sort-menu');
+    const filterSortMenu = screen.getByTestId('pantry-food-filter-sort-menu');
 
-    expect(sortMenu.props.actions).toEqual([
-      { id: 'recent', state: 'on', title: 'Recent' },
-      { id: 'name', state: 'off', title: 'Name' },
-      { id: 'calories', state: 'off', title: 'Calories' },
-    ]);
-
-    await fireEvent(sortMenu, 'pressAction', {
-      nativeEvent: { event: 'calories' },
+    expect(filterSortMenu.props.actions[1]).toEqual({
+      displayInline: true,
+      id: 'sort-section',
+      subactions: [
+        {
+          id: 'sort:recent',
+          subactions: [
+            {
+              id: 'sort:recent:descending',
+              state: 'on',
+              title: 'Newest first',
+            },
+            {
+              id: 'sort:recent:ascending',
+              state: 'off',
+              title: 'Oldest first',
+            },
+          ],
+          title: 'Recent',
+        },
+        {
+          id: 'sort:name',
+          subactions: [
+            { id: 'sort:name:ascending', state: 'off', title: 'A–Z' },
+            { id: 'sort:name:descending', state: 'off', title: 'Z–A' },
+          ],
+          title: 'Name',
+        },
+        {
+          id: 'sort:calories',
+          subactions: [
+            {
+              id: 'sort:calories:ascending',
+              state: 'off',
+              title: 'Low to high',
+            },
+            {
+              id: 'sort:calories:descending',
+              state: 'off',
+              title: 'High to low',
+            },
+          ],
+          title: 'Calories',
+        },
+      ],
+      title: 'Sort',
     });
 
-    expect(screen.getByTestId('pantry-food-sort-menu').props.actions).toEqual([
-      { id: 'recent', state: 'off', title: 'Recent' },
-      { id: 'name', state: 'off', title: 'Name' },
-      { id: 'calories', state: 'on', title: 'Calories' },
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'sort:calories:ascending' },
+    });
+
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[1].id}`,
+      `pantry-food-${foods[0].id}`,
     ]);
     expect(
-      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Calories');
-    expect(screen.queryByTestId('pantry-food-sort-name-label')).toBeNull();
-    expect(screen.queryByTestId('pantry-food-sort-recent-icon')).toBeNull();
-    expect(screen.getByTestId('pantry-food-sort-calories-icon').props.name).toBe(
-      'flame-outline',
+      screen.getByTestId('pantry-food-filter-sort-button').props.accessibilityLabel,
+    ).toBe('Filter and sort Foods, currently Calories, Low to high');
+
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'sort:calories:descending' } },
     );
+
     expect(renderedFoodCardIds()).toEqual([
       `pantry-food-${foods[0].id}`,
       `pantry-food-${foods[1].id}`,
     ]);
 
-    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
-
-    expect(renderedFoodCardIds()).toEqual([
-      `pantry-food-${foods[1].id}`,
-      `pantry-food-${foods[0].id}`,
-    ]);
-
-    await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
-      nativeEvent: { event: 'name' },
-    });
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'sort:name:ascending' } },
+    );
 
     expect(
-      screen.getByTestId('pantry-food-sort-field-button').props.accessibilityLabel,
-    ).toBe('Choose Food sort field, currently Name');
-    expect(screen.getByTestId('pantry-food-sort-name-label')).toHaveTextContent(
-      'A-Z',
-    );
-    expect(screen.queryByTestId('pantry-food-sort-calories-icon')).toBeNull();
+      screen.getByTestId('pantry-food-filter-sort-button').props.accessibilityLabel,
+    ).toBe('Filter and sort Foods, currently Name, A–Z');
   });
 
   it('uses Food name to break equal-calorie ties', async () => {
@@ -497,10 +538,11 @@ describe('Pantry screen', () => {
       },
     });
 
-    await fireEvent.press(screen.getByTestId('pantry-food-sort-direction-button'));
-    await fireEvent(screen.getByTestId('pantry-food-sort-menu'), 'pressAction', {
-      nativeEvent: { event: 'calories' },
-    });
+    await fireEvent(
+      screen.getByTestId('pantry-food-filter-sort-menu'),
+      'pressAction',
+      { nativeEvent: { event: 'sort:calories:ascending' } },
+    );
 
     expect(renderedFoodCardIds()).toEqual([
       `pantry-food-${foods[0].id}`,
