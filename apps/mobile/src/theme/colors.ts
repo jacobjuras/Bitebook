@@ -7,6 +7,8 @@ export type ThemeColors = {
   border: string;
   control: string;
   controlSelected: string;
+  danger: string;
+  dangerSubtle: string;
   onAccent: string;
   textPrimary: string;
   textSecondary: string;

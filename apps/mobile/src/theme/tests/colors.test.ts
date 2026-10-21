@@ -21,6 +21,10 @@ describe('theme colors', () => {
   it('keeps light and dark surface colors distinct', () => {
     expect(themeColors.light.background).toBe(colorValues.themes.light.background);
     expect(themeColors.dark.background).toBe(colorValues.themes.dark.background);
+    expect(themeColors.light.danger).toBe(colorValues.themes.light.danger);
+    expect(themeColors.dark.danger).toBe(colorValues.themes.dark.danger);
+    expect(themeColors.light.dangerSubtle).toBe(colorValues.themes.light.dangerSubtle);
+    expect(themeColors.dark.dangerSubtle).toBe(colorValues.themes.dark.dangerSubtle);
     expect(themeColors.light.background).not.toBe(themeColors.dark.background);
     expect(themeColors.light.textPrimary).not.toBe(themeColors.dark.textPrimary);
   });

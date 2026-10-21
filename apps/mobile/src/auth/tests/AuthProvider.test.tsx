@@ -170,15 +170,41 @@ describe('AuthProvider', () => {
     expect(result.current.status).toBe(AuthStatus.SignedIn);
   });
 
-  it('returns to signed out with an error after failed password authentication', async () => {
-    mocks.signIn.mockRejectedValue(new Error('bad credentials'));
+  it('reports invalid credentials after Cognito rejects password authentication', async () => {
+    const invalidCredentials = new Error('bad credentials');
+    invalidCredentials.name = 'NotAuthorizedException';
+    mocks.signIn.mockRejectedValue(invalidCredentials);
     const { result } = await renderAuth();
     await waitFor(() => expect(result.current.status).toBe(AuthStatus.SignedOut));
 
     await act(async () => result.current.signIn('user@example.com', 'password'));
 
     expect(result.current.status).toBe(AuthStatus.SignedOut);
-    expect(result.current.error).toContain('Unable to sign in with those credentials');
+    expect(result.current.error).toBe('Invalid email and password combination');
+  });
+
+  it('clears the current authentication error', async () => {
+    const invalidCredentials = new Error('bad credentials');
+    invalidCredentials.name = 'NotAuthorizedException';
+    mocks.signIn.mockRejectedValue(invalidCredentials);
+    const { result } = await renderAuth();
+    await waitFor(() => expect(result.current.status).toBe(AuthStatus.SignedOut));
+    await act(async () => result.current.signIn('user@example.com', 'password'));
+
+    await act(async () => result.current.clearError());
+
+    expect(result.current.error).toBeNull();
+  });
+
+  it('reports other password authentication failures separately', async () => {
+    mocks.signIn.mockRejectedValue(new Error('network unavailable'));
+    const { result } = await renderAuth();
+    await waitFor(() => expect(result.current.status).toBe(AuthStatus.SignedOut));
+
+    await act(async () => result.current.signIn('user@example.com', 'password'));
+
+    expect(result.current.status).toBe(AuthStatus.SignedOut);
+    expect(result.current.error).toContain('Unable to sign in');
   });
 
   it('moves to signed in after confirming a required password', async () => {

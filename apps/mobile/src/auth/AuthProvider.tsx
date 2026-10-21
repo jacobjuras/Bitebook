@@ -74,6 +74,7 @@ export async function endAuthSession() {
 }
 
 interface AuthContextValue {
+  clearError(): void;
   confirmNewPassword(password: string): Promise<void>;
   error: string | null;
   signIn(email: string, password: string): Promise<void>;
@@ -103,6 +104,16 @@ function logAuthError(operation: string, error: unknown) {
   if (__DEV__) console.error(`[auth] ${operation} failed: ${errorDiagnostic(error)}`);
 }
 
+function signInErrorMessage(error: unknown) {
+  if (
+    error instanceof Error
+    && ['NotAuthorizedException', 'UserNotFoundException'].includes(error.name)
+  ) {
+    return 'Invalid email and password combination';
+  }
+  return authErrorMessage('Unable to sign in', error);
+}
+
 /** Provides one first-party Cognito authentication lifecycle to every route. */
 export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>(AuthStatus.Loading);
@@ -117,6 +128,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
+  function clearError() {
+    setError(null);
+  }
+
   async function signIn(email: string, password: string) {
     setError(null);
     setStatus(AuthStatus.Loading);
@@ -124,7 +139,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setStatus(await signInWithPassword(email, password));
     } catch (error) {
       logAuthError('sign in', error);
-      setError(authErrorMessage('Unable to sign in with those credentials', error));
+      setError(signInErrorMessage(error));
       setStatus(AuthStatus.SignedOut);
     }
   }
@@ -155,9 +170,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   return (
-    <AuthContext.Provider value={{
-      confirmNewPassword, error, signIn, signOut, status,
-    }}>
+    <AuthContext.Provider value={{ clearError, confirmNewPassword, error, signIn, signOut, status }}>
       {children}
     </AuthContext.Provider>
   );
