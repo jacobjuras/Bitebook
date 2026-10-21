@@ -52,6 +52,7 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Apply theme colors to the tab bar and screen backgrounds.
 - [ ] Centralize user-interface strings before adding additional languages.
 - [ ] Add shared spacing, typography, and radius tokens when repeated UI patterns justify them.
+- [ ] Add component-level tests for route and layout UI trees across state inputs, user interactions, and mutations.
 
 ## 4. Core AWS infrastructure
 
@@ -156,18 +157,19 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [x] Add authenticated sign-out to the Me tab.
 - [x] Add first-party Cognito password authentication and admin-created-user password challenges.
 - [x] Store tokens in platform-backed secure storage.
-- [ ] Refresh access and ID tokens silently.
+- [x] Refresh access and ID tokens silently.
 - [ ] Add social-provider OAuth deep-link handling after external-account migration.
 - [ ] Add Google sign-in after external-account migration.
-- [ ] Add a shared authenticated HTTP client.
+- [x] Add a shared authenticated HTTP client.
 - [ ] Add consistent loading, validation, offline, and API error handling.
 
 ## 11. Pantry mobile experience
 
 **Stack:** Expo React Native mobile app (`@bitebook/mobile`), consuming the completed Food and Meal APIs
 
-- [ ] Load Foods and Meals from the authenticated API.
-- [ ] Connect Pantry empty states to live data.
+- [x] Load Foods from the authenticated API.
+- [ ] Load Meals from the authenticated API.
+- [ ] Connect Pantry empty states to live Foods and Meals.
 - [ ] Build the Food list with search and sorting.
 - [ ] Build manual Food creation.
 - [ ] Build Food details and metadata editing.

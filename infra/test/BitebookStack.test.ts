@@ -94,6 +94,16 @@ describe('BitebookStack', () => {
             Effect: 'Allow',
             Resource: [Match.anyValue()],
           },
+          {
+            Action: [
+              'kms:Decrypt',
+              'kms:Encrypt',
+              'kms:ReEncrypt*',
+              'kms:GenerateDataKey*',
+            ],
+            Effect: 'Allow',
+            Resource: Match.anyValue(),
+          },
         ],
       },
     });
