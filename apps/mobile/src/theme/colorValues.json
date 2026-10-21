@@ -11,6 +11,8 @@
       "border": "#d1d1d6",
       "control": "#e9e9eb",
       "controlSelected": "#ffffff",
+      "danger": "#d70015",
+      "dangerSubtle": "rgba(215, 0, 21, 0.1)",
       "textPrimary": "#111111",
       "textSecondary": "#66666b"
     },
@@ -19,6 +21,8 @@
       "border": "#38383a",
       "control": "#2c2c2e",
       "controlSelected": "#48484a",
+      "danger": "#ff6961",
+      "dangerSubtle": "rgba(255, 105, 97, 0.14)",
       "textPrimary": "#ffffff",
       "textSecondary": "#b0b0b5"
     }
