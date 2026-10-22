@@ -24,7 +24,11 @@ describe('ItemCardList', () => {
         items={items}
         keyExtractor={({ id }) => id}
         renderItem={(item, testIDPrefix) => (
-          <ItemCard testIDPrefix={testIDPrefix} title={item.name} />
+          <ItemCard
+            details={[]}
+            testIDPrefix={testIDPrefix}
+            title={item.name}
+          />
         )}
         testIDPrefix="items"
       />,

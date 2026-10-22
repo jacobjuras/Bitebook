@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Quantity } from '@bitebook/domain';
+import type { Food } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -95,9 +95,13 @@ function getContentState({
   return null;
 }
 
-function formatQuantity({ amount, unit }: Quantity) {
-  const label = unit === 'flOz' ? 'fl oz' : unit === 'item' && amount !== 1 ? 'items' : unit;
-  return `${amount} ${label}`;
+function getFoodCardDetails(food: Food) {
+  const summary = [`${food.nutritionFacts.caloriesKcal} kcal`];
+  if (food.nutritionFacts.proteinG !== undefined) {
+    summary.push(`${food.nutritionFacts.proteinG} g protein`);
+  }
+
+  return [{ id: 'summary', text: summary.join(' · ') }];
 }
 
 export default function PantryScreen() {
@@ -287,40 +291,11 @@ export default function PantryScreen() {
               accessory={food.isFavorite === true ? (
                 <FavoriteIndicator testIDPrefix={testIDPrefix} />
               ) : undefined}
+              chips={food.tags?.map((tag) => ({ id: tag, label: tag }))}
+              details={getFoodCardDetails(food)}
               testIDPrefix={testIDPrefix}
               title={food.name}
-            >
-              {/* Calories per serving */}
-              <Text
-                style={[styles.foodDetail, { color: colors.textSecondary }]}
-                testID={`${testIDPrefix}-calories`}
-              >
-                {food.nutritionFacts.caloriesKcal} kcal per serving
-              </Text>
-              {/* Serving size */}
-              <Text
-                style={[styles.foodDetail, { color: colors.textSecondary }]}
-                testID={`${testIDPrefix}-serving-size`}
-              >
-                Serving: {formatQuantity(food.servingSize)}
-              </Text>
-              {food.tags && food.tags.length > 0 ? (
-                <View style={styles.foodTags} testID={`${testIDPrefix}-tags`}>
-                  {food.tags.map((tag) => (
-                    <Text
-                      key={tag}
-                      style={[
-                        styles.foodTag,
-                        { backgroundColor: colors.control, color: colors.textSecondary },
-                      ]}
-                      testID={`${testIDPrefix}-tag-${tag}`}
-                    >
-                      {tag}
-                    </Text>
-                  ))}
-                </View>
-              ) : null}
-            </ItemCard>
+            />
           )}
           testIDPrefix="pantry-food"
           topPadding={16}
@@ -332,16 +307,18 @@ export default function PantryScreen() {
           keyExtractor={({ id }) => id}
           renderItem={(meal, testIDPrefix) => (
             // Meal card
-            <ItemCard testIDPrefix={testIDPrefix} title={meal.name}>
-              {/* Meal ingredient count */}
-              <Text
-                style={[styles.mealDetail, { color: colors.textSecondary }]}
-                testID={`${testIDPrefix}-ingredient-count`}
-              >
-                {meal.ingredients.length}{' '}
-                {meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
-              </Text>
-            </ItemCard>
+            <ItemCard
+              details={[
+                {
+                  id: 'ingredient-count',
+                  text: `${meal.ingredients.length} ${
+                    meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'
+                  }`,
+                },
+              ]}
+              testIDPrefix={testIDPrefix}
+              title={meal.name}
+            />
           )}
           testIDPrefix="pantry-meal"
         />
@@ -371,11 +348,7 @@ const styles = StyleSheet.create({
   button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
-  foodDetail: { fontSize: 14 },
-  foodTag: { borderRadius: 8, fontSize: 12, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
-  foodTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
-  mealDetail: { fontSize: 14 },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
   segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },

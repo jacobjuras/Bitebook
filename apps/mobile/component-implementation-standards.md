@@ -17,3 +17,7 @@ Reusable components accept a `testIDPrefix` that identifies their context and ow
 ## Keep reusable APIs minimal
 
 Add named props only for stable structural concepts the component owns. Prefer ordinary composition for one-off or transitional content, and move feature-specific behavior into its own component when it becomes reusable. Avoid expanding a generic component API around a single caller's temporary needs.
+
+## Prefer structured props for stable repeated layouts
+
+When a component repeatedly renders the same kinds of child content, accept typed data describing that content instead of requiring callers to rebuild the JSX. Let the component own layout, styling, keys, and test-ID suffixes while callers remain responsible for domain-specific calculations and formatted values. Keep free-form composition only when the content genuinely varies in structure.
