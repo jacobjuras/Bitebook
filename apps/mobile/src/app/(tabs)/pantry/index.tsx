@@ -1,5 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { Food, Meal, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -14,12 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { updateFood } from '../../../api/foods';
 import {
   type ContentState,
   ContentStateKind,
   ContentStateView,
 } from '../../../components/ContentStateView';
+import { FavoriteIndicator } from '../../../components/FavoriteIndicator';
 import { ItemCard } from '../../../components/ItemCard';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
@@ -103,7 +102,6 @@ function formatQuantity({ amount, unit }: Quantity) {
 
 export default function PantryScreen() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
   const [foodSearch, setFoodSearch] = useState('');
@@ -115,19 +113,6 @@ export default function PantryScreen() {
   const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
-  const favoriteMutation = useMutation({
-    mutationFn: ({ foodId, isFavorite }: {
-      foodId: string;
-      isFavorite: boolean;
-    }) => updateFood(foodId, { isFavorite }),
-    onSuccess: (updatedFood) => {
-      queryClient.setQueryData<Food[]>(
-        foodsQueryOptions.queryKey,
-        (currentFoods) => currentFoods?.map((food) =>
-          food.id === updatedFood.id ? updatedFood : food),
-      );
-    },
-  });
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
   const hasFoods = foods.length > 0;
@@ -297,26 +282,9 @@ export default function PantryScreen() {
           {visibleFoods.map((food: Food) => (
             // Food card
             <ItemCard
-              accessory={(
-                // Favorite toggle
-                <Pressable
-                  accessibilityLabel={food.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: food.isFavorite === true }}
-                  onPress={() => favoriteMutation.mutate({
-                    foodId: food.id,
-                    isFavorite: food.isFavorite !== true,
-                  })}
-                  testID={`pantry-food-${food.id}-favorite-button`}
-                >
-                  <Ionicons
-                    color={colors.accent}
-                    name={food.isFavorite ? 'star' : 'star-outline'}
-                    size={22}
-                    testID={`pantry-food-${food.id}-favorite-icon`}
-                  />
-                </Pressable>
-              )}
+              accessory={food.isFavorite === true ? (
+                <FavoriteIndicator testIDPrefix={`pantry-food-${food.id}`} />
+              ) : undefined}
               key={food.id}
               testIDPrefix={`pantry-food-${food.id}`}
               title={food.name}
@@ -351,15 +319,6 @@ export default function PantryScreen() {
                   ))}
                 </View>
               ) : null}
-              {favoriteMutation.isError
-                && favoriteMutation.variables?.foodId === food.id ? (
-                  <Text
-                    style={[styles.favoriteError, { color: colors.danger }]}
-                    testID={`pantry-food-${food.id}-favorite-error`}
-                  >
-                    Unable to update favorite
-                  </Text>
-                ) : null}
             </ItemCard>
           ))}
         </ScrollView>
@@ -410,7 +369,6 @@ const styles = StyleSheet.create({
   button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
-  favoriteError: { fontSize: 13 },
   foodDetail: { fontSize: 14 },
   foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
   foodTag: { borderRadius: 8, fontSize: 12, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },

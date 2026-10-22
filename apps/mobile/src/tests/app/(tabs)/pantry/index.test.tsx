@@ -13,13 +13,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   listFoods: vi.fn(),
   listMeals: vi.fn(),
-  mutateFavorite: vi.fn(),
   push: vi.fn(),
   refetchFoods: vi.fn(),
   refetchMeals: vi.fn(),
-  setQueryData: vi.fn(),
-  updateFood: vi.fn(),
-  useMutation: vi.fn(),
   useQuery: vi.fn(),
 }));
 
@@ -39,11 +35,8 @@ vi.mock('@expo/ui/community/menu', async () => {
   };
 });
 vi.mock('@tanstack/react-query', () => ({
-  useMutation: mocks.useMutation,
   useQuery: mocks.useQuery,
-  useQueryClient: () => ({ setQueryData: mocks.setQueryData }),
 }));
-vi.mock('../../../../api/foods.js', () => ({ updateFood: mocks.updateFood }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 vi.mock('../../../../query/pantryQueries.js', () => ({
@@ -154,10 +147,6 @@ function renderedFoodCardIds() {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
-  mocks.useMutation.mockReturnValue({
-    isError: false,
-    mutate: mocks.mutateFavorite,
-  });
 });
 
 describe('Pantry screen', () => {
@@ -258,9 +247,9 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-food-${foods[0].id}-serving-size`),
     ).toHaveTextContent('Serving: 100 g');
-    expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-favorite-icon`,
-    ).props.name).toBe('star-outline');
+    expect(screen.queryByTestId(
+      `pantry-food-${foods[0].id}-favorite-indicator`,
+    )).toBeNull();
     expect(screen.getByTestId(
       `pantry-food-${foods[0].id}-tag-high-protein`,
     )).toHaveTextContent('high-protein');
@@ -275,8 +264,8 @@ describe('Pantry screen', () => {
       screen.getByTestId(`pantry-food-${foods[1].id}-serving-size`),
     ).toHaveTextContent('Serving: 1 item');
     expect(screen.getByTestId(
-      `pantry-food-${foods[1].id}-favorite-icon`,
-    ).props.name).toBe('star');
+      `pantry-food-${foods[1].id}-favorite-indicator`,
+    )).toBeTruthy();
     const addFoodButton = screen.getByTestId('pantry-add-food-button');
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);
@@ -338,55 +327,6 @@ describe('Pantry screen', () => {
       nativeEvent: { event: 'tag:savory' },
     });
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[0].id}`]);
-  });
-
-  it('updates a Food favorite and replaces its cached record', async () => {
-    const updatedFood = { ...foods[0], isFavorite: true };
-    mocks.updateFood.mockResolvedValue(updatedFood);
-    await renderPantry();
-
-    await fireEvent.press(
-      screen.getByTestId(`pantry-food-${foods[0].id}-favorite-button`),
-    );
-    expect(mocks.mutateFavorite).toHaveBeenCalledWith({
-      foodId: foods[0].id,
-      isFavorite: true,
-    });
-
-    const mutationOptions = mocks.useMutation.mock.calls[0][0];
-    await expect(mutationOptions.mutationFn({
-      foodId: foods[0].id,
-      isFavorite: true,
-    })).resolves.toEqual(updatedFood);
-    expect(mocks.updateFood).toHaveBeenCalledWith(foods[0].id, {
-      isFavorite: true,
-    });
-
-    mutationOptions.onSuccess(updatedFood);
-    expect(mocks.setQueryData).toHaveBeenCalledWith(
-      ['foods'],
-      expect.any(Function),
-    );
-    const updateCache = mocks.setQueryData.mock.calls[0][1];
-    expect(updateCache(foods)).toEqual([updatedFood, foods[1]]);
-    expect(updateCache(undefined)).toBeUndefined();
-  });
-
-  it('shows a favorite update error on only the affected Food', async () => {
-    mocks.useMutation.mockReturnValue({
-      isError: true,
-      mutate: mocks.mutateFavorite,
-      variables: { foodId: foods[0].id },
-    });
-
-    await renderPantry();
-
-    expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-favorite-error`,
-    )).toHaveTextContent('Unable to update favorite');
-    expect(screen.queryByTestId(
-      `pantry-food-${foods[1].id}-favorite-error`,
-    )).toBeNull();
   });
 
   it('defaults to newest recent Foods and supports oldest first', async () => {
