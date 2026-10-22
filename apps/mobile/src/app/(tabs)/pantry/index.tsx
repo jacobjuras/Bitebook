@@ -1,161 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Food, Meal } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Keyboard,
-  StyleSheet,
-  Text,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { Keyboard, Text, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  type ContentState,
-  ContentStateKind,
-} from '../../../components/ContentStateView';
-import { FavoriteIndicator } from '../../../components/FavoriteIndicator';
-import type { ItemCardModel } from '../../../components/ItemCard';
-import { ItemListView } from '../../../components/ItemListView';
-import {
-  SearchFilterSortControls,
-  type SearchFilterSortModel,
-} from '../../../components/SearchFilterSortControls';
-import {
-  PantrySection,
-  PantrySectionControl,
-} from '../../../components/PantrySectionControl';
-import { filterItems, getAvailableTags } from '../../../pantry/itemFiltering';
+import { foodEmptyState, foodNoResultsState } from '../../../constants/food-constants';
 import {
   ItemSortField,
   SortDirection,
-  itemSortDefinitions,
-  itemSortFields,
-  type SortableItem,
-} from '../../../pantry/itemSorting';
+  itemSortOptions,
+} from '../../../constants/sorting-constants';
+import { mealEmptyStates } from '../../../constants/meal-constants';
+import { PantrySection } from '../../../constants/pantry-constants';
+import { ItemListView } from '../../../components/ItemListView/ItemListView';
+import { PantrySectionControl } from '../../../components/PantrySectionControl/PantrySectionControl';
+import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls/SearchFilterSortControls';
+import type { SearchFilterSortModel } from '../../../models/searchFilterSort';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
-
-type EmptyState = {
-  action: string;
-  description: string;
-  icon: 'nutrition-outline' | 'restaurant-outline';
-  title: string;
-};
-
-const foodEmptyState: EmptyState = {
-  action: 'Add first food',
-  description: 'Add a food to begin tracking what you have',
-  icon: 'nutrition-outline',
-  title: 'Your pantry is empty',
-};
-
-const foodNoResultsState = {
-  description: 'Try a different search or filter',
-  title: 'No foods found',
-};
-
-const mealEmptyStates: Record<'withFoods' | 'withoutFoods', EmptyState> = {
-  withoutFoods: {
-    action: 'Add first food',
-    description: 'Saved meals are made from foods in your pantry',
-    icon: 'restaurant-outline',
-    title: 'Add food before making a meal',
-  },
-  withFoods: {
-    action: 'Create first meal',
-    description: 'Combine foods you eat together into a reusable meal',
-    icon: 'restaurant-outline',
-    title: 'Create your first meal',
-  },
-};
-
-const itemSortOptions = itemSortFields.map((field) => ({
-  directions: itemSortDefinitions[field].directionOrder.map((direction) => ({
-    id: direction,
-    label: itemSortDefinitions[field].directionLabels[direction],
-  })),
-  id: field,
-  label: itemSortDefinitions[field].label,
-}));
-
-type ContentStateOptions = {
-  emptyState?: EmptyState;
-  errorState?: { message: string; onRetry: () => void };
-  isPending: boolean;
-  noResultsState?: { description: string; title: string };
-};
-
-function getContentState({
-  emptyState,
-  errorState,
-  isPending,
-  noResultsState,
-}: ContentStateOptions): ContentState | null {
-  if (isPending) return { kind: ContentStateKind.Loading };
-  if (errorState) return { kind: ContentStateKind.Error, ...errorState };
-  if (noResultsState) {
-    return { kind: ContentStateKind.NoResults, ...noResultsState };
-  }
-  if (emptyState) {
-    return {
-      description: emptyState.description,
-      icon: emptyState.icon,
-      kind: ContentStateKind.Empty,
-      title: emptyState.title,
-    };
-  }
-  return null;
-}
-
-function getFoodCardDetails(food: Food) {
-  const summary = [`${food.nutritionFacts.caloriesKcal} kcal`];
-  if (food.nutritionFacts.proteinG !== undefined) {
-    summary.push(`${food.nutritionFacts.proteinG} g protein`);
-  }
-
-  return [{ id: 'summary', text: summary.join(' · ') }];
-}
-
-function getSortableFood(food: Food): SortableItem {
-  return {
-    caloriesKcal: food.nutritionFacts.caloriesKcal,
-    name: food.name,
-    recentAt: food.lastLoggedAt ?? food.createdAt,
-  };
-}
-
-function renderFavoriteIndicator(testIDPrefix: string) {
-  return (
-    // Favorite indicator
-    <FavoriteIndicator testIDPrefix={testIDPrefix} />
-  );
-}
-
-function getFoodCardItem(food: Food): ItemCardModel {
-  return {
-    accessory: food.isFavorite === true ? renderFavoriteIndicator : undefined,
-    chips: food.tags?.map((tag) => ({ id: tag, label: tag })),
-    details: getFoodCardDetails(food),
-    id: food.id,
-    title: food.name,
-  };
-}
-
-function getMealCardItem(meal: Meal): ItemCardModel {
-  return {
-    details: [
-      {
-        id: 'ingredient-count',
-        text: `${meal.ingredients.length} ${
-          meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'
-        }`,
-      },
-    ],
-    id: meal.id,
-    title: meal.name,
-  };
-}
+import { filterItems, getAvailableTags } from '../../../utils/searchFilterSort/filtering';
+import { sortItems } from '../../../utils/searchFilterSort/sorting';
+import { getContentState } from '../../../utils/pantry/contentState';
+import { getFoodCardItem, getSortableFood } from '../../../utils/pantry/food';
+import { getMealCardItem } from '../../../utils/pantry/meal';
+import { styles } from './styles';
 
 export default function PantryScreen() {
   const router = useRouter();
@@ -175,20 +43,16 @@ export default function PantryScreen() {
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
   const availableTags = getAvailableTags(foods);
-  const visibleFoods = filterItems(foods, {
-    favorites: favoritesFilterEnabled,
-    search: foodSearch,
-    tags: selectedTags,
-  }).sort((first, second) => {
-      const fieldComparison = itemSortDefinitions[itemSortField].compare(
-        getSortableFood(first),
-        getSortableFood(second),
-      );
-      const comparison = fieldComparison || first.name.localeCompare(second.name);
-      return itemSortDirection === SortDirection.Ascending
-        ? comparison
-        : -comparison;
-    });
+  const visibleFoods = sortItems(
+    filterItems(foods, {
+      favorites: favoritesFilterEnabled,
+      search: foodSearch,
+      tags: selectedTags,
+    }),
+    getSortableFood,
+    itemSortField,
+    itemSortDirection,
+  );
   const activeItemListProps = selectedSection === PantrySection.Foods
     ? {
         items: visibleFoods.map(getFoodCardItem),
@@ -215,10 +79,10 @@ export default function PantryScreen() {
 
   const navigateToAddItem = () => {
     if (shouldAddFood) {
-      router.push('/pantry/food/new');
+      router.push('/pantry/food/newFood');
       return;
     }
-    router.push('/pantry/meal/new');
+    router.push('/pantry/meal/newMeal');
   };
 
   const clearFilters = () => {
@@ -342,8 +206,3 @@ export default function PantryScreen() {
     </TouchableWithoutFeedback>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
-  screen: { flex: 1 },
-});

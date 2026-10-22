@@ -6,14 +6,14 @@ export default defineConfig({
   test: {
     coverage: {
       enabled: true,
-      exclude: ['src/**/tests/**'],
+      exclude: ['src/**/*.test.{ts,tsx}'],
       include: ['src/**/*.{ts,tsx}'],
       provider: 'v8',
       reportOnFailure: true,
       reporter: [['text', { maxCols: 200, skipFull: false }], 'json-summary', 'lcov'],
     },
     globals: true,
-    include: ['src/**/tests/**/*.test.{ts,tsx}', 'test/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'test/**/*.test.{ts,tsx}'],
     name: 'Mobile tests',
     setupFiles: ['./test/setup.ts'],
   },
