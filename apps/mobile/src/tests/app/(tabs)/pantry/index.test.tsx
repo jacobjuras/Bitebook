@@ -167,8 +167,8 @@ describe('Pantry screen', () => {
       staleTime: Infinity,
     });
     expect(screen.getByTestId('pantry-loading-indicator')).toBeTruthy();
-    expect(screen.queryByTestId('pantry-add-food-button')).toBeNull();
-    expect(screen.queryByTestId('pantry-add-meal-button')).toBeNull();
+    expect(screen.queryByTestId('pantry-food-add-button')).toBeNull();
+    expect(screen.queryByTestId('pantry-meal-add-button')).toBeNull();
   });
 
   it('keeps loaded Foods visible while Meals are loading', async () => {
@@ -224,7 +224,7 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Add a food to begin tracking what you have',
     );
-    const addFoodButton = screen.getByTestId('pantry-add-food-button');
+    const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add first food');
     await fireEvent.press(addFoodButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
@@ -263,7 +263,7 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId(
       `pantry-food-${foods[1].id}-favorite-indicator`,
     )).toBeTruthy();
-    const addFoodButton = screen.getByTestId('pantry-add-food-button');
+    const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
@@ -426,7 +426,7 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Saved meals are made from foods in your pantry',
     );
-    const addFoodButton = screen.getByTestId('pantry-add-food-button');
+    const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add first food');
     await fireEvent.press(addFoodButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
@@ -446,7 +446,7 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Combine foods you eat together into a reusable meal',
     );
-    const addMealButton = screen.getByTestId('pantry-add-meal-button');
+    const addMealButton = screen.getByTestId('pantry-meal-add-button');
     expect(addMealButton).toHaveTextContent('Create first meal');
     await fireEvent.press(addMealButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/new');
@@ -474,7 +474,7 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-meal-${meals[1].id}-ingredient-count`),
     ).toHaveTextContent('2 ingredients');
-    const addMealButton = screen.getByTestId('pantry-add-meal-button');
+    const addMealButton = screen.getByTestId('pantry-meal-add-button');
     expect(addMealButton).toHaveTextContent('Add meal');
     await fireEvent.press(addMealButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/new');
