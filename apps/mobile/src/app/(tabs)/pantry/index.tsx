@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddItemButton } from '../../../components/AddItemButton';
 import {
   type ContentState,
   ContentStateKind,
@@ -193,9 +194,7 @@ export default function PantryScreen() {
   const actionLabel = selectedSection === 'foods'
     ? hasFoods ? 'Add food' : foodEmptyState.action
     : hasMeals && hasFoods ? 'Add meal' : selectedSectionEmptyState.action;
-  const actionTestId = shouldAddFood
-    ? 'pantry-add-food-button'
-    : 'pantry-add-meal-button';
+  const actionTestIDPrefix = shouldAddFood ? 'pantry-food' : 'pantry-meal';
 
   const navigateToAddItem = () => {
     if (shouldAddFood) {
@@ -326,20 +325,11 @@ export default function PantryScreen() {
         <ItemCardList {...activeItemCardListProps} />
       )}
       {!isPending && !isError ? (
-        // Pantry primary action
-        <Pressable
-          accessibilityRole="button"
+        <AddItemButton
+          label={actionLabel}
           onPress={navigateToAddItem}
-          testID={actionTestId}
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: colors.accent },
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          {/* Pantry primary-action label */}
-          <Text style={[styles.buttonText, { color: colors.onAccent }]}>{actionLabel}</Text>
-        </Pressable>
+          testIDPrefix={actionTestIDPrefix}
+        />
       ) : null}
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -347,9 +337,6 @@ export default function PantryScreen() {
 }
 
 const styles = StyleSheet.create({
-  button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
-  buttonPressed: { opacity: 0.75 },
-  buttonText: { fontSize: 17, fontWeight: '600' },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
