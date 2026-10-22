@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 import { Text, StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     border: 'border',
     control: 'control',

@@ -14,7 +14,7 @@ vi.mock('@expo/ui/community/menu', async () => {
     }) => createElement('MenuView', { ...props, actions }, children),
   };
 });
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     border: 'border',

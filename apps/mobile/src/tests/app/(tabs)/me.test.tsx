@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../auth/AuthProvider.js', () => ({
   useAuth: () => mocks.auth,
 }));
-vi.mock('../../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     background: 'background',
     control: 'control',

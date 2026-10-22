@@ -4,26 +4,34 @@ import { useState } from 'react';
 import { Keyboard, Text, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { foodEmptyState, foodNoResultsState } from '../../../constants/food-constants';
+import {
+  ItemListView,
+  PantrySectionControl,
+  SearchFilterSortControls,
+} from '~/components';
 import {
   ItemSortField,
+  PantrySection,
   SortDirection,
+  foodEmptyState,
+  foodNoResultsState,
   itemSortOptions,
-} from '../../../constants/sorting-constants';
-import { mealEmptyStates } from '../../../constants/meal-constants';
-import { PantrySection } from '../../../constants/pantry-constants';
-import { ItemListView } from '../../../components/ItemListView/ItemListView';
-import { PantrySectionControl } from '../../../components/PantrySectionControl/PantrySectionControl';
-import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls/SearchFilterSortControls';
-import type { SearchFilterSortModel } from '../../../models/searchFilterSort';
+  mealEmptyStates,
+} from '~/constants';
+import type { SearchFilterSortModel } from '~/models';
+import {
+  filterItems,
+  getAvailableTags,
+  getContentState,
+  getFoodCardItem,
+  getMealCardItem,
+  getSortableFood,
+  sortItems,
+} from '~/utils';
+
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
-import { useThemeColors } from '../../../theme/useThemeColors';
-import { filterItems, getAvailableTags } from '../../../utils/searchFilterSort/filtering';
-import { sortItems } from '../../../utils/searchFilterSort/sorting';
-import { getContentState } from '../../../utils/pantry/contentState';
-import { getFoodCardItem, getSortableFood } from '../../../utils/pantry/food';
-import { getMealCardItem } from '../../../utils/pantry/meal';
 import { styles } from '../../../styles/pantry';
+import { useThemeColors } from '~/theme';
 
 export default function PantryScreen() {
   const router = useRouter();

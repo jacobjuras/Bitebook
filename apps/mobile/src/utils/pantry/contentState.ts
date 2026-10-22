@@ -1,6 +1,5 @@
-import { ContentStateKind } from '../../constants/content-state-constants';
-import type { ContentState } from '../../models/contentState';
-import type { EmptyState } from '../../models/emptyState';
+import { ContentStateKind } from '~/constants';
+import type { ContentState, EmptyState } from '~/models';
 
 export function getContentState({
   emptyState,

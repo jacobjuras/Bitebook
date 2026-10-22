@@ -1,10 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
-import {
-  PantrySection,
-  pantrySectionLabels,
-} from '../../constants/pantry-constants';
-import { useThemeColors } from '../../theme/useThemeColors';
+import { PantrySection, pantrySectionLabels } from '~/constants';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 /** Selects which kind of pantry item is displayed. */

@@ -2,8 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuView } from '@expo/ui/community/menu';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import type { SearchFilterSortModel } from '../../models/searchFilterSort';
-import { useThemeColors } from '../../theme/useThemeColors';
+import type { SearchFilterSortModel } from '~/models';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 /** Renders reusable search, filter, and contextual sort controls for a list. */

@@ -1,8 +1,8 @@
 import { Text, View } from 'react-native';
 
-import type { ItemCardModel } from '../../models/itemCard';
+import type { ItemCardModel } from '~/models';
 
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 /** Renders a reusable card for an item's title, details, and chips. */

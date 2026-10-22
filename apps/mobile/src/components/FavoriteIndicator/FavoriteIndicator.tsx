@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 
 type FavoriteIndicatorProps = {
   testIDPrefix: string;

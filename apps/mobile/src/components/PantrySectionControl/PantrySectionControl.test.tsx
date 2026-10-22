@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     control: 'control',
     controlSelected: 'control-selected',
@@ -12,7 +12,7 @@ vi.mock('../../theme/useThemeColors.js', () => ({
   }),
 }));
 
-import { PantrySection } from '../../constants/pantry-constants.js';
+import { PantrySection } from '~/constants';
 import { PantrySectionControl } from './PantrySectionControl.js';
 
 function ControlledPantrySectionControl() {

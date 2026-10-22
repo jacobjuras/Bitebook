@@ -18,7 +18,7 @@ vi.mock('expo-router', () => {
   );
   return { Tabs };
 });
-vi.mock('../../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     background: 'background',

@@ -2,8 +2,8 @@ import {
   type ItemSortField,
   type SortDirection,
   itemSortDefinitions,
-} from '../../constants/sorting-constants';
-import type { SortableItem } from '../../models/searchFilterSort';
+} from '~/constants';
+import type { SortableItem } from '~/models';
 
 export function sortItems<Item>(
   items: readonly Item[],

@@ -1,7 +1,8 @@
 import { ScrollView } from 'react-native';
 
+import type { ItemCardModel } from '~/models';
+
 import { ItemCard } from '../ItemCard/ItemCard';
-import type { ItemCardModel } from '../../models/itemCard';
 import { styles } from './styles';
 
 /** Renders structured items in a consistently spaced, scrollable card list. */

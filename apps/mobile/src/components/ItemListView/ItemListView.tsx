@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
+import type { ContentState, ItemCardModel } from '~/models';
+
 import { AddItemButton } from '../AddItemButton/AddItemButton';
 import { ContentStateView } from '../ContentStateView/ContentStateView';
 import { ItemCardList } from '../ItemCardList/ItemCardList';
-import type { ContentState } from '../../models/contentState';
-import type { ItemCardModel } from '../../models/itemCard';
 
 /** Composes controls, content, and the primary action for an item list. */
 export function ItemListView({

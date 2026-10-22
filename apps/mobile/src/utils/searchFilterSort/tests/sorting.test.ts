@@ -6,8 +6,8 @@ import {
   itemSortDefinitions,
   itemSortFields,
   itemSortOptions,
-} from '../../../constants/sorting-constants.js';
-import type { SortableItem } from '../../../models/searchFilterSort.js';
+} from '~/constants';
+import type { SortableItem } from '~/models';
 import { sortItems } from '../sorting.js';
 
 const items: SortableItem[] = [

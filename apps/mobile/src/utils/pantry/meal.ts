@@ -1,6 +1,6 @@
 import type { Meal } from '@bitebook/domain';
 
-import type { ItemCardModel } from '../../models/itemCard';
+import type { ItemCardModel } from '~/models';
 
 export function getMealCardItem(meal: Meal): ItemCardModel {
   return {

@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import { ContentStateKind } from '../../constants/content-state-constants';
-import type { ContentState } from '../../models/contentState';
+import { ContentStateKind } from '~/constants';
+import type { ContentState } from '~/models';
 
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 /** Renders feedback when list content is loading, unavailable, or empty. */

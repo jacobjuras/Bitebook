@@ -34,7 +34,7 @@ vi.mock('expo-haptics', () => ({
 vi.mock('../../auth/AuthProvider.js', () => ({
   useAuth: () => mocks.auth,
 }));
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     background: 'background',
