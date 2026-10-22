@@ -242,27 +242,24 @@ describe('Pantry screen', () => {
       'Chicken breast',
     );
     expect(
-      screen.getByTestId(`pantry-food-${foods[0].id}-calories`),
-    ).toHaveTextContent('165 kcal per serving');
-    expect(
-      screen.getByTestId(`pantry-food-${foods[0].id}-serving-size`),
-    ).toHaveTextContent('Serving: 100 g');
+      screen.getByTestId(`pantry-food-${foods[0].id}-summary`),
+    ).toHaveTextContent('165 kcal · 31 g protein');
     expect(screen.queryByTestId(
       `pantry-food-${foods[0].id}-favorite-indicator`,
     )).toBeNull();
     expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-tag-high-protein`,
+      `pantry-food-${foods[0].id}-chip-high-protein`,
     )).toHaveTextContent('high-protein');
     expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-tag-savory`,
+      `pantry-food-${foods[0].id}-chip-savory`,
     )).toHaveTextContent('savory');
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-card`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-card-title`)).toHaveTextContent(
       'Greek yogurt',
     );
     expect(
-      screen.getByTestId(`pantry-food-${foods[1].id}-serving-size`),
-    ).toHaveTextContent('Serving: 1 item');
+      screen.getByTestId(`pantry-food-${foods[1].id}-summary`),
+    ).toHaveTextContent('100 kcal');
     expect(screen.getByTestId(
       `pantry-food-${foods[1].id}-favorite-indicator`,
     )).toBeTruthy();
