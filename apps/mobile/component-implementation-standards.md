@@ -37,3 +37,23 @@ Inline small private object shapes that appear once. Introduce a named type when
 ## Test controlled components through observable transitions
 
 Use a small stateful harness when testing controlled interactive components. Perform the user action and assert that the rendered state changes, rather than stopping at an assertion that a callback was invoked. Callback arguments matter only when they are a distinct public contract not already proven by the resulting behavior.
+
+## Group cohesive component inputs
+
+When a reusable component needs many related values and callbacks, organize them into a typed model with cohesive sections instead of exposing a long flat prop list. Construct the model before rendering, keep static configuration outside the render path, and use named handlers for non-trivial behavior. The grouping should reflect generic UI concepts rather than one consumer's domain.
+
+## Keep shared components domain-neutral
+
+Name shared components, props, and models after the UI behavior they provide rather than the first domain that consumes them. Convert domain records into the generic model at the screen or adapter boundary so the same component can support other item types without wrappers or feature-specific branches.
+
+## Preserve static guarantees during simplification
+
+Removing an adapter or intermediate representation must not silently weaken exhaustiveness or validity checks. When replacing an enum-keyed record with an array, either derive the allowed type from the array or add a compile-time completeness assertion covering every enum member. Fewer lines are not an improvement if omissions can stop failing type checks.
+
+## Keep naming changes structural
+
+When feedback asks to generalize or rename identifiers, preserve the implementation, file boundaries, behavior, and existing type guarantees unless a refactor is explicitly requested. Do not use a naming cleanup as an opportunity to introduce adapters, split modules, or redesign data structures.
+
+## Make generalized contracts structurally generic
+
+A generic name does not make an abstraction reusable if its types still depend on the original domain. Define a normalized shared contract containing only the values the behavior needs, and adapt each domain model at the boundary. Do not introduce inheritance between domain entities solely to satisfy a UI abstraction.

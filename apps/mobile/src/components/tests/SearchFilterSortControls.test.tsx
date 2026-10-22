@@ -29,7 +29,7 @@ import { SearchFilterSortControls } from '../SearchFilterSortControls.js';
 const filters = [
   { id: 'favorites', label: 'Favorites', selected: false },
   { id: 'tag:fruit', label: 'fruit', selected: true },
-] as const;
+];
 const sortOptions = [
   {
     directions: [
@@ -47,35 +47,48 @@ const sortOptions = [
     id: 'name',
     label: 'Name',
   },
-] as const;
+];
 
-async function renderControls(overrides: Partial<React.ComponentProps<
-  typeof SearchFilterSortControls
->> = {}) {
-  const props = {
-    activeSortDirectionId: 'descending',
-    activeSortId: 'recent',
-    filters,
-    itemName: 'Food',
-    itemNamePlural: 'Foods',
-    onClearFilters: vi.fn(),
-    onSearchChange: vi.fn(),
-    onSelectSort: vi.fn(),
-    onToggleFilter: vi.fn(),
-    searchValue: '',
-    sortOptions,
-    testIDPrefix: 'pantry-food',
-    ...overrides,
+function createModel() {
+  return {
+    filters: {
+      onClear: vi.fn(),
+      onToggle: vi.fn(),
+      options: filters,
+    },
+    item: { name: 'Food', pluralName: 'Foods' },
+    search: { onChange: vi.fn(), value: '' },
+    sort: {
+      activeDirectionId: 'descending',
+      activeId: 'recent',
+      onSelect: vi.fn(),
+      options: sortOptions,
+    },
   };
+}
 
-  await render(<SearchFilterSortControls {...props} />);
-  return props;
+async function renderControls(
+  model = createModel(),
+  testIDPrefix = 'pantry-food',
+) {
+  await render(
+    <SearchFilterSortControls
+      model={model}
+      testIDPrefix={testIDPrefix}
+    />,
+  );
+  return model;
 }
 
 describe('SearchFilterSortControls', () => {
   it('renders search and sort state without active filters', async () => {
+    const model = createModel();
     await renderControls({
-      filters: filters.map((filter) => ({ ...filter, selected: false })),
+      ...model,
+      filters: {
+        ...model.filters,
+        options: filters.map((filter) => ({ ...filter, selected: false })),
+      },
     });
 
     expect(screen.getByTestId('pantry-food-search-input').props.placeholder)
@@ -93,22 +106,26 @@ describe('SearchFilterSortControls', () => {
   });
 
   it('updates and clears search text', async () => {
-    const props = await renderControls({ searchValue: 'apple' });
+    const model = createModel();
+    const renderedModel = await renderControls({
+      ...model,
+      search: { ...model.search, value: 'apple' },
+    });
 
     await fireEvent.changeText(
       screen.getByTestId('pantry-food-search-input'),
       'pear',
     );
-    expect(props.onSearchChange).toHaveBeenCalledWith('pear');
+    expect(renderedModel.search.onChange).toHaveBeenCalledWith('pear');
 
     await fireEvent.press(screen.getByTestId('pantry-food-search-clear-button'));
     expect(screen.getByTestId('pantry-food-search-clear-icon').props.name)
       .toBe('close-circle');
-    expect(props.onSearchChange).toHaveBeenCalledWith('');
+    expect(renderedModel.search.onChange).toHaveBeenCalledWith('');
   });
 
   it('builds filter actions and handles menu and chip selections', async () => {
-    const props = await renderControls();
+    const model = await renderControls();
     const menu = screen.getByTestId('pantry-food-filter-sort-menu');
 
     expect(menu.props.actions[0]).toEqual({
@@ -126,17 +143,17 @@ describe('SearchFilterSortControls', () => {
       .toHaveTextContent('fruit');
 
     await fireEvent(menu, 'pressAction', { nativeEvent: { event: 'favorites' } });
-    expect(props.onToggleFilter).toHaveBeenCalledWith('favorites');
+    expect(model.filters.onToggle).toHaveBeenCalledWith('favorites');
 
     await fireEvent.press(screen.getByTestId('pantry-food-active-filter-tag-fruit'));
-    expect(props.onToggleFilter).toHaveBeenCalledWith('tag:fruit');
+    expect(model.filters.onToggle).toHaveBeenCalledWith('tag:fruit');
 
     await fireEvent.press(screen.getByTestId('pantry-food-clear-filters-button'));
-    expect(props.onClearFilters).toHaveBeenCalledOnce();
+    expect(model.filters.onClear).toHaveBeenCalledOnce();
   });
 
   it('builds contextual sort actions and reports valid selections', async () => {
-    const props = await renderControls();
+    const model = await renderControls();
     const menu = screen.getByTestId('pantry-food-filter-sort-menu');
 
     expect(menu.props.actions[1]).toEqual({
@@ -166,21 +183,24 @@ describe('SearchFilterSortControls', () => {
     await fireEvent(menu, 'pressAction', {
       nativeEvent: { event: 'sort:name:ascending' },
     });
-    expect(props.onSelectSort).toHaveBeenCalledWith('name', 'ascending');
+    expect(model.sort.onSelect).toHaveBeenCalledWith('name', 'ascending');
 
     await fireEvent(menu, 'pressAction', {
       nativeEvent: { event: 'sort:unsupported:ascending' },
     });
-    expect(props.onSelectSort).toHaveBeenCalledOnce();
+    expect(model.sort.onSelect).toHaveBeenCalledOnce();
   });
 
   it('omits the Filter section for a sort-only list', async () => {
-    await renderControls({
-      filters: [],
-      itemName: 'Meal',
-      itemNamePlural: 'Meals',
-      testIDPrefix: 'pantry-meal',
-    });
+    const model = createModel();
+    await renderControls(
+      {
+        ...model,
+        filters: { ...model.filters, options: [] },
+        item: { name: 'Meal', pluralName: 'Meals' },
+      },
+      'pantry-meal',
+    );
 
     const menu = screen.getByTestId('pantry-meal-filter-sort-menu');
     expect(menu.props.actions).toHaveLength(1);

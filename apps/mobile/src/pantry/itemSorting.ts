@@ -1,6 +1,10 @@
-import type { Food } from '@bitebook/domain';
+export type SortableItem = {
+  caloriesKcal: number;
+  name: string;
+  recentAt: string;
+};
 
-export enum FoodSortField {
+export enum ItemSortField {
   Recent = 'recent',
   Name = 'name',
   Calories = 'calories',
@@ -11,21 +15,18 @@ export enum SortDirection {
   Descending = 'descending',
 }
 
-type FoodSortDefinition = {
-  compare: (first: Food, second: Food) => number;
-  directionLabels: Record<SortDirection, string>;
-  directionOrder: readonly SortDirection[];
-  label: string;
-};
-
-export const foodSortDefinitions: Record<
-  FoodSortField,
-  FoodSortDefinition
+export const itemSortDefinitions: Record<
+  ItemSortField,
+  {
+    compare: (first: SortableItem, second: SortableItem) => number;
+    directionLabels: Record<SortDirection, string>;
+    directionOrder: readonly SortDirection[];
+    label: string;
+  }
 > = {
-  [FoodSortField.Recent]: {
+  [ItemSortField.Recent]: {
     compare: (first, second) =>
-      Date.parse(first.lastLoggedAt ?? first.createdAt)
-      - Date.parse(second.lastLoggedAt ?? second.createdAt),
+      Date.parse(first.recentAt) - Date.parse(second.recentAt),
     directionLabels: {
       [SortDirection.Ascending]: 'Oldest first',
       [SortDirection.Descending]: 'Newest first',
@@ -36,7 +37,7 @@ export const foodSortDefinitions: Record<
     ],
     label: 'Recent',
   },
-  [FoodSortField.Name]: {
+  [ItemSortField.Name]: {
     compare: (first, second) => first.name.localeCompare(second.name),
     directionLabels: {
       [SortDirection.Ascending]: 'A–Z',
@@ -48,10 +49,8 @@ export const foodSortDefinitions: Record<
     ],
     label: 'Name',
   },
-  [FoodSortField.Calories]: {
-    compare: (first, second) =>
-      first.nutritionFacts.caloriesKcal
-      - second.nutritionFacts.caloriesKcal,
+  [ItemSortField.Calories]: {
+    compare: (first, second) => first.caloriesKcal - second.caloriesKcal,
     directionLabels: {
       [SortDirection.Ascending]: 'Low to high',
       [SortDirection.Descending]: 'High to low',
@@ -64,4 +63,4 @@ export const foodSortDefinitions: Record<
   },
 };
 
-export const foodSortFields = Object.values(FoodSortField);
+export const itemSortFields = Object.values(ItemSortField);
