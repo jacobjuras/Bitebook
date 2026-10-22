@@ -227,7 +227,7 @@ describe('Pantry screen', () => {
     const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add first food');
     await fireEvent.press(addFoodButton);
-    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
+    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/newFood');
   });
 
   it('renders Food cards with organization metadata and quantities', async () => {
@@ -266,7 +266,7 @@ describe('Pantry screen', () => {
     const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add food');
     await fireEvent.press(addFoodButton);
-    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
+    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/newFood');
   });
 
   it('dismisses the focused Food search keyboard on a background tap', async () => {
@@ -429,7 +429,7 @@ describe('Pantry screen', () => {
     const addFoodButton = screen.getByTestId('pantry-food-add-button');
     expect(addFoodButton).toHaveTextContent('Add first food');
     await fireEvent.press(addFoodButton);
-    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/new');
+    expect(mocks.push).toHaveBeenCalledWith('/pantry/food/newFood');
   });
 
   it('directs users with Foods but no Meals to create their first Meal', async () => {
@@ -449,7 +449,7 @@ describe('Pantry screen', () => {
     const addMealButton = screen.getByTestId('pantry-meal-add-button');
     expect(addMealButton).toHaveTextContent('Create first meal');
     await fireEvent.press(addMealButton);
-    expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/new');
+    expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/newMeal');
   });
 
   it('renders Meal cards and navigates to Meal creation', async () => {
@@ -477,6 +477,6 @@ describe('Pantry screen', () => {
     const addMealButton = screen.getByTestId('pantry-meal-add-button');
     expect(addMealButton).toHaveTextContent('Add meal');
     await fireEvent.press(addMealButton);
-    expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/new');
+    expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/newMeal');
   });
 });

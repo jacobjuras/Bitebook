@@ -5,11 +5,11 @@ export default function PantryLayout() {
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
-        name="food/new"
+        name="food/newFood"
         options={{ headerBackTitle: 'Pantry', title: 'Add food' }}
       />
       <Stack.Screen
-        name="meal/new"
+        name="meal/newMeal"
         options={{ headerBackTitle: 'Pantry', title: 'Create meal' }}
       />
     </Stack>

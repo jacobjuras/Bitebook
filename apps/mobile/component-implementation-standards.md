@@ -57,3 +57,7 @@ When feedback asks to generalize or rename identifiers, preserve the implementat
 ## Make generalized contracts structurally generic
 
 A generic name does not make an abstraction reusable if its types still depend on the original domain. Define a normalized shared contract containing only the values the behavior needs, and adapt each domain model at the boundary. Do not introduce inheritance between domain entities solely to satisfy a UI abstraction.
+
+## Organize by ownership
+
+Place each reusable component in `components/ComponentName/` with `ComponentName.tsx`, `ComponentName.test.tsx`, and `styles.ts`. Put cross-component data shapes in `models/`, immutable configuration and enums in `constants/`, and mobile-only pure behavior in `utils/`. Keep framework-independent business models and calculations in `packages/domain`; do not move UI concerns there.

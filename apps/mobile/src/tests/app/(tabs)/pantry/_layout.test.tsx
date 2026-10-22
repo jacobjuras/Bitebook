@@ -28,11 +28,11 @@ describe('Pantry layout', () => {
     expect(screen.getByTestId('pantry-route-index').props.options).toEqual({
       headerShown: false,
     });
-    expect(screen.getByTestId('pantry-route-food/new').props.options).toEqual({
+    expect(screen.getByTestId('pantry-route-food/newFood').props.options).toEqual({
       headerBackTitle: 'Pantry',
       title: 'Add food',
     });
-    expect(screen.getByTestId('pantry-route-meal/new').props.options).toEqual({
+    expect(screen.getByTestId('pantry-route-meal/newMeal').props.options).toEqual({
       headerBackTitle: 'Pantry',
       title: 'Create meal',
     });
