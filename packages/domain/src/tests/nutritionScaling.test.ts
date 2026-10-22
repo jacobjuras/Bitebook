@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { scaleNutritionFacts } from '../nutritionScaling.js';
+import { scaleNutritionFacts } from '../nutrition.js';
 
 const nutritionFacts = {
   caloriesKcal: 100,

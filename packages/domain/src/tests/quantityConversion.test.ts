@@ -4,7 +4,7 @@ import {
   areCompatibleUnits,
   convertQuantity,
   getMeasurementFamily,
-} from '../quantityConversion.js';
+} from '../quantity.js';
 
 describe('quantity conversion', () => {
   it.each([

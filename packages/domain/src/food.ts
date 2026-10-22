@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { nutritionFactsSchema } from './nutritionFacts.js';
+import { nutritionFactsSchema } from './nutrition.js';
 import { quantitySchema } from './quantity.js';
 
 const servingSizeSchema = quantitySchema.refine(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { nutritionFactsSchema } from '../nutritionFacts.js';
+import { nutritionFactsSchema } from '../nutrition.js';
 
 describe('nutritionFactsSchema', () => {
   it('distinguishes known zeroes from unknown omitted nutrients', () => {
