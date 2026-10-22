@@ -4,38 +4,41 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useThemeColors } from '../theme/useThemeColors';
 
-export type FilterOption<Id extends string> = {
-  id: Id;
-  label: string;
-  selected: boolean;
-};
-
-export type SortOption<Id extends string, DirectionId extends string> = {
-  directions: readonly {
-    id: DirectionId;
-    label: string;
-  }[];
-  id: Id;
-  label: string;
-};
-
-type SearchFilterSortControlsProps<
+export type SearchFilterSortModel<
   FilterId extends string,
   SortId extends string,
   DirectionId extends string,
 > = {
-  activeSortDirectionId: DirectionId;
-  activeSortId: SortId;
-  filters: readonly FilterOption<FilterId>[];
-  itemName: string;
-  itemNamePlural: string;
-  onClearFilters?: () => void;
-  onSearchChange: (value: string) => void;
-  onSelectSort: (sortId: SortId, directionId: DirectionId) => void;
-  onToggleFilter?: (filterId: FilterId) => void;
-  searchValue: string;
-  sortOptions: readonly SortOption<SortId, DirectionId>[];
-  testIDPrefix: string;
+  filters: {
+    onClear?: () => void;
+    onToggle?: (filterId: FilterId) => void;
+    options: readonly {
+      id: FilterId;
+      label: string;
+      selected: boolean;
+    }[];
+  };
+  item: {
+    name: string;
+    pluralName: string;
+  };
+  search: {
+    onChange: (value: string) => void;
+    value: string;
+  };
+  sort: {
+    activeDirectionId: DirectionId;
+    activeId: SortId;
+    onSelect: (sortId: SortId, directionId: DirectionId) => void;
+    options: readonly {
+      directions: readonly {
+        id: DirectionId;
+        label: string;
+      }[];
+      id: SortId;
+      label: string;
+    }[];
+  };
 };
 
 /** Renders reusable search, filter, and contextual sort controls for a list. */
@@ -44,19 +47,27 @@ export function SearchFilterSortControls<
   SortId extends string,
   DirectionId extends string,
 >({
-  activeSortDirectionId,
-  activeSortId,
-  filters,
-  itemName,
-  itemNamePlural,
-  onClearFilters,
-  onSearchChange,
-  onSelectSort,
-  onToggleFilter,
-  searchValue,
-  sortOptions,
+  model,
   testIDPrefix,
-}: SearchFilterSortControlsProps<FilterId, SortId, DirectionId>) {
+}: {
+  model: SearchFilterSortModel<FilterId, SortId, DirectionId>;
+  testIDPrefix: string;
+}) {
+  const {
+    filters: {
+      onClear: onClearFilters,
+      onToggle: onToggleFilter,
+      options: filters,
+    },
+    item: { name: itemName, pluralName: itemNamePlural },
+    search: { onChange: onSearchChange, value: searchValue },
+    sort: {
+      activeDirectionId: activeSortDirectionId,
+      activeId: activeSortId,
+      onSelect: onSelectSort,
+      options: sortOptions,
+    },
+  } = model;
   const colors = useThemeColors();
   const activeFilters = filters.filter(({ selected }) => selected);
   const activeSort = sortOptions.find(({ id }) => id === activeSortId);

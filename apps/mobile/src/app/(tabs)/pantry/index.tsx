@@ -17,17 +17,22 @@ import {
 import { FavoriteIndicator } from '../../../components/FavoriteIndicator';
 import type { ItemCardModel } from '../../../components/ItemCard';
 import { ItemListView } from '../../../components/ItemListView';
-import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
+import {
+  SearchFilterSortControls,
+  type SearchFilterSortModel,
+} from '../../../components/SearchFilterSortControls';
 import {
   PantrySection,
   PantrySectionControl,
 } from '../../../components/PantrySectionControl';
+import { filterItems, getAvailableTags } from '../../../pantry/itemFiltering';
 import {
+  ItemSortField,
   SortDirection,
-  FoodSortField,
-  foodSortDefinitions,
-  foodSortFields,
-} from '../../../pantry/foodSorting';
+  itemSortDefinitions,
+  itemSortFields,
+  type SortableItem,
+} from '../../../pantry/itemSorting';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
 
@@ -64,6 +69,15 @@ const mealEmptyStates: Record<'withFoods' | 'withoutFoods', EmptyState> = {
     title: 'Create your first meal',
   },
 };
+
+const itemSortOptions = itemSortFields.map((field) => ({
+  directions: itemSortDefinitions[field].directionOrder.map((direction) => ({
+    id: direction,
+    label: itemSortDefinitions[field].directionLabels[direction],
+  })),
+  id: field,
+  label: itemSortDefinitions[field].label,
+}));
 
 type ContentStateOptions = {
   emptyState?: EmptyState;
@@ -103,6 +117,14 @@ function getFoodCardDetails(food: Food) {
   return [{ id: 'summary', text: summary.join(' · ') }];
 }
 
+function getSortableFood(food: Food): SortableItem {
+  return {
+    caloriesKcal: food.nutritionFacts.caloriesKcal,
+    name: food.name,
+    recentAt: food.lastLoggedAt ?? food.createdAt,
+  };
+}
+
 function renderFavoriteIndicator(testIDPrefix: string) {
   return (
     // Favorite indicator
@@ -140,33 +162,30 @@ export default function PantryScreen() {
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>(PantrySection.Foods);
   const [foodSearch, setFoodSearch] = useState('');
-  const [foodSortField, setFoodSortField] = useState(FoodSortField.Recent);
-  const [foodSortDirection, setFoodSortDirection] = useState(
+  const [itemSortField, setItemSortField] = useState(ItemSortField.Recent);
+  const [itemSortDirection, setItemSortDirection] = useState(
     SortDirection.Descending,
   );
   const [favoritesFilterEnabled, setFavoritesFilterEnabled] = useState(false);
-  const [selectedFoodTags, setSelectedFoodTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
-  const availableFoodTags = [...new Set(
-    foods.flatMap(({ tags }) => tags ?? []),
-  )].sort();
-  const normalizedFoodSearch = foodSearch.trim().toLowerCase();
-  const visibleFoods = foods
-    .filter(({ name }) => name.toLowerCase().includes(normalizedFoodSearch))
-    .filter(({ isFavorite }) => !favoritesFilterEnabled || isFavorite === true)
-    .filter(({ tags }) => selectedFoodTags.every((tag) => tags?.includes(tag)))
-    .sort((first, second) => {
-      const fieldComparison = foodSortDefinitions[foodSortField].compare(
-        first,
-        second,
+  const availableTags = getAvailableTags(foods);
+  const visibleFoods = filterItems(foods, {
+    favorites: favoritesFilterEnabled,
+    search: foodSearch,
+    tags: selectedTags,
+  }).sort((first, second) => {
+      const fieldComparison = itemSortDefinitions[itemSortField].compare(
+        getSortableFood(first),
+        getSortableFood(second),
       );
       const comparison = fieldComparison || first.name.localeCompare(second.name);
-      return foodSortDirection === SortDirection.Ascending
+      return itemSortDirection === SortDirection.Ascending
         ? comparison
         : -comparison;
     });
@@ -202,8 +221,29 @@ export default function PantryScreen() {
     router.push('/pantry/meal/new');
   };
 
-  const toggleFoodTag = (tag: string) => {
-    setSelectedFoodTags((selectedTags) => selectedTags.includes(tag)
+  const clearFilters = () => {
+    setFavoritesFilterEnabled(false);
+    setSelectedTags([]);
+  };
+
+  const selectItemSort = (
+    field: ItemSortField,
+    direction: SortDirection,
+  ) => {
+    setItemSortField(field);
+    setItemSortDirection(direction);
+  };
+
+  const toggleFilter = (
+    filter: 'favorites' | `tag:${string}`,
+  ) => {
+    if (filter === 'favorites') {
+      setFavoritesFilterEnabled((enabled) => !enabled);
+      return;
+    }
+
+    const tag = filter.slice(4);
+    setSelectedTags((selectedTags) => selectedTags.includes(tag)
       ? selectedTags.filter((selectedTag) => selectedTag !== tag)
       : [...selectedTags, tag]);
   };
@@ -226,54 +266,42 @@ export default function PantryScreen() {
       : undefined,
   });
 
+  const itemControlsModel = {
+    filters: {
+      onClear: clearFilters,
+      onToggle: toggleFilter,
+      options: [
+        {
+          id: 'favorites' as const,
+          label: 'Favorites',
+          selected: favoritesFilterEnabled,
+        },
+        ...availableTags.map((tag) => ({
+          id: `tag:${tag}` as const,
+          label: tag,
+          selected: selectedTags.includes(tag),
+        })),
+      ],
+    },
+    item: { name: 'Food', pluralName: 'Foods' },
+    search: { onChange: setFoodSearch, value: foodSearch },
+    sort: {
+      activeDirectionId: itemSortDirection,
+      activeId: itemSortField,
+      onSelect: selectItemSort,
+      options: itemSortOptions,
+    },
+  } satisfies SearchFilterSortModel<
+    'favorites' | `tag:${string}`,
+    ItemSortField,
+    SortDirection
+  >;
   const controls = selectedSection === PantrySection.Foods
     && hasFoods
     && !isPending
     && !isError ? (
       <SearchFilterSortControls
-        activeSortDirectionId={foodSortDirection}
-        activeSortId={foodSortField}
-        filters={[
-          {
-            id: 'favorites',
-            label: 'Favorites',
-            selected: favoritesFilterEnabled,
-          },
-          ...availableFoodTags.map((tag) => ({
-            id: `tag:${tag}`,
-            label: tag,
-            selected: selectedFoodTags.includes(tag),
-          })),
-        ]}
-        itemName="Food"
-        itemNamePlural="Foods"
-        onClearFilters={() => {
-          setFavoritesFilterEnabled(false);
-          setSelectedFoodTags([]);
-        }}
-        onSearchChange={setFoodSearch}
-        onSelectSort={(field, direction) => {
-          setFoodSortField(field);
-          setFoodSortDirection(direction);
-        }}
-        onToggleFilter={(filter) => {
-          if (filter === 'favorites') {
-            setFavoritesFilterEnabled((enabled) => !enabled);
-            return;
-          }
-          toggleFoodTag(filter.slice(4));
-        }}
-        searchValue={foodSearch}
-        sortOptions={foodSortFields.map((field) => ({
-          directions: foodSortDefinitions[field].directionOrder.map(
-            (direction) => ({
-              id: direction,
-              label: foodSortDefinitions[field].directionLabels[direction],
-            }),
-          ),
-          id: field,
-          label: foodSortDefinitions[field].label,
-        }))}
+        model={itemControlsModel}
         testIDPrefix="pantry-food"
       />
     ) : undefined;
