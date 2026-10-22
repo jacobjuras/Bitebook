@@ -203,7 +203,7 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-error-message')).toHaveTextContent(
       'Unable to load your pantry',
     );
-    const retryButton = screen.getByTestId('pantry-retry-load-button');
+    const retryButton = screen.getByTestId('pantry-retry-button');
     expect(retryButton).toHaveTextContent('Try again');
     await fireEvent.press(retryButton);
     expect(mocks.refetchFoods).toHaveBeenCalledOnce();
@@ -217,7 +217,7 @@ describe('Pantry screen', () => {
 
     expect(screen.queryByTestId('pantry-error')).toBeNull();
     await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
-    await fireEvent.press(screen.getByTestId('pantry-retry-load-button'));
+    await fireEvent.press(screen.getByTestId('pantry-retry-button'));
 
     expect(mocks.refetchMeals).toHaveBeenCalledOnce();
     expect(mocks.refetchFoods).not.toHaveBeenCalled();
@@ -229,10 +229,10 @@ describe('Pantry screen', () => {
     });
 
     expect(screen.queryByTestId('pantry-food-controls')).toBeNull();
-    expect(screen.getByTestId('pantry-empty-state-title')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-title')).toHaveTextContent(
       'Your pantry is empty',
     );
-    expect(screen.getByTestId('pantry-empty-state-description')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Add a food to begin tracking what you have',
     );
     const addFoodButton = screen.getByTestId('pantry-add-food-button');
@@ -309,11 +309,11 @@ describe('Pantry screen', () => {
     await fireEvent.changeText(searchInput, 'missing');
 
     expect(screen.queryByTestId('pantry-food-list')).toBeNull();
-    expect(screen.getByTestId('pantry-food-search-empty-title')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-no-results-title')).toHaveTextContent(
       'No foods found',
     );
     expect(
-      screen.getByTestId('pantry-food-search-empty-description'),
+      screen.getByTestId('pantry-no-results-description'),
     ).toHaveTextContent('Try a different search or filter');
   });
 
@@ -483,10 +483,10 @@ describe('Pantry screen', () => {
 
     expect(foodsTab.props.accessibilityState.selected).toBe(false);
     expect(mealsTab.props.accessibilityState.selected).toBe(true);
-    expect(screen.getByTestId('pantry-empty-state-title')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-title')).toHaveTextContent(
       'Add food before making a meal',
     );
-    expect(screen.getByTestId('pantry-empty-state-description')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Saved meals are made from foods in your pantry',
     );
     const addFoodButton = screen.getByTestId('pantry-add-food-button');
@@ -503,10 +503,10 @@ describe('Pantry screen', () => {
 
     expect(mealsTab.props.accessibilityState.selected).toBe(true);
     expect(screen.queryByTestId('pantry-food-list')).toBeNull();
-    expect(screen.getByTestId('pantry-empty-state-title')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-title')).toHaveTextContent(
       'Create your first meal',
     );
-    expect(screen.getByTestId('pantry-empty-state-description')).toHaveTextContent(
+    expect(screen.getByTestId('pantry-empty-description')).toHaveTextContent(
       'Combine foods you eat together into a reusable meal',
     );
     const addMealButton = screen.getByTestId('pantry-add-meal-button');

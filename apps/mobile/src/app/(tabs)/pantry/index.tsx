@@ -4,7 +4,6 @@ import type { Food, Meal, Quantity } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   Pressable,
   ScrollView,
@@ -16,6 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { updateFood } from '../../../api/foods';
+import {
+  type ContentState,
+  ContentStateKind,
+  ContentStateView,
+} from '../../../components/ContentStateView';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
   SortDirection,
@@ -42,6 +46,11 @@ const foodEmptyState: EmptyState = {
   title: 'Your pantry is empty',
 };
 
+const foodNoResultsState = {
+  description: 'Try a different search or filter',
+  title: 'No foods found',
+};
+
 const mealEmptyStates: Record<'withFoods' | 'withoutFoods', EmptyState> = {
   withoutFoods: {
     action: 'Add first food',
@@ -56,6 +65,35 @@ const mealEmptyStates: Record<'withFoods' | 'withoutFoods', EmptyState> = {
     title: 'Create your first meal',
   },
 };
+
+type ContentStateOptions = {
+  emptyState?: EmptyState;
+  errorState?: { message: string; onRetry: () => void };
+  isPending: boolean;
+  noResultsState?: { description: string; title: string };
+};
+
+function getContentState({
+  emptyState,
+  errorState,
+  isPending,
+  noResultsState,
+}: ContentStateOptions): ContentState | null {
+  if (isPending) return { kind: ContentStateKind.Loading };
+  if (errorState) return { kind: ContentStateKind.Error, ...errorState };
+  if (noResultsState) {
+    return { kind: ContentStateKind.NoResults, ...noResultsState };
+  }
+  if (emptyState) {
+    return {
+      description: emptyState.description,
+      icon: emptyState.icon,
+      kind: ContentStateKind.Empty,
+      title: emptyState.title,
+    };
+  }
+  return null;
+}
 
 function formatQuantity({ amount, unit }: Quantity) {
   const label = unit === 'flOz' ? 'fl oz' : unit === 'item' && amount !== 1 ? 'items' : unit;
@@ -116,6 +154,7 @@ export default function PantryScreen() {
   const isError = foodsQuery.isError
     || (selectedSection === 'meals' && mealsQuery.isError);
   const shouldAddFood = selectedSection === 'foods' || !hasFoods;
+  const selectedSectionHasItems = selectedSection === 'foods' ? hasFoods : hasMeals;
   const selectedSectionEmptyState = selectedSection === 'foods'
     ? foodEmptyState
     : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
@@ -144,6 +183,19 @@ export default function PantryScreen() {
     if (foodsQuery.isError) void foodsQuery.refetch();
     if (mealsQuery.isError) void mealsQuery.refetch();
   };
+
+  const contentState = getContentState({
+    emptyState: selectedSectionHasItems ? undefined : selectedSectionEmptyState,
+    errorState: isError
+      ? { message: 'Unable to load your pantry', onRetry: retryLoading }
+      : undefined,
+    isPending,
+    noResultsState: selectedSection === 'foods'
+      && hasFoods
+      && visibleFoods.length === 0
+      ? foodNoResultsState
+      : undefined,
+  });
 
   // Pantry screen
   return (
@@ -236,51 +288,9 @@ export default function PantryScreen() {
           testIDPrefix="pantry-food"
         />
       ) : null}
-      {isPending ? (
-        // Pantry loading state
-        <ActivityIndicator
-          color={colors.accent}
-          style={styles.centeredState}
-          testID="pantry-loading-indicator"
-        />
-      ) : isError ? (
-        // Pantry error state
-        <View style={styles.centeredState} testID="pantry-error">
-          {/* Pantry error message */}
-          <Text
-            style={[styles.description, { color: colors.textSecondary }]}
-            testID="pantry-error-message"
-          >Unable to load your pantry</Text>
-          {/* Pantry retry button */}
-          <Pressable
-            accessibilityRole="button"
-            onPress={retryLoading}
-            testID="pantry-retry-load-button"
-            style={({ pressed }) => [
-              styles.retryButton,
-              { backgroundColor: colors.control },
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            {/* Pantry retry label */}
-            <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : selectedSection === 'foods' && hasFoods && visibleFoods.length === 0 ? (
-        // Food search empty state
-        <View style={styles.emptyState} testID="pantry-food-search-empty">
-          {/* Food search empty title */}
-          <Text
-            style={[styles.emptyTitle, { color: colors.textPrimary }]}
-            testID="pantry-food-search-empty-title"
-          >No foods found</Text>
-          {/* Food search empty description */}
-          <Text
-            style={[styles.description, { color: colors.textSecondary }]}
-            testID="pantry-food-search-empty-description"
-          >Try a different search or filter</Text>
-        </View>
-      ) : selectedSection === 'foods' && hasFoods ? (
+      {contentState ? (
+        <ContentStateView state={contentState} testIDPrefix="pantry" />
+      ) : selectedSection === 'foods' ? (
         // Food card list
         <ScrollView contentContainerStyle={styles.foodList} testID="pantry-food-list">
           {visibleFoods.map((food: Food) => (
@@ -347,7 +357,7 @@ export default function PantryScreen() {
             </View>
           ))}
         </ScrollView>
-      ) : selectedSection === 'meals' && hasMeals ? (
+      ) : (
         // Meal card list
         <ScrollView contentContainerStyle={styles.mealList} testID="pantry-meal-list">
           {meals.map((meal: Meal) => (
@@ -373,24 +383,6 @@ export default function PantryScreen() {
             </View>
           ))}
         </ScrollView>
-      ) : (
-        // Pantry empty state
-        <View style={styles.emptyState} testID="pantry-empty-state">
-          {/* Empty-state icon */}
-          <View style={[styles.iconCircle, { backgroundColor: colors.accentSubtle }]}>
-            <Ionicons color={colors.accent} name={selectedSectionEmptyState.icon} size={30} />
-          </View>
-          {/* Empty-state title */}
-          <Text
-            style={[styles.emptyTitle, { color: colors.textPrimary }]}
-            testID="pantry-empty-state-title"
-          >{selectedSectionEmptyState.title}</Text>
-          {/* Empty-state description */}
-          <Text
-            style={[styles.description, { color: colors.textSecondary }]}
-            testID="pantry-empty-state-description"
-          >{selectedSectionEmptyState.description}</Text>
-        </View>
       )}
       {!isPending && !isError ? (
         // Pantry primary action
@@ -417,10 +409,6 @@ const styles = StyleSheet.create({
   button: { alignItems: 'center', borderRadius: 12, margin: 24, padding: 14 },
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
-  centeredState: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center' },
-  description: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
-  emptyState: { alignItems: 'center', flex: 1, gap: 10, justifyContent: 'center', paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', textAlign: 'center' },
   favoriteError: { fontSize: 13 },
   foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   foodDetail: { fontSize: 14 },
@@ -430,12 +418,10 @@ const styles = StyleSheet.create({
   foodTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   foodTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
-  iconCircle: { alignItems: 'center', borderRadius: 30, height: 60, justifyContent: 'center', width: 60 },
   mealCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   mealDetail: { fontSize: 14 },
   mealList: { gap: 10, padding: 24 },
   mealName: { fontSize: 17, fontWeight: '600' },
-  retryButton: { borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
   segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
