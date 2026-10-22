@@ -3,59 +3,56 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useThemeColors } from '../theme/useThemeColors';
 
-type ItemCardChip = {
+export type ItemCardModel = {
+  accessory?: (itemTestIDPrefix: string) => ReactNode;
+  chips?: readonly {
+    id: string;
+    label: string;
+  }[];
+  details: readonly {
+    id: string;
+    text: string;
+  }[];
   id: string;
-  label: string;
-};
-
-type ItemCardDetail = {
-  id: string;
-  text: string;
-};
-
-type ItemCardProps = {
-  accessory?: ReactNode;
-  chips?: readonly ItemCardChip[];
-  details: readonly ItemCardDetail[];
-  testIDPrefix: string;
   title: string;
 };
 
 /** Renders a reusable card for an item's title, details, and chips. */
 export function ItemCard({
-  accessory,
-  chips,
-  details,
+  item: { accessory, chips, details, id, title },
   testIDPrefix,
-  title,
-}: ItemCardProps) {
+}: {
+  item: ItemCardModel;
+  testIDPrefix: string;
+}) {
   const colors = useThemeColors();
+  const itemTestIDPrefix = `${testIDPrefix}-${id}`;
 
   return (
     <View
       style={[styles.card, { borderColor: colors.border }]}
-      testID={`${testIDPrefix}-card`}
+      testID={`${itemTestIDPrefix}-card`}
     >
       <View style={styles.titleRow}>
         <Text
           style={[styles.title, { color: colors.textPrimary }]}
-          testID={`${testIDPrefix}-card-title`}
+          testID={`${itemTestIDPrefix}-card-title`}
         >
           {title}
         </Text>
-        {accessory}
+        {accessory?.(itemTestIDPrefix)}
       </View>
       {details.map(({ id, text }) => (
         <Text
           key={id}
           style={[styles.detail, { color: colors.textSecondary }]}
-          testID={`${testIDPrefix}-${id}`}
+          testID={`${itemTestIDPrefix}-${id}`}
         >
           {text}
         </Text>
       ))}
       {chips && chips.length > 0 ? (
-        <View style={styles.chips} testID={`${testIDPrefix}-chips`}>
+        <View style={styles.chips} testID={`${itemTestIDPrefix}-chips`}>
           {chips.map(({ id, label }) => (
             <Text
               key={id}
@@ -66,7 +63,7 @@ export function ItemCard({
                   color: colors.textSecondary,
                 },
               ]}
-              testID={`${testIDPrefix}-chip-${id}`}
+              testID={`${itemTestIDPrefix}-chip-${id}`}
             >
               {label}
             </Text>

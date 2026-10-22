@@ -1,35 +1,30 @@
-import { Fragment, type ReactNode } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-type ItemCardListProps<Item> = {
-  items: readonly Item[];
-  keyExtractor: (item: Item) => string;
-  renderItem: (item: Item, testIDPrefix: string) => ReactNode;
-  testIDPrefix: string;
-  topPadding?: number;
-};
+import { ItemCard, type ItemCardModel } from './ItemCard';
 
-/** Renders items in a consistently spaced, scrollable card list. */
-export function ItemCardList<Item>({
+/** Renders structured items in a consistently spaced, scrollable card list. */
+export function ItemCardList({
   items,
-  keyExtractor,
-  renderItem,
   testIDPrefix,
   topPadding = 24,
-}: ItemCardListProps<Item>) {
+}: {
+  items: readonly ItemCardModel[];
+  testIDPrefix: string;
+  topPadding?: number;
+}) {
   return (
     <ScrollView
       contentContainerStyle={[styles.list, { paddingTop: topPadding }]}
       testID={`${testIDPrefix}-list`}
     >
-      {items.map((item) => {
-        const key = keyExtractor(item);
-        return (
-          <Fragment key={key}>
-            {renderItem(item, `${testIDPrefix}-${key}`)}
-          </Fragment>
-        );
-      })}
+      {items.map((item) => (
+        // Item card
+        <ItemCard
+          item={item}
+          key={item.id}
+          testIDPrefix={testIDPrefix}
+        />
+      ))}
     </ScrollView>
   );
 }

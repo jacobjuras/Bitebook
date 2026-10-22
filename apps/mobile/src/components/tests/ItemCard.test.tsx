@@ -14,19 +14,22 @@ vi.mock('../../theme/useThemeColors.js', () => ({
 import { ItemCard } from '../ItemCard.js';
 
 describe('ItemCard', () => {
-  it('renders structured details and chips in the shared card layout', async () => {
+  it('renders structured details and chips for the represented item', async () => {
     await render(
       <ItemCard
-        chips={[
-          { id: 'quick', label: 'Quick' },
-          { id: 'favorite', label: 'Favorite' },
-        ]}
-        details={[
-          { id: 'first-detail', text: 'First detail' },
-          { id: 'second-detail', text: 'Second detail' },
-        ]}
-        testIDPrefix="item-123"
-        title="Item name"
+        item={{
+          chips: [
+            { id: 'quick', label: 'Quick' },
+            { id: 'favorite', label: 'Favorite' },
+          ],
+          details: [
+            { id: 'first-detail', text: 'First detail' },
+            { id: 'second-detail', text: 'Second detail' },
+          ],
+          id: '123',
+          title: 'Item name',
+        }}
+        testIDPrefix="item"
       />,
     );
 
@@ -67,23 +70,29 @@ describe('ItemCard', () => {
       });
   });
 
-  it('composes an optional accessory without rendering chips', async () => {
+  it('builds the accessory from the item prefix without rendering chips', async () => {
     const onPress = vi.fn();
     await render(
       <ItemCard
-        accessory={(
-          <Pressable onPress={onPress} testID="item-action">
-            <Text>Act</Text>
-          </Pressable>
-        )}
-        details={[]}
-        testIDPrefix="item-123"
-        title="Item name"
+        item={{
+          accessory: (testIDPrefix) => (
+            <Pressable
+              onPress={onPress}
+              testID={`${testIDPrefix}-action`}
+            >
+              <Text>Act</Text>
+            </Pressable>
+          ),
+          details: [],
+          id: '123',
+          title: 'Item name',
+        }}
+        testIDPrefix="item"
       />,
     );
 
     expect(screen.queryByTestId('item-123-chips')).toBeNull();
-    await fireEvent.press(screen.getByTestId('item-action'));
+    await fireEvent.press(screen.getByTestId('item-123-action'));
     expect(onPress).toHaveBeenCalledOnce();
   });
 });
