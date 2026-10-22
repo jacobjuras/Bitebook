@@ -23,7 +23,7 @@ import { sortItems } from '../../../utils/searchFilterSort/sorting';
 import { getContentState } from '../../../utils/pantry/contentState';
 import { getFoodCardItem, getSortableFood } from '../../../utils/pantry/food';
 import { getMealCardItem } from '../../../utils/pantry/meal';
-import { styles } from './styles';
+import { styles } from '../../../styles/pantry';
 
 export default function PantryScreen() {
   const router = useRouter();
