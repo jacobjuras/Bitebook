@@ -30,7 +30,7 @@ vi.mock('../../../theme/useThemeColors.js', () => ({
 import TabLayout from '../../../app/(tabs)/_layout.js';
 
 const tabs = [
-  ['index', 'Calendar', 'calendar-outline'],
+  ['calendar', 'Calendar', 'calendar-outline'],
   ['pantry', 'Pantry', 'cart-outline'],
   ['eat', 'Eat', 'add-circle-outline'],
   ['reports', 'Reports', 'bar-chart-outline'],
@@ -38,7 +38,15 @@ const tabs = [
 ] as const;
 
 describe('tab layout', () => {
-  it('configures every tab and both icon-color branches', async () => {
+  it('hides the root redirect from the tab bar', async () => {
+    await render(<TabLayout />);
+
+    expect(screen.getByTestId('tab-screen-index').props.options).toEqual({
+      href: null,
+    });
+  });
+
+  it('configures every visible tab and both icon-color branches', async () => {
     await render(<TabLayout />);
 
     for (const [name, title, iconName] of tabs) {
