@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     onAccent: 'on-accent',

@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../auth/AuthProvider';
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 
 export default function MeScreen() {
   const colors = useThemeColors();

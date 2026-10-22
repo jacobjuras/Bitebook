@@ -1,11 +1,11 @@
 import type { Food } from '@bitebook/domain';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../components/FavoriteIndicator/FavoriteIndicator.js', () => ({
+vi.mock('~/components', () => ({
   FavoriteIndicator: 'FavoriteIndicator',
 }));
 
-import { FavoriteIndicator } from '../../../components/FavoriteIndicator/FavoriteIndicator.js';
+import { FavoriteIndicator } from '~/components';
 import { getFoodCardItem, getSortableFood } from '../food.js';
 
 const baseFood: Food = {

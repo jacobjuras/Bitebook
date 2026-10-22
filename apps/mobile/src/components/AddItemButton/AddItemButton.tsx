@@ -1,6 +1,6 @@
 import { Pressable, Text } from 'react-native';
 
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 /** Renders the primary action for adding an item to a list. */

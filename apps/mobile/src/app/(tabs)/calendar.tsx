@@ -1,4 +1,4 @@
-import { PlaceholderScreen } from '../../components/PlaceholderScreen/PlaceholderScreen';
+import { PlaceholderScreen } from '~/components';
 
 export default function CalendarScreen() {
   return (

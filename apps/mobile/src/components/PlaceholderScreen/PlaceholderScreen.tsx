@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import { useThemeColors } from '../../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 import { styles } from './styles';
 
 type PlaceholderScreenProps = {

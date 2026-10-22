@@ -1,9 +1,8 @@
 import type { Food } from '@bitebook/domain';
 import { createElement } from 'react';
 
-import { FavoriteIndicator } from '../../components/FavoriteIndicator/FavoriteIndicator';
-import type { ItemCardModel } from '../../models/itemCard';
-import type { SortableItem } from '../../models/searchFilterSort';
+import { FavoriteIndicator } from '~/components';
+import type { ItemCardModel, SortableItem } from '~/models';
 
 function renderFavoriteIndicator(testIDPrefix: string) {
   return createElement(FavoriteIndicator, { testIDPrefix });

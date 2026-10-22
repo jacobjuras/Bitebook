@@ -1,8 +1,15 @@
+import { fileURLToPath } from 'node:url';
+
 import { reactNative } from 'vitest-native';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [reactNative({ engine: 'mock' })],
+  resolve: {
+    alias: {
+      '~': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   test: {
     coverage: {
       enabled: true,

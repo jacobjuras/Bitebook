@@ -51,7 +51,7 @@ vi.mock('../../../../query/pantryQueries.js', () => ({
     staleTime: Infinity,
   },
 }));
-vi.mock('../../../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     accentSubtle: 'accent-subtle',

@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../auth/AuthProvider';
 import { AuthStatus } from '../auth/AuthStatus';
-import { useThemeColors } from '../theme/useThemeColors';
+import { useThemeColors } from '~/theme';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

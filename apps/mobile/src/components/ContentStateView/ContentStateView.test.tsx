@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     accentSubtle: 'accent-subtle',
@@ -13,8 +13,8 @@ vi.mock('../../theme/useThemeColors.js', () => ({
   }),
 }));
 
-import { ContentStateKind } from '../../constants/content-state-constants.js';
-import type { ContentState } from '../../models/contentState.js';
+import { ContentStateKind } from '~/constants';
+import type { ContentState } from '~/models';
 import { ContentStateView } from './ContentStateView.js';
 
 describe('ContentStateView', () => {

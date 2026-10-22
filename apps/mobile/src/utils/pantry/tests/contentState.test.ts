@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { ContentStateKind } from '../../../constants/content-state-constants.js';
+import { ContentStateKind } from '~/constants';
 import { getContentState } from '../contentState.js';
 
 const emptyState = {

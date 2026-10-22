@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
-vi.mock('../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     accent: 'accent',
     border: 'border',
@@ -15,7 +15,7 @@ vi.mock('../../theme/useThemeColors.js', () => ({
   }),
 }));
 
-import { ContentStateKind } from '../../constants/content-state-constants.js';
+import { ContentStateKind } from '~/constants';
 import { ItemListView } from './ItemListView.js';
 
 const items = [

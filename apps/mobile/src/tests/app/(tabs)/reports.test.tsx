@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../theme/useThemeColors.js', () => ({
+vi.mock('~/theme', () => ({
   useThemeColors: () => ({
     background: 'background',
     textPrimary: 'text-primary',
