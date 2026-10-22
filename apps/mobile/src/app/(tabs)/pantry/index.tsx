@@ -10,15 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AddItemButton } from '../../../components/AddItemButton';
 import {
   type ContentState,
   ContentStateKind,
-  ContentStateView,
 } from '../../../components/ContentStateView';
 import { FavoriteIndicator } from '../../../components/FavoriteIndicator';
 import type { ItemCardModel } from '../../../components/ItemCard';
-import { ItemCardList } from '../../../components/ItemCardList';
+import { ItemListView } from '../../../components/ItemListView';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
   PantrySection,
@@ -172,15 +170,16 @@ export default function PantryScreen() {
         ? comparison
         : -comparison;
     });
-  const activeItemCardListProps = selectedSection === PantrySection.Foods
+  const activeItemListProps = selectedSection === PantrySection.Foods
     ? {
         items: visibleFoods.map(getFoodCardItem),
-        testIDPrefix: 'pantry-food',
+        itemTestIDPrefix: 'pantry-food',
         topPadding: 16,
       }
     : {
         items: meals.map(getMealCardItem),
-        testIDPrefix: 'pantry-meal',
+        itemTestIDPrefix: 'pantry-meal',
+        topPadding: undefined,
       };
   const isPending = foodsQuery.isPending
     || (selectedSection === PantrySection.Meals && mealsQuery.isPending);
@@ -194,7 +193,6 @@ export default function PantryScreen() {
   const actionLabel = selectedSection === PantrySection.Foods
     ? hasFoods ? 'Add food' : foodEmptyState.action
     : hasMeals && hasFoods ? 'Add meal' : selectedSectionEmptyState.action;
-  const actionTestIDPrefix = shouldAddFood ? 'pantry-food' : 'pantry-meal';
 
   const navigateToAddItem = () => {
     if (shouldAddFood) {
@@ -228,6 +226,65 @@ export default function PantryScreen() {
       : undefined,
   });
 
+  const controls = selectedSection === PantrySection.Foods
+    && hasFoods
+    && !isPending
+    && !isError ? (
+      <SearchFilterSortControls
+        activeSortDirectionId={foodSortDirection}
+        activeSortId={foodSortField}
+        filters={[
+          {
+            id: 'favorites',
+            label: 'Favorites',
+            selected: favoritesFilterEnabled,
+          },
+          ...availableFoodTags.map((tag) => ({
+            id: `tag:${tag}`,
+            label: tag,
+            selected: selectedFoodTags.includes(tag),
+          })),
+        ]}
+        itemName="Food"
+        itemNamePlural="Foods"
+        onClearFilters={() => {
+          setFavoritesFilterEnabled(false);
+          setSelectedFoodTags([]);
+        }}
+        onSearchChange={setFoodSearch}
+        onSelectSort={(field, direction) => {
+          setFoodSortField(field);
+          setFoodSortDirection(direction);
+        }}
+        onToggleFilter={(filter) => {
+          if (filter === 'favorites') {
+            setFavoritesFilterEnabled((enabled) => !enabled);
+            return;
+          }
+          toggleFoodTag(filter.slice(4));
+        }}
+        searchValue={foodSearch}
+        sortOptions={foodSortFields.map((field) => ({
+          directions: foodSortDefinitions[field].directionOrder.map(
+            (direction) => ({
+              id: direction,
+              label: foodSortDefinitions[field].directionLabels[direction],
+            }),
+          ),
+          id: field,
+          label: foodSortDefinitions[field].label,
+        }))}
+        testIDPrefix="pantry-food"
+      />
+    ) : undefined;
+  const action = !isPending && !isError
+    ? {
+        label: actionLabel,
+        onPress: navigateToAddItem,
+        testIDPrefix: shouldAddFood ? 'pantry-food' : 'pantry-meal',
+      }
+    : undefined;
+
   // Pantry screen
   return (
     <TouchableWithoutFeedback
@@ -246,66 +303,13 @@ export default function PantryScreen() {
         selectedSection={selectedSection}
         testIDPrefix="pantry"
       />
-      {selectedSection === PantrySection.Foods && hasFoods && !isPending && !isError ? (
-        <SearchFilterSortControls
-          activeSortDirectionId={foodSortDirection}
-          activeSortId={foodSortField}
-          filters={[
-            {
-              id: 'favorites',
-              label: 'Favorites',
-              selected: favoritesFilterEnabled,
-            },
-            ...availableFoodTags.map((tag) => ({
-              id: `tag:${tag}`,
-              label: tag,
-              selected: selectedFoodTags.includes(tag),
-            })),
-          ]}
-          itemName="Food"
-          itemNamePlural="Foods"
-          onClearFilters={() => {
-            setFavoritesFilterEnabled(false);
-            setSelectedFoodTags([]);
-          }}
-          onSearchChange={setFoodSearch}
-          onSelectSort={(field, direction) => {
-            setFoodSortField(field);
-            setFoodSortDirection(direction);
-          }}
-          onToggleFilter={(filter) => {
-            if (filter === 'favorites') {
-              setFavoritesFilterEnabled((enabled) => !enabled);
-              return;
-            }
-            toggleFoodTag(filter.slice(4));
-          }}
-          searchValue={foodSearch}
-          sortOptions={foodSortFields.map((field) => ({
-            directions: foodSortDefinitions[field].directionOrder.map(
-              (direction) => ({
-                id: direction,
-                label: foodSortDefinitions[field].directionLabels[direction],
-              }),
-            ),
-            id: field,
-            label: foodSortDefinitions[field].label,
-          }))}
-          testIDPrefix="pantry-food"
-        />
-      ) : null}
-      {contentState ? (
-        <ContentStateView state={contentState} testIDPrefix="pantry" />
-      ) : (
-        <ItemCardList {...activeItemCardListProps} />
-      )}
-      {!isPending && !isError ? (
-        <AddItemButton
-          label={actionLabel}
-          onPress={navigateToAddItem}
-          testIDPrefix={actionTestIDPrefix}
-        />
-      ) : null}
+      <ItemListView
+        {...activeItemListProps}
+        action={action}
+        contentState={contentState}
+        controls={controls}
+        testIDPrefix="pantry"
+      />
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
