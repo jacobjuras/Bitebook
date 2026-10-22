@@ -33,3 +33,7 @@ When related components exchange the same conceptual data, define one canonical 
 ## Name types only when the name adds value
 
 Inline small private object shapes that appear once. Introduce a named type when it is reused, exported, independently meaningful to the domain, or complex enough that naming clarifies the contract. Avoid one-use aliases that only force readers to jump elsewhere for a few obvious fields.
+
+## Test controlled components through observable transitions
+
+Use a small stateful harness when testing controlled interactive components. Perform the user action and assert that the rendered state changes, rather than stopping at an assertion that a callback was invoked. Callback arguments matter only when they are a distinct public contract not already proven by the resulting behavior.

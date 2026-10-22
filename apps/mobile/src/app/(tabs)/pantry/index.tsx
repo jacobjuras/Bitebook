@@ -4,11 +4,9 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Keyboard,
-  Pressable,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +21,10 @@ import type { ItemCardModel } from '../../../components/ItemCard';
 import { ItemCardList } from '../../../components/ItemCardList';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
+  PantrySection,
+  PantrySectionControl,
+} from '../../../components/PantrySectionControl';
+import {
   SortDirection,
   FoodSortField,
   foodSortDefinitions,
@@ -30,8 +32,6 @@ import {
 } from '../../../pantry/foodSorting';
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { useThemeColors } from '../../../theme/useThemeColors';
-
-type PantrySection = 'foods' | 'meals';
 
 type EmptyState = {
   action: string;
@@ -140,7 +140,7 @@ function getMealCardItem(meal: Meal): ItemCardModel {
 export default function PantryScreen() {
   const router = useRouter();
   const colors = useThemeColors();
-  const [selectedSection, setSelectedSection] = useState<PantrySection>('foods');
+  const [selectedSection, setSelectedSection] = useState<PantrySection>(PantrySection.Foods);
   const [foodSearch, setFoodSearch] = useState('');
   const [foodSortField, setFoodSortField] = useState(FoodSortField.Recent);
   const [foodSortDirection, setFoodSortDirection] = useState(
@@ -172,7 +172,7 @@ export default function PantryScreen() {
         ? comparison
         : -comparison;
     });
-  const activeItemCardListProps = selectedSection === 'foods'
+  const activeItemCardListProps = selectedSection === PantrySection.Foods
     ? {
         items: visibleFoods.map(getFoodCardItem),
         testIDPrefix: 'pantry-food',
@@ -183,15 +183,15 @@ export default function PantryScreen() {
         testIDPrefix: 'pantry-meal',
       };
   const isPending = foodsQuery.isPending
-    || (selectedSection === 'meals' && mealsQuery.isPending);
+    || (selectedSection === PantrySection.Meals && mealsQuery.isPending);
   const isError = foodsQuery.isError
-    || (selectedSection === 'meals' && mealsQuery.isError);
-  const shouldAddFood = selectedSection === 'foods' || !hasFoods;
-  const selectedSectionHasItems = selectedSection === 'foods' ? hasFoods : hasMeals;
-  const selectedSectionEmptyState = selectedSection === 'foods'
+    || (selectedSection === PantrySection.Meals && mealsQuery.isError);
+  const shouldAddFood = selectedSection === PantrySection.Foods || !hasFoods;
+  const selectedSectionHasItems = selectedSection === PantrySection.Foods ? hasFoods : hasMeals;
+  const selectedSectionEmptyState = selectedSection === PantrySection.Foods
     ? foodEmptyState
     : mealEmptyStates[hasFoods ? 'withFoods' : 'withoutFoods'];
-  const actionLabel = selectedSection === 'foods'
+  const actionLabel = selectedSection === PantrySection.Foods
     ? hasFoods ? 'Add food' : foodEmptyState.action
     : hasMeals && hasFoods ? 'Add meal' : selectedSectionEmptyState.action;
   const actionTestIDPrefix = shouldAddFood ? 'pantry-food' : 'pantry-meal';
@@ -221,7 +221,7 @@ export default function PantryScreen() {
       ? { message: 'Unable to load your pantry', onRetry: retryLoading }
       : undefined,
     isPending,
-    noResultsState: selectedSection === 'foods'
+    noResultsState: selectedSection === PantrySection.Foods
       && hasFoods
       && visibleFoods.length === 0
       ? foodNoResultsState
@@ -241,37 +241,12 @@ export default function PantryScreen() {
       >
       {/* Screen title */}
       <Text style={[styles.heading, { color: colors.textPrimary }]}>Pantry</Text>
-      {/* Pantry section control */}
-      <View style={[styles.segmentedControl, { backgroundColor: colors.control }]}>
-        {(['foods', 'meals'] as const).map((value) => {
-          const selected = selectedSection === value;
-          return (
-            // Pantry section tab
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              key={value}
-              onPress={() => setSelectedSection(value)}
-              testID={`pantry-${value}-tab`}
-              style={[
-                styles.segment,
-                selected && { backgroundColor: colors.controlSelected },
-              ]}
-            >
-              {/* Pantry section label */}
-              <Text
-                style={[
-                  styles.segmentText,
-                  { color: selected ? colors.textPrimary : colors.textSecondary },
-                ]}
-              >
-                {value === 'foods' ? 'Foods' : 'Meals'}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {selectedSection === 'foods' && hasFoods && !isPending && !isError ? (
+      <PantrySectionControl
+        onSelect={setSelectedSection}
+        selectedSection={selectedSection}
+        testIDPrefix="pantry"
+      />
+      {selectedSection === PantrySection.Foods && hasFoods && !isPending && !isError ? (
         <SearchFilterSortControls
           activeSortDirectionId={foodSortDirection}
           activeSortId={foodSortField}
@@ -339,7 +314,4 @@ export default function PantryScreen() {
 const styles = StyleSheet.create({
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
   screen: { flex: 1 },
-  segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
-  segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
-  segmentText: { fontSize: 15, fontWeight: '600' },
 });
