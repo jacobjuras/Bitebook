@@ -147,8 +147,8 @@ async function renderPantry({
 }
 
 function renderedFoodCardIds() {
-  return screen.getAllByTestId(/^pantry-food-[0-9a-f-]+$/)
-    .map(({ props }) => props.testID);
+  return screen.getAllByTestId(/^pantry-food-[0-9a-f-]+-card$/)
+    .map(({ props }) => props.testID.replace(/-card$/, ''));
 }
 
 beforeEach(() => {
@@ -248,8 +248,8 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-food-search-input')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-filter-sort-button')).toBeTruthy();
     expect(screen.queryByTestId('pantry-food-sort-direction-button')).toBeNull();
-    expect(screen.getByTestId(`pantry-food-${foods[0].id}`)).toBeTruthy();
-    expect(screen.getByTestId(`pantry-food-${foods[0].id}-name`)).toHaveTextContent(
+    expect(screen.getByTestId(`pantry-food-${foods[0].id}-card`)).toBeTruthy();
+    expect(screen.getByTestId(`pantry-food-${foods[0].id}-card-title`)).toHaveTextContent(
       'Chicken breast',
     );
     expect(
@@ -267,8 +267,8 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId(
       `pantry-food-${foods[0].id}-tag-savory`,
     )).toHaveTextContent('savory');
-    expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
-    expect(screen.getByTestId(`pantry-food-${foods[1].id}-name`)).toHaveTextContent(
+    expect(screen.getByTestId(`pantry-food-${foods[1].id}-card`)).toBeTruthy();
+    expect(screen.getByTestId(`pantry-food-${foods[1].id}-card-title`)).toHaveTextContent(
       'Greek yogurt',
     );
     expect(
@@ -303,8 +303,8 @@ describe('Pantry screen', () => {
 
     await fireEvent.changeText(searchInput, 'YOG');
 
-    expect(screen.queryByTestId(`pantry-food-${foods[0].id}`)).toBeNull();
-    expect(screen.getByTestId(`pantry-food-${foods[1].id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`pantry-food-${foods[0].id}-card`)).toBeNull();
+    expect(screen.getByTestId(`pantry-food-${foods[1].id}-card`)).toBeTruthy();
 
     await fireEvent.changeText(searchInput, 'missing');
 
@@ -525,13 +525,13 @@ describe('Pantry screen', () => {
     expect(screen.queryByTestId('pantry-food-controls')).toBeNull();
     expect(screen.queryByTestId('pantry-meal-controls')).toBeNull();
     expect(screen.getByTestId('pantry-meal-list')).toBeTruthy();
-    expect(screen.getByTestId(`pantry-meal-${meals[0].id}-name`)).toHaveTextContent(
+    expect(screen.getByTestId(`pantry-meal-${meals[0].id}-card-title`)).toHaveTextContent(
       'Chicken bowl',
     );
     expect(
       screen.getByTestId(`pantry-meal-${meals[0].id}-ingredient-count`),
     ).toHaveTextContent('1 ingredient');
-    expect(screen.getByTestId(`pantry-meal-${meals[1].id}-name`)).toHaveTextContent(
+    expect(screen.getByTestId(`pantry-meal-${meals[1].id}-card-title`)).toHaveTextContent(
       'Chicken and yogurt',
     );
     expect(

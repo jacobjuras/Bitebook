@@ -20,6 +20,7 @@ import {
   ContentStateKind,
   ContentStateView,
 } from '../../../components/ContentStateView';
+import { ItemCard } from '../../../components/ItemCard';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
   SortDirection,
@@ -295,16 +296,9 @@ export default function PantryScreen() {
         <ScrollView contentContainerStyle={styles.foodList} testID="pantry-food-list">
           {visibleFoods.map((food: Food) => (
             // Food card
-            <View
-              key={food.id}
-              style={[styles.foodCard, { borderColor: colors.border }]}
-              testID={`pantry-food-${food.id}`}
-            >
-              <View style={styles.foodTitleRow}>
-                <Text
-                  style={[styles.foodName, { color: colors.textPrimary }]}
-                  testID={`pantry-food-${food.id}-name`}
-                >{food.name}</Text>
+            <ItemCard
+              accessory={(
+                // Favorite toggle
                 <Pressable
                   accessibilityLabel={food.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
                   accessibilityRole="button"
@@ -322,17 +316,25 @@ export default function PantryScreen() {
                     testID={`pantry-food-${food.id}-favorite-icon`}
                   />
                 </Pressable>
-              </View>
+              )}
+              key={food.id}
+              testIDPrefix={`pantry-food-${food.id}`}
+              title={food.name}
+            >
               {/* Calories per serving */}
               <Text
                 style={[styles.foodDetail, { color: colors.textSecondary }]}
                 testID={`pantry-food-${food.id}-calories`}
-              >{food.nutritionFacts.caloriesKcal} kcal per serving</Text>
+              >
+                {food.nutritionFacts.caloriesKcal} kcal per serving
+              </Text>
               {/* Serving size */}
               <Text
                 style={[styles.foodDetail, { color: colors.textSecondary }]}
                 testID={`pantry-food-${food.id}-serving-size`}
-              >Serving: {formatQuantity(food.servingSize)}</Text>
+              >
+                Serving: {formatQuantity(food.servingSize)}
+              </Text>
               {food.tags && food.tags.length > 0 ? (
                 <View style={styles.foodTags} testID={`pantry-food-${food.id}-tags`}>
                   {food.tags.map((tag) => (
@@ -343,7 +345,9 @@ export default function PantryScreen() {
                         { backgroundColor: colors.control, color: colors.textSecondary },
                       ]}
                       testID={`pantry-food-${food.id}-tag-${tag}`}
-                    >{tag}</Text>
+                    >
+                      {tag}
+                    </Text>
                   ))}
                 </View>
               ) : null}
@@ -352,9 +356,11 @@ export default function PantryScreen() {
                   <Text
                     style={[styles.favoriteError, { color: colors.danger }]}
                     testID={`pantry-food-${food.id}-favorite-error`}
-                  >Unable to update favorite</Text>
+                  >
+                    Unable to update favorite
+                  </Text>
                 ) : null}
-            </View>
+            </ItemCard>
           ))}
         </ScrollView>
       ) : (
@@ -362,16 +368,11 @@ export default function PantryScreen() {
         <ScrollView contentContainerStyle={styles.mealList} testID="pantry-meal-list">
           {meals.map((meal: Meal) => (
             // Meal card
-            <View
+            <ItemCard
               key={meal.id}
-              style={[styles.mealCard, { borderColor: colors.border }]}
-              testID={`pantry-meal-${meal.id}`}
+              testIDPrefix={`pantry-meal-${meal.id}`}
+              title={meal.name}
             >
-              {/* Meal name */}
-              <Text
-                style={[styles.mealName, { color: colors.textPrimary }]}
-                testID={`pantry-meal-${meal.id}-name`}
-              >{meal.name}</Text>
               {/* Meal ingredient count */}
               <Text
                 style={[styles.mealDetail, { color: colors.textSecondary }]}
@@ -380,7 +381,7 @@ export default function PantryScreen() {
                 {meal.ingredients.length}{' '}
                 {meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
               </Text>
-            </View>
+            </ItemCard>
           ))}
         </ScrollView>
       )}
@@ -410,18 +411,13 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.75 },
   buttonText: { fontSize: 17, fontWeight: '600' },
   favoriteError: { fontSize: 13 },
-  foodCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   foodDetail: { fontSize: 14 },
   foodList: { gap: 10, paddingBottom: 24, paddingHorizontal: 24, paddingTop: 16 },
-  foodName: { flex: 1, fontSize: 17, fontWeight: '600' },
   foodTag: { borderRadius: 8, fontSize: 12, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
   foodTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  foodTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   heading: { fontSize: 34, fontWeight: '700', margin: 24, marginBottom: 18 },
-  mealCard: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 14 },
   mealDetail: { fontSize: 14 },
   mealList: { gap: 10, padding: 24 },
-  mealName: { fontSize: 17, fontWeight: '600' },
   screen: { flex: 1 },
   segment: { alignItems: 'center', borderRadius: 8, flex: 1, padding: 8 },
   segmentedControl: { borderRadius: 10, flexDirection: 'row', marginHorizontal: 24, padding: 3 },
