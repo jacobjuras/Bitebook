@@ -11,8 +11,8 @@
       "import": "./dist/index.js"
     },
     "./authentication": {
-      "types": "./dist/authentication.d.ts",
-      "import": "./dist/authentication.js"
+      "types": "./dist/authentication-constants.d.ts",
+      "import": "./dist/authentication-constants.js"
     }
   },
   "scripts": {

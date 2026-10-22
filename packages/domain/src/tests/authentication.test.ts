@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MIN_PASSWORD_LENGTH } from '../authentication.js';
+import { MIN_PASSWORD_LENGTH } from '../authentication-constants.js';
 
 describe('MIN_PASSWORD_LENGTH', () => {
   it('requires passwords to contain at least eight characters', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { sumNutritionFacts } from '../nutritionTotals.js';
-import type { NutritionFacts } from '../nutritionFacts.js';
+import { sumNutritionFacts } from '../nutrition.js';
+import type { NutritionFacts } from '../nutrition.js';
 
 describe('sumNutritionFacts', () => {
   it('sums complete nutrients and converts micronutrient units', () => {

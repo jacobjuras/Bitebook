@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findEffectiveNutritionGoal } from '../nutritionGoalSelection.js';
+import { findEffectiveNutritionGoal } from '../nutritionGoal.js';
 import type { NutritionGoal } from '../nutritionGoal.js';
 
 function createGoal(

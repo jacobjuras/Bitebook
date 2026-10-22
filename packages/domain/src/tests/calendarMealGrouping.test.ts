@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupCalendarMeals } from '../calendarMealGrouping.js';
+import { groupCalendarMeals } from '../calendarMeal.js';
 import type { MealEntry } from '../mealEntry.js';
 
 function createEntry(
