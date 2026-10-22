@@ -1,38 +1,38 @@
 import { render, screen } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../theme/useThemeColors.js', () => ({
   useThemeColors: () => ({
     border: 'border',
+    control: 'control',
     textPrimary: 'text-primary',
+    textSecondary: 'text-secondary',
   }),
 }));
 
-import { ItemCard } from '../ItemCard.js';
 import { ItemCardList } from '../ItemCardList.js';
 
 const items = [
-  { id: 'first', name: 'First item' },
-  { id: 'second', name: 'Second item' },
+  {
+    details: [{ id: 'summary', text: 'First detail' }],
+    id: 'first',
+    title: 'First item',
+  },
+  {
+    accessory: (testIDPrefix: string) => (
+      <Text testID={`${testIDPrefix}-accessory`}>Accessory</Text>
+    ),
+    chips: [{ id: 'quick', label: 'Quick' }],
+    details: [{ id: 'summary', text: 'Second detail' }],
+    id: 'second',
+    title: 'Second item',
+  },
 ];
 
 describe('ItemCardList', () => {
-  it('renders items in order with derived test-ID prefixes', async () => {
-    await render(
-      <ItemCardList
-        items={items}
-        keyExtractor={({ id }) => id}
-        renderItem={(item, testIDPrefix) => (
-          <ItemCard
-            details={[]}
-            testIDPrefix={testIDPrefix}
-            title={item.name}
-          />
-        )}
-        testIDPrefix="items"
-      />,
-    );
+  it('renders structured cards in order with derived test-ID prefixes', async () => {
+    await render(<ItemCardList items={items} testIDPrefix="items" />);
 
     expect(screen.getAllByTestId(/^items-\w+-card$/).map(({ props }) => (
       props.testID
@@ -40,8 +40,14 @@ describe('ItemCardList', () => {
     expect(screen.getByTestId('items-first-card-title')).toHaveTextContent(
       'First item',
     );
-    expect(screen.getByTestId('items-second-card-title')).toHaveTextContent(
-      'Second item',
+    expect(screen.getByTestId('items-first-summary')).toHaveTextContent(
+      'First detail',
+    );
+    expect(screen.getByTestId('items-second-accessory')).toHaveTextContent(
+      'Accessory',
+    );
+    expect(screen.getByTestId('items-second-chip-quick')).toHaveTextContent(
+      'Quick',
     );
     expect(StyleSheet.flatten(screen.getByTestId('items-list').props.contentContainerStyle))
       .toMatchObject({
@@ -54,13 +60,7 @@ describe('ItemCardList', () => {
 
   it('accepts context-specific top spacing', async () => {
     await render(
-      <ItemCardList
-        items={[]}
-        keyExtractor={() => ''}
-        renderItem={() => null}
-        testIDPrefix="items"
-        topPadding={16}
-      />,
+      <ItemCardList items={[]} testIDPrefix="items" topPadding={16} />,
     );
 
     expect(StyleSheet.flatten(screen.getByTestId('items-list').props.contentContainerStyle))

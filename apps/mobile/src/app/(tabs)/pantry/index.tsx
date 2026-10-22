@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Food } from '@bitebook/domain';
+import type { Food, Meal } from '@bitebook/domain';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -18,7 +18,7 @@ import {
   ContentStateView,
 } from '../../../components/ContentStateView';
 import { FavoriteIndicator } from '../../../components/FavoriteIndicator';
-import { ItemCard } from '../../../components/ItemCard';
+import type { ItemCardModel } from '../../../components/ItemCard';
 import { ItemCardList } from '../../../components/ItemCardList';
 import { SearchFilterSortControls } from '../../../components/SearchFilterSortControls';
 import {
@@ -104,6 +104,38 @@ function getFoodCardDetails(food: Food) {
   return [{ id: 'summary', text: summary.join(' · ') }];
 }
 
+function renderFavoriteIndicator(testIDPrefix: string) {
+  return (
+    // Favorite indicator
+    <FavoriteIndicator testIDPrefix={testIDPrefix} />
+  );
+}
+
+function getFoodCardItem(food: Food): ItemCardModel {
+  return {
+    accessory: food.isFavorite === true ? renderFavoriteIndicator : undefined,
+    chips: food.tags?.map((tag) => ({ id: tag, label: tag })),
+    details: getFoodCardDetails(food),
+    id: food.id,
+    title: food.name,
+  };
+}
+
+function getMealCardItem(meal: Meal): ItemCardModel {
+  return {
+    details: [
+      {
+        id: 'ingredient-count',
+        text: `${meal.ingredients.length} ${
+          meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'
+        }`,
+      },
+    ],
+    id: meal.id,
+    title: meal.name,
+  };
+}
+
 export default function PantryScreen() {
   const router = useRouter();
   const colors = useThemeColors();
@@ -139,6 +171,16 @@ export default function PantryScreen() {
         ? comparison
         : -comparison;
     });
+  const activeItemCardListProps = selectedSection === 'foods'
+    ? {
+        items: visibleFoods.map(getFoodCardItem),
+        testIDPrefix: 'pantry-food',
+        topPadding: 16,
+      }
+    : {
+        items: meals.map(getMealCardItem),
+        testIDPrefix: 'pantry-meal',
+      };
   const isPending = foodsQuery.isPending
     || (selectedSection === 'meals' && mealsQuery.isPending);
   const isError = foodsQuery.isError
@@ -280,48 +322,8 @@ export default function PantryScreen() {
       ) : null}
       {contentState ? (
         <ContentStateView state={contentState} testIDPrefix="pantry" />
-      ) : selectedSection === 'foods' ? (
-        // Food card list
-        <ItemCardList
-          items={visibleFoods}
-          keyExtractor={({ id }) => id}
-          renderItem={(food, testIDPrefix) => (
-            // Food card
-            <ItemCard
-              accessory={food.isFavorite === true ? (
-                <FavoriteIndicator testIDPrefix={testIDPrefix} />
-              ) : undefined}
-              chips={food.tags?.map((tag) => ({ id: tag, label: tag }))}
-              details={getFoodCardDetails(food)}
-              testIDPrefix={testIDPrefix}
-              title={food.name}
-            />
-          )}
-          testIDPrefix="pantry-food"
-          topPadding={16}
-        />
       ) : (
-        // Meal card list
-        <ItemCardList
-          items={meals}
-          keyExtractor={({ id }) => id}
-          renderItem={(meal, testIDPrefix) => (
-            // Meal card
-            <ItemCard
-              details={[
-                {
-                  id: 'ingredient-count',
-                  text: `${meal.ingredients.length} ${
-                    meal.ingredients.length === 1 ? 'ingredient' : 'ingredients'
-                  }`,
-                },
-              ]}
-              testIDPrefix={testIDPrefix}
-              title={meal.name}
-            />
-          )}
-          testIDPrefix="pantry-meal"
-        />
+        <ItemCardList {...activeItemCardListProps} />
       )}
       {!isPending && !isError ? (
         // Pantry primary action
