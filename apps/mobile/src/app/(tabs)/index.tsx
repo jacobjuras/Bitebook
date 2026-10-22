@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '../../components/PlaceholderScreen/PlaceholderScreen';
+import { Redirect } from 'expo-router';
 
-export default function CalendarScreen() {
-  return <PlaceholderScreen description="Plan and review your meals." title="Calendar" />;
+export default function IndexRoute() {
+  return <Redirect href="/calendar" />;
 }

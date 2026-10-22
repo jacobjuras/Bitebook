@@ -1,23 +1,18 @@
 import { render, screen } from '@testing-library/react-native';
+import { createElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../theme/useThemeColors.js', () => ({
-  useThemeColors: () => ({
-    background: 'background',
-    textPrimary: 'text-primary',
-    textSecondary: 'text-secondary',
-  }),
+vi.mock('expo-router', () => ({
+  Redirect: ({ href }: { href: string }) =>
+    createElement('Redirect', { href, testID: 'index-redirect' }),
 }));
 
-import CalendarScreen from '../../../app/(tabs)/index.js';
+import IndexRoute from '../../../app/(tabs)/index.js';
 
-describe('Calendar route', () => {
-  it('renders the Calendar placeholder copy', async () => {
-    await render(<CalendarScreen />);
+describe('index route', () => {
+  it('redirects to the explicit Calendar route', async () => {
+    await render(<IndexRoute />);
 
-    expect(screen.getByTestId('placeholder-screen-title')).toHaveTextContent('Calendar');
-    expect(screen.getByTestId('placeholder-screen-description')).toHaveTextContent(
-      'Plan and review your meals.',
-    );
+    expect(screen.getByTestId('index-redirect').props.href).toBe('/calendar');
   });
 });
