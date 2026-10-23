@@ -19,8 +19,6 @@ export const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonPressed: { opacity: 0.75 },
-  clearFiltersButton: { paddingHorizontal: 4, paddingVertical: 6 },
-  clearFiltersText: { fontSize: 13, fontWeight: '600' },
   controls: {
     flexDirection: 'row',
     gap: 10,

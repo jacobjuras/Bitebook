@@ -4,6 +4,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 
 import type { SearchFilterSortModel } from '~/models';
 import { useThemeColors } from '~/theme';
+import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
 import { styles } from './styles';
 
 /** Renders reusable search, filter, and contextual sort controls for a list. */
@@ -172,18 +173,11 @@ export function SearchFilterSortControls<
             </Pressable>
           ))}
           {/* Clear filters button */}
-          <Pressable
+          <ClearAllButton
             accessibilityLabel={`Clear all ${itemName} filters`}
-            accessibilityRole="button"
             onPress={onClearFilters}
-            style={({ pressed }) => [
-              styles.clearFiltersButton,
-              pressed && styles.buttonPressed,
-            ]}
             testID={`${testIDPrefix}-clear-filters-button`}
-          >
-            <Text style={[styles.clearFiltersText, { color: colors.accent }]}>Clear all</Text>
-          </Pressable>
+          />
         </View>
       ) : null}
     </>

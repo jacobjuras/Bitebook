@@ -4,7 +4,7 @@ export type SearchFilterSortModel<
   DirectionId extends string,
 > = {
   filters: {
-    onClear?: () => void;
+    onClear: () => void;
     onToggle?: (filterId: FilterId) => void;
     options: readonly {
       id: FilterId;
