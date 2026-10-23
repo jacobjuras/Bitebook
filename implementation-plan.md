@@ -173,7 +173,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [ ] Build manual Food creation.
 - [ ] Build Food details and metadata editing.
 - [ ] Build the Food deletion interface.
-- [ ] Build the Meal list with search and sorting.
+- [x] Build the Meal list with search and sorting.
 - [ ] Build Meal creation with Food selection and quantities.
 - [ ] Build Meal details and editing.
 - [ ] Display Meal nutrition.

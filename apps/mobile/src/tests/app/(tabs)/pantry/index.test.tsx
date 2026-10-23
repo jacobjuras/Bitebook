@@ -144,6 +144,11 @@ function renderedFoodCardIds() {
     .map(({ props }) => props.testID.replace(/-card$/, ''));
 }
 
+function renderedMealCardIds() {
+  return screen.getAllByTestId(/^pantry-meal-[0-9a-f-]+-card$/)
+    .map(({ props }) => props.testID.replace(/-card$/, ''));
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
@@ -452,7 +457,7 @@ describe('Pantry screen', () => {
     expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/newMeal');
   });
 
-  it('renders Meal cards and navigates to Meal creation', async () => {
+  it('renders Meal controls, cards, and creation navigation', async () => {
     await renderPantry({
       mealsResult: { data: meals, isError: false, isPending: false },
     });
@@ -460,17 +465,23 @@ describe('Pantry screen', () => {
     await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
 
     expect(screen.queryByTestId('pantry-food-controls')).toBeNull();
-    expect(screen.queryByTestId('pantry-meal-controls')).toBeNull();
+    expect(screen.getByTestId('pantry-meal-controls')).toBeTruthy();
+    expect(screen.getByTestId('pantry-meal-search-input')).toBeTruthy();
+    expect(screen.getByTestId('pantry-meal-filter-sort-button')).toBeTruthy();
     expect(screen.getByTestId('pantry-meal-list')).toBeTruthy();
-    expect(screen.getByTestId(`pantry-meal-${meals[0].id}-card-title`)).toHaveTextContent(
-      'Chicken bowl',
-    );
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[1].id}`,
+      `pantry-meal-${meals[0].id}`,
+    ]);
+    expect(
+      screen.getByTestId(`pantry-meal-${meals[0].id}-card-title`),
+    ).toHaveTextContent('Chicken bowl');
     expect(
       screen.getByTestId(`pantry-meal-${meals[0].id}-ingredient-count`),
     ).toHaveTextContent('1 ingredient');
-    expect(screen.getByTestId(`pantry-meal-${meals[1].id}-card-title`)).toHaveTextContent(
-      'Chicken and yogurt',
-    );
+    expect(
+      screen.getByTestId(`pantry-meal-${meals[1].id}-card-title`),
+    ).toHaveTextContent('Chicken and yogurt');
     expect(
       screen.getByTestId(`pantry-meal-${meals[1].id}-ingredient-count`),
     ).toHaveTextContent('2 ingredients');
@@ -478,5 +489,64 @@ describe('Pantry screen', () => {
     expect(addMealButton).toHaveTextContent('Add meal');
     await fireEvent.press(addMealButton);
     expect(mocks.push).toHaveBeenCalledWith('/pantry/meal/newMeal');
+  });
+
+  it('filters Meals by name and renders a no-results state', async () => {
+    await renderPantry({
+      mealsResult: { data: meals, isError: false, isPending: false },
+    });
+    await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
+    const searchInput = screen.getByTestId('pantry-meal-search-input');
+
+    await fireEvent.changeText(searchInput, 'BOWL');
+
+    expect(screen.getByTestId(`pantry-meal-${meals[0].id}-card`)).toBeTruthy();
+    expect(screen.queryByTestId(`pantry-meal-${meals[1].id}-card`)).toBeNull();
+
+    await fireEvent.changeText(searchInput, 'missing');
+
+    expect(screen.queryByTestId('pantry-meal-list')).toBeNull();
+    expect(screen.getByTestId('pantry-no-results-title')).toHaveTextContent(
+      'No meals found',
+    );
+    expect(screen.getByTestId('pantry-no-results-description'))
+      .toHaveTextContent('Try a different search');
+  });
+
+  it('sorts Meals by recent, calories, and name', async () => {
+    await renderPantry({
+      mealsResult: { data: meals, isError: false, isPending: false },
+    });
+    await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
+    const filterSortMenu = screen.getByTestId('pantry-meal-filter-sort-menu');
+
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[1].id}`,
+      `pantry-meal-${meals[0].id}`,
+    ]);
+
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'sort:recent:ascending' },
+    });
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[0].id}`,
+      `pantry-meal-${meals[1].id}`,
+    ]);
+
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'sort:calories:descending' },
+    });
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[1].id}`,
+      `pantry-meal-${meals[0].id}`,
+    ]);
+
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'sort:name:descending' },
+    });
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[0].id}`,
+      `pantry-meal-${meals[1].id}`,
+    ]);
   });
 });

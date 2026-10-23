@@ -17,3 +17,8 @@ export const mealEmptyStates: Record<
     title: 'Create your first meal',
   },
 };
+
+export const mealNoResultsState = {
+  description: 'Try a different search',
+  title: 'No meals found',
+};

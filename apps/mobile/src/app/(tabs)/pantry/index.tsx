@@ -17,8 +17,10 @@ import {
   foodNoResultsState,
   itemSortOptions,
   mealEmptyStates,
+  mealNoResultsState,
 } from '~/constants';
 import type { SearchFilterSortModel } from '~/models';
+import { useThemeColors } from '~/theme';
 import {
   filterItems,
   getAvailableTags,
@@ -26,18 +28,19 @@ import {
   getFoodCardItem,
   getMealCardItem,
   getSortableFood,
+  getSortableMeal,
   sortItems,
 } from '~/utils';
 
 import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
 import { styles } from '../../../styles/pantry';
-import { useThemeColors } from '~/theme';
 
 export default function PantryScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const [selectedSection, setSelectedSection] = useState<PantrySection>(PantrySection.Foods);
   const [foodSearch, setFoodSearch] = useState('');
+  const [mealSearch, setMealSearch] = useState('');
   const [itemSortField, setItemSortField] = useState(ItemSortField.Recent);
   const [itemSortDirection, setItemSortDirection] = useState(
     SortDirection.Descending,
@@ -48,6 +51,7 @@ export default function PantryScreen() {
   const mealsQuery = useQuery(mealsQueryOptions);
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
+  const foodsById = new Map(foods.map((food) => [food.id, food]));
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
   const availableTags = getAvailableTags(foods);
@@ -61,6 +65,16 @@ export default function PantryScreen() {
     itemSortField,
     itemSortDirection,
   );
+  const visibleMeals = sortItems(
+    filterItems(meals, {
+      favorites: false,
+      search: mealSearch,
+      tags: [],
+    }),
+    (meal) => getSortableMeal(meal, foodsById),
+    itemSortField,
+    itemSortDirection,
+  );
   const activeItemListProps = selectedSection === PantrySection.Foods
     ? {
         items: visibleFoods.map(getFoodCardItem),
@@ -68,9 +82,9 @@ export default function PantryScreen() {
         topPadding: 16,
       }
     : {
-        items: meals.map(getMealCardItem),
+        items: visibleMeals.map(getMealCardItem),
         itemTestIDPrefix: 'pantry-meal',
-        topPadding: undefined,
+        topPadding: 16,
       };
   const isPending = foodsQuery.isPending
     || (selectedSection === PantrySection.Meals && mealsQuery.isPending);
@@ -125,20 +139,19 @@ export default function PantryScreen() {
     if (mealsQuery.isError) void mealsQuery.refetch();
   };
 
+  const noResultsState = selectedSection === PantrySection.Foods
+    ? hasFoods && visibleFoods.length === 0 ? foodNoResultsState : undefined
+    : hasMeals && visibleMeals.length === 0 ? mealNoResultsState : undefined;
   const contentState = getContentState({
     emptyState: selectedSectionHasItems ? undefined : selectedSectionEmptyState,
     errorState: isError
       ? { message: 'Unable to load your pantry', onRetry: retryLoading }
       : undefined,
     isPending,
-    noResultsState: selectedSection === PantrySection.Foods
-      && hasFoods
-      && visibleFoods.length === 0
-      ? foodNoResultsState
-      : undefined,
+    noResultsState,
   });
 
-  const itemControlsModel = {
+  const foodControlsModel = {
     filters: {
       onClear: clearFilters,
       onToggle: toggleFilter,
@@ -168,15 +181,32 @@ export default function PantryScreen() {
     ItemSortField,
     SortDirection
   >;
-  const controls = selectedSection === PantrySection.Foods
-    && hasFoods
-    && !isPending
-    && !isError ? (
-      <SearchFilterSortControls
-        model={itemControlsModel}
-        testIDPrefix="pantry-food"
-      />
-    ) : undefined;
+  const mealControlsModel = {
+    filters: { options: [] },
+    item: { name: 'Meal', pluralName: 'Meals' },
+    search: { onChange: setMealSearch, value: mealSearch },
+    sort: {
+      activeDirectionId: itemSortDirection,
+      activeId: itemSortField,
+      onSelect: selectItemSort,
+      options: itemSortOptions,
+    },
+  } satisfies SearchFilterSortModel<never, ItemSortField, SortDirection>;
+  const controls = selectedSectionHasItems && !isPending && !isError
+    ? selectedSection === PantrySection.Foods
+      ? (
+          <SearchFilterSortControls
+            model={foodControlsModel}
+            testIDPrefix="pantry-food"
+          />
+        )
+      : (
+          <SearchFilterSortControls
+            model={mealControlsModel}
+            testIDPrefix="pantry-meal"
+          />
+        )
+    : undefined;
   const action = !isPending && !isError
     ? {
         label: actionLabel,
