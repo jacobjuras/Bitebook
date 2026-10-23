@@ -1,5 +1,6 @@
 import * as z from 'zod';
 
+import { pantryItemOrganizationSchema } from './pantryItem.js';
 import { quantitySchema } from './quantity.js';
 
 const ingredientQuantitySchema = quantitySchema.refine(
@@ -24,6 +25,7 @@ const ingredientsSchema = z
   );
 
 export const mealSchema = z.strictObject({
+  ...pantryItemOrganizationSchema.shape,
   id: z.uuid(),
   userId: z.string().min(1),
   name: z.string().trim().min(1).max(100),

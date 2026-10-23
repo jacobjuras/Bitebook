@@ -1,12 +1,8 @@
 import type { Food } from '@bitebook/domain';
-import { createElement } from 'react';
 
-import { FavoriteIndicator } from '~/components';
 import type { ItemCardModel, SortableItem } from '~/models';
 
-function renderFavoriteIndicator(testIDPrefix: string) {
-  return createElement(FavoriteIndicator, { testIDPrefix });
-}
+import { getItemCardOrganization } from './itemCard';
 
 export function getFoodCardItem(food: Food): ItemCardModel {
   const summary = [`${food.nutritionFacts.caloriesKcal} kcal`];
@@ -15,8 +11,7 @@ export function getFoodCardItem(food: Food): ItemCardModel {
   }
 
   return {
-    accessory: food.isFavorite === true ? renderFavoriteIndicator : undefined,
-    chips: food.tags?.map((tag) => ({ id: tag, label: tag })),
+    ...getItemCardOrganization(food),
     details: [{ id: 'summary', text: summary.join(' · ') }],
     id: food.id,
     title: food.name,

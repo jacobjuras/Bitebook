@@ -45,21 +45,29 @@ export default function PantryScreen() {
   const [itemSortDirection, setItemSortDirection] = useState(
     SortDirection.Descending,
   );
-  const [favoritesFilterEnabled, setFavoritesFilterEnabled] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [filtersBySection, setFiltersBySection] = useState<
+    Record<PantrySection, { favorites: boolean; tags: string[] }>
+  >({
+    [PantrySection.Foods]: { favorites: false, tags: [] },
+    [PantrySection.Meals]: { favorites: false, tags: [] },
+  });
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
   const foodsById = new Map(foods.map((food) => [food.id, food]));
+  const foodFilters = filtersBySection[PantrySection.Foods];
+  const mealFilters = filtersBySection[PantrySection.Meals];
+  const activeFilters = filtersBySection[selectedSection];
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
-  const availableTags = getAvailableTags(foods);
+  const availableTags = getAvailableTags(
+    selectedSection === PantrySection.Foods ? foods : meals,
+  );
   const visibleFoods = sortItems(
     filterItems(foods, {
-      favorites: favoritesFilterEnabled,
+      ...foodFilters,
       search: foodSearch,
-      tags: selectedTags,
     }),
     getSortableFood,
     itemSortField,
@@ -67,9 +75,8 @@ export default function PantryScreen() {
   );
   const visibleMeals = sortItems(
     filterItems(meals, {
-      favorites: false,
+      ...mealFilters,
       search: mealSearch,
-      tags: [],
     }),
     (meal) => getSortableMeal(meal, foodsById),
     itemSortField,
@@ -108,8 +115,10 @@ export default function PantryScreen() {
   };
 
   const clearFilters = () => {
-    setFavoritesFilterEnabled(false);
-    setSelectedTags([]);
+    setFiltersBySection((filters) => ({
+      ...filters,
+      [selectedSection]: { favorites: false, tags: [] },
+    }));
   };
 
   const selectItemSort = (
@@ -123,15 +132,19 @@ export default function PantryScreen() {
   const toggleFilter = (
     filter: 'favorites' | `tag:${string}`,
   ) => {
-    if (filter === 'favorites') {
-      setFavoritesFilterEnabled((enabled) => !enabled);
-      return;
-    }
+    setFiltersBySection((filters) => {
+      const currentFilters = filters[selectedSection];
+      const updatedFilters = filter === 'favorites'
+        ? { ...currentFilters, favorites: !currentFilters.favorites }
+        : {
+            ...currentFilters,
+            tags: currentFilters.tags.includes(filter.slice(4))
+              ? currentFilters.tags.filter((tag) => tag !== filter.slice(4))
+              : [...currentFilters.tags, filter.slice(4)],
+          };
 
-    const tag = filter.slice(4);
-    setSelectedTags((selectedTags) => selectedTags.includes(tag)
-      ? selectedTags.filter((selectedTag) => selectedTag !== tag)
-      : [...selectedTags, tag]);
+      return { ...filters, [selectedSection]: updatedFilters };
+    });
   };
 
   const retryLoading = () => {
@@ -151,7 +164,7 @@ export default function PantryScreen() {
     noResultsState,
   });
 
-  const foodControlsModel = {
+  const itemControlsModel = {
     filters: {
       onClear: clearFilters,
       onToggle: toggleFilter,
@@ -159,17 +172,21 @@ export default function PantryScreen() {
         {
           id: 'favorites' as const,
           label: 'Favorites',
-          selected: favoritesFilterEnabled,
+          selected: activeFilters.favorites,
         },
         ...availableTags.map((tag) => ({
           id: `tag:${tag}` as const,
           label: tag,
-          selected: selectedTags.includes(tag),
+          selected: activeFilters.tags.includes(tag),
         })),
       ],
     },
-    item: { name: 'Food', pluralName: 'Foods' },
-    search: { onChange: setFoodSearch, value: foodSearch },
+    item: selectedSection === PantrySection.Foods
+      ? { name: 'Food', pluralName: 'Foods' }
+      : { name: 'Meal', pluralName: 'Meals' },
+    search: selectedSection === PantrySection.Foods
+      ? { onChange: setFoodSearch, value: foodSearch }
+      : { onChange: setMealSearch, value: mealSearch },
     sort: {
       activeDirectionId: itemSortDirection,
       activeId: itemSortField,
@@ -181,32 +198,14 @@ export default function PantryScreen() {
     ItemSortField,
     SortDirection
   >;
-  const mealControlsModel = {
-    filters: { options: [] },
-    item: { name: 'Meal', pluralName: 'Meals' },
-    search: { onChange: setMealSearch, value: mealSearch },
-    sort: {
-      activeDirectionId: itemSortDirection,
-      activeId: itemSortField,
-      onSelect: selectItemSort,
-      options: itemSortOptions,
-    },
-  } satisfies SearchFilterSortModel<never, ItemSortField, SortDirection>;
-  const controls = selectedSectionHasItems && !isPending && !isError
-    ? selectedSection === PantrySection.Foods
-      ? (
-          <SearchFilterSortControls
-            model={foodControlsModel}
-            testIDPrefix="pantry-food"
-          />
-        )
-      : (
-          <SearchFilterSortControls
-            model={mealControlsModel}
-            testIDPrefix="pantry-meal"
-          />
-        )
-    : undefined;
+  const controls = selectedSectionHasItems && !isPending && !isError ? (
+    <SearchFilterSortControls
+      model={itemControlsModel}
+      testIDPrefix={selectedSection === PantrySection.Foods
+        ? 'pantry-food'
+        : 'pantry-meal'}
+    />
+  ) : undefined;
   const action = !isPending && !isError
     ? {
         label: actionLabel,
