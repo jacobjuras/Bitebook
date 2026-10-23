@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuView } from '@expo/ui/community/menu';
-import type {
-  Micronutrient,
-  NutrientAmount,
-  NutritionFacts,
-  Unit,
+import {
+  normalizeTagName,
+  type Micronutrient,
+  type NutrientAmount,
+  type NutritionFacts,
+  type Tag,
+  type Unit,
 } from '@bitebook/domain';
 import { useState } from 'react';
 import {
@@ -32,6 +34,7 @@ import { styles } from './styles';
 type NutrientField = (typeof foodNutrientFields)[number]['id'];
 
 type FoodFormProps = {
+  availableTags: readonly Tag[];
   error?: string;
   isSubmitting: boolean;
   onSubmit: (food: FoodFormValues) => Promise<void> | void;
@@ -47,7 +50,12 @@ function parseNumber(value: string, mustBePositive = false) {
 }
 
 /** Collects and validates the complete manual Food input. */
-export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
+export function FoodForm({
+  availableTags,
+  error,
+  isSubmitting,
+  onSubmit,
+}: FoodFormProps) {
   const colors = useThemeColors();
   const [name, setName] = useState('');
   const [servingAmount, setServingAmount] = useState('');
@@ -60,40 +68,88 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
   const [showMoreNutrition, setShowMoreNutrition] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [newTags, setNewTags] = useState<{ name: string }[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [validationError, setValidationError] = useState<string>();
   const [tagError, setTagError] = useState<string>();
   const selectedServingUnit = foodServingUnits.find(
     ({ id }) => id === servingUnit,
   );
+  const normalizedTagInput = normalizeTagName(tagInput);
+  const selectedTags = selectedTagIds.flatMap((tagId) => {
+    const tag = availableTags.find(({ id }) => id === tagId);
+    return tag ? [tag] : [];
+  });
+  const unselectedTags = availableTags.filter(
+    ({ id }) => !selectedTagIds.includes(id),
+  );
+  const matchingTags = normalizedTagInput
+    ? unselectedTags.filter(({ normalizedName }) =>
+      normalizedName.includes(normalizedTagInput),
+    )
+    : unselectedTags;
+  const selectableTags = matchingTags.length > 0 ? matchingTags : unselectedTags;
 
-  function addTag() {
-    const tag = tagInput.trim().toLowerCase();
-    if (!tag) return;
-    if (tag === 'favorite' || tag === 'favorites') {
-      setTagError('Favorite is reserved for the favorite toggle');
-      return;
-    }
-    if (tags.length >= 10) {
-      setTagError('Foods can have up to 10 tags');
-      return;
-    }
-    if (!tags.includes(tag)) setTags((currentTags) => [...currentTags, tag]);
-    setTagInput('');
-    setIsAddingTag(false);
-    setTagError(undefined);
-  }
-
-  function removeTag(tag: string) {
-    setTags((currentTags) => currentTags.filter((value) => value !== tag));
-    setTagError(undefined);
+  function hasTagCapacity() {
+    if (selectedTagIds.length + newTags.length < 10) return true;
+    setTagError('Foods can have up to 10 tags');
+    return false;
   }
 
   function cancelTag() {
     setTagInput('');
     setTagError(undefined);
     setIsAddingTag(false);
+  }
+
+  function selectExistingTag(tag: Tag) {
+    if (!hasTagCapacity()) return;
+    setSelectedTagIds((currentTagIds) => [...currentTagIds, tag.id]);
+    cancelTag();
+  }
+
+  function addNewTag() {
+    const name = tagInput.trim();
+    const normalizedName = normalizeTagName(name);
+    if (!normalizedName) return;
+    if (normalizedName === 'favorite' || normalizedName === 'favorites') {
+      setTagError('Favorite is reserved for the favorite toggle');
+      return;
+    }
+
+    const existingTag = availableTags.find(
+      (tag) => tag.normalizedName === normalizedName,
+    );
+    if (existingTag) {
+      setTagError(selectedTagIds.includes(existingTag.id)
+        ? 'Tag already added'
+        : 'This tag already exists. Select it above.');
+      return;
+    }
+    if (newTags.some((tag) => normalizeTagName(tag.name) === normalizedName)) {
+      setTagError('Tag already added');
+      return;
+    }
+    if (!hasTagCapacity()) return;
+
+    setNewTags((currentTags) => [...currentTags, { name }]);
+    cancelTag();
+  }
+
+  function removeExistingTag(tagId: string) {
+    setSelectedTagIds((currentTagIds) =>
+      currentTagIds.filter((currentTagId) => currentTagId !== tagId),
+    );
+    setTagError(undefined);
+  }
+
+  function removeNewTag(name: string) {
+    const normalizedName = normalizeTagName(name);
+    setNewTags((currentTags) => currentTags.filter(
+      (tag) => normalizeTagName(tag.name) !== normalizedName,
+    ));
+    setTagError(undefined);
   }
 
   async function submit() {
@@ -138,7 +194,8 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
         ...optionalNutrition,
       },
       servingSize: { amount: parsedServingAmount, unit: servingUnit },
-      tagNames: tags.length > 0 ? tags : undefined,
+      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+      newTags: newTags.length > 0 ? newTags : undefined,
     });
   }
 
@@ -288,19 +345,66 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>ORGANIZE</Text>
+          <Text
+            style={[styles.sectionLabel, { color: colors.textSecondary }]}
+            testID="food-form-tag-heading"
+          >
+            TAGS
+          </Text>
           <View style={styles.tags} testID="food-form-tags">
-            {tags.map((tag) => (
+            {selectedTags.map((tag) => (
               <Pressable
-                accessibilityLabel={`Remove ${tag} tag`}
+                accessibilityLabel={`Remove ${tag.name} tag`}
                 accessibilityRole="button"
-                key={tag}
-                onPress={() => removeTag(tag)}
+                key={tag.id}
+                onPress={() => removeExistingTag(tag.id)}
                 style={[styles.tagChip, { backgroundColor: colors.accentSubtle }]}
-                testID={`food-form-tag-${tag}`}
+                testID={`food-form-selected-tag-${tag.id}`}
               >
-                <Text style={{ color: colors.textPrimary }}>{tag}</Text>
+                <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
                 <Ionicons color={colors.textSecondary} name="close" size={14} />
+              </Pressable>
+            ))}
+            {newTags.map(({ name: tagName }) => {
+              const normalizedName = normalizeTagName(tagName);
+              return (
+                <Pressable
+                  accessibilityLabel={`Remove new ${tagName} tag`}
+                  accessibilityRole="button"
+                  key={normalizedName}
+                  onPress={() => removeNewTag(tagName)}
+                  style={[
+                    styles.tagChip,
+                    styles.newTagChip,
+                    { borderColor: colors.accent },
+                  ]}
+                  testID={`food-form-new-tag-${normalizedName}`}
+                >
+                  <Ionicons
+                    color={colors.accent}
+                    name="add"
+                    size={14}
+                    testID={`food-form-new-tag-${normalizedName}-indicator`}
+                  />
+                  <Text style={{ color: colors.textPrimary }}>{tagName}</Text>
+                  <Ionicons color={colors.textSecondary} name="close" size={14} />
+                </Pressable>
+              );
+            })}
+            {selectableTags.map((tag) => (
+              <Pressable
+                accessibilityLabel={`Select ${tag.name} tag`}
+                accessibilityRole="button"
+                key={tag.id}
+                onPress={() => selectExistingTag(tag)}
+                style={({ pressed }) => [
+                  styles.availableTagChip,
+                  { borderColor: colors.border },
+                  pressed && styles.pressed,
+                ]}
+                testID={`food-form-available-tag-${tag.id}`}
+              >
+                <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
               </Pressable>
             ))}
             {!isAddingTag ? (
@@ -325,8 +429,12 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
                 style={[
                   styles.tagInputContainer,
                   styles.flex,
-                  { backgroundColor: colors.background, borderColor: colors.border },
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: tagError ? colors.danger : colors.border,
+                  },
                 ]}
+                testID="food-form-tag-input-container"
               >
                 <TextInput
                   accessibilityLabel="Optional tag"
@@ -334,8 +442,11 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
                   autoCorrect={false}
                   autoFocus
                   maxLength={30}
-                  onChangeText={setTagInput}
-                  onSubmitEditing={addTag}
+                  onChangeText={(value) => {
+                    setTagInput(value);
+                    setTagError(undefined);
+                  }}
+                  onSubmitEditing={addNewTag}
                   placeholder="Tag name"
                   returnKeyType="done"
                   style={[styles.tagInput, { color: colors.textPrimary }]}
@@ -362,7 +473,7 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
               </View>
               <Pressable
                 accessibilityRole="button"
-                onPress={addTag}
+                onPress={addNewTag}
                 style={({ pressed }) => [
                   styles.tagButton,
                   { borderColor: colors.border },

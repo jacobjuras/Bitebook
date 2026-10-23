@@ -1,8 +1,6 @@
-import type { Food } from '@bitebook/domain';
+import type { Food, FoodCreateInput } from '@bitebook/domain';
 
 export type FoodFormValues = Pick<
   Food,
   'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize'
-> & {
-  tagNames?: string[];
-};
+> & Pick<FoodCreateInput, 'newTags' | 'tagIds'>;
