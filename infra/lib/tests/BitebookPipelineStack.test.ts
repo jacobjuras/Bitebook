@@ -80,7 +80,7 @@ describe('BitebookPipelineStack', () => {
       Description: Match.stringLikeRegexp('DeployedApiTests'),
       Source: {
         BuildSpec: Match.stringLikeRegexp(
-          'nodejs[\\s\\S]*24[\\s\\S]*test:deployed',
+          'nodejs[\\s\\S]*24[\\s\\S]*test integ-tests',
         ),
         Type: 'CODEPIPELINE',
       },
