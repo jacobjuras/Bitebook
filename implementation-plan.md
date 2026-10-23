@@ -329,6 +329,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 This phase intentionally runs near the end, after the product workflows and operational controls are complete. Unit tests continue to ship with each implementation change.
 
 - [ ] Create comprehensive deployed API integration tests for authentication, Foods, Meals, MealEntries, profile, goals, barcode lookup, reports, subscriptions, and ads.
+- [x] Cover deployed Tag creation, Food creation, and atomic Food-with-new-Tag failure behavior.
 - [ ] Add deployed API tests for malformed input, unauthenticated access, and cross-user access.
 - [ ] Select and configure a mobile UI test framework and execution environment for iOS and Android.
 - [ ] Create mobile UI tests for authentication, Pantry, meal logging, Calendar, Reports, subscriptions, and ads.

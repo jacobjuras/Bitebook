@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "test": "bash ../../scripts/run-with-project-node.sh vitest run",
-    "test:deployed": "vitest run --config vitest.deployed.config.ts",
-    "test:smoke": "vitest run --config vitest.smoke.config.ts",
+    "test:deployed": "bash ../../scripts/run-with-project-node.sh vitest run --config vitest.deployed.config.ts",
+    "test:smoke": "bash ../../scripts/run-with-project-node.sh vitest run --config vitest.smoke.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "3.1152.0",
+    "@aws-sdk/client-dynamodb": "3.1152.0",
+    "@aws-sdk/lib-dynamodb": "3.1152.0",
+    "@bitebook/domain": "0.0.0",
     "@types/node": "24.19.2",
+    "aws-sdk-client-mock": "4.1.0",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   }

@@ -8,6 +8,7 @@ describe('BitebookStack', () => {
   const app = new App({ analyticsReporting: false });
   const template = Template.fromStack(new BitebookStack(app, 'TestStack', {
     cognitoDomainPrefix: 'bitebook-test-111111111111',
+    deploymentStage: 'Test',
   }));
 
   it('creates a protected user data table', () => {
@@ -30,6 +31,7 @@ describe('BitebookStack', () => {
         SSEEnabled: true,
         SSEType: 'KMS',
       },
+      Tags: [{ Key: 'DeploymentStage', Value: 'Test' }],
     });
 
     template.hasResource('AWS::DynamoDB::Table', {
@@ -41,11 +43,19 @@ describe('BitebookStack', () => {
   it('protects the table encryption key', () => {
     template.hasResourceProperties('AWS::KMS::Key', {
       EnableKeyRotation: true,
+      Tags: [{ Key: 'DeploymentStage', Value: 'Test' }],
     });
     template.hasResource('AWS::KMS::Key', {
       DeletionPolicy: 'Retain',
       UpdateReplacePolicy: 'Retain',
     });
+  });
+
+  it('exports deployed test resource identifiers', () => {
+    template.hasOutput('ApiUrl', { Value: Match.anyValue() });
+    template.hasOutput('UserDataTableName', { Value: Match.anyValue() });
+    template.hasOutput('UserPoolClientId', { Value: Match.anyValue() });
+    template.hasOutput('UserPoolId', { Value: Match.anyValue() });
   });
 
   it('packages the fail-closed API as a private Lambda', () => {
@@ -130,6 +140,7 @@ describe('BitebookStack', () => {
       UserPoolTier: 'LITE',
       UsernameAttributes: ['email'],
       UsernameConfiguration: { CaseSensitive: false },
+      UserPoolTags: { DeploymentStage: 'Test' },
     });
     template.hasResource('AWS::Cognito::UserPool', {
       DeletionPolicy: 'Retain',
