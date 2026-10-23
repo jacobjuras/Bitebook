@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FoodFormValues } from '~/models';
 const mocks = vi.hoisted(() => ({
   authenticatedApiRequest: vi.fn(),
 }));
@@ -96,7 +95,7 @@ describe('Foods API', () => {
     mocks.authenticatedApiRequest.mockResolvedValue(
       new Response(JSON.stringify(foods[0])),
     );
-    const input: FoodFormValues = {
+    const input = {
       isFavorite: true,
       name: 'Chicken breast',
       nutritionFacts: {
@@ -104,8 +103,8 @@ describe('Foods API', () => {
         micronutrients: {},
         proteinG: 31,
       },
-      servingSize: { amount: 100, unit: 'g' },
-      tags: ['high-protein'],
+      servingSize: { amount: 100, unit: 'g' as const },
+      tagIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
     };
 
     await expect(createFood(input)).resolves.toEqual(foods[0]);
@@ -130,7 +129,7 @@ describe('Foods API', () => {
     const updatedFood = {
       ...foods[0],
       isFavorite: true,
-      tags: ['high-protein'],
+      tagIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
     };
     mocks.authenticatedApiRequest.mockResolvedValue(
       new Response(JSON.stringify({ food: updatedFood })),
@@ -138,14 +137,14 @@ describe('Foods API', () => {
 
     await expect(updateFood(foods[0].id, {
       isFavorite: true,
-      tags: ['high-protein'],
+      tagIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
     })).resolves.toEqual(updatedFood);
     expect(mocks.authenticatedApiRequest).toHaveBeenCalledWith(
       `foods/${foods[0].id}`,
       {
         body: JSON.stringify({
           isFavorite: true,
-          tags: ['high-protein'],
+          tagIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
         }),
         headers: { 'content-type': 'application/json' },
         method: 'PATCH',

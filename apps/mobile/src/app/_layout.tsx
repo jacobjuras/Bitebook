@@ -5,7 +5,11 @@ import { useEffect } from 'react';
 
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { AuthStatus } from '../auth/AuthStatus';
-import { foodsQueryOptions, mealsQueryOptions } from '../query/pantryQueries';
+import {
+  foodsQueryOptions,
+  mealsQueryOptions,
+  tagsQueryOptions,
+} from '../query/pantryQueries';
 import { queryClient } from '../query/queryClient';
 
 function AuthenticatedRoutes() {
@@ -16,6 +20,7 @@ function AuthenticatedRoutes() {
     if (status === AuthStatus.SignedIn) {
       void queryClient.query(foodsQueryOptions).catch(() => undefined);
       void queryClient.query(mealsQueryOptions).catch(() => undefined);
+      void queryClient.query(tagsQueryOptions).catch(() => undefined);
       return;
     }
     if (status === AuthStatus.SignedOut) queryClient.clear();

@@ -6,8 +6,11 @@ vi.mock('~/components', () => ({
 }));
 
 import { FavoriteIndicator } from '~/components';
+import { tagFixtures } from '~/tests/fixtures/tags';
 import { getFoodCardItem, getSortableFood } from '../food.js';
 
+const tags = [tagFixtures.highProtein, tagFixtures.savory];
+const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 const baseFood: Food = {
   createdAt: '2026-10-20T12:00:00.000Z',
   id: '11111111-1111-4111-8111-111111111111',
@@ -19,17 +22,17 @@ const baseFood: Food = {
 };
 
 describe('getFoodCardItem', () => {
-  it('maps identity, calories, protein, and tags into card content', () => {
+  it('maps identity, calories, protein, and resolved Tags into card content', () => {
     const item = getFoodCardItem({
       ...baseFood,
       nutritionFacts: { caloriesKcal: 165, micronutrients: {}, proteinG: 31 },
-      tags: ['high-protein', 'savory'],
-    });
+      tagIds: tags.map(({ id }) => id),
+    }, tagsById);
 
     expect(item).toMatchObject({
       chips: [
-        { id: 'high-protein', label: 'high-protein' },
-        { id: 'savory', label: 'savory' },
+        { id: tags[0].id, label: 'high-protein' },
+        { id: tags[1].id, label: 'savory' },
       ],
       details: [{ id: 'summary', text: '165 kcal · 31 g protein' }],
       id: baseFood.id,
@@ -38,7 +41,7 @@ describe('getFoodCardItem', () => {
   });
 
   it('omits optional protein, chips, and accessory when absent', () => {
-    expect(getFoodCardItem(baseFood)).toEqual({
+    expect(getFoodCardItem(baseFood, tagsById)).toEqual({
       accessory: undefined,
       chips: undefined,
       details: [{ id: 'summary', text: '100 kcal' }],
@@ -51,7 +54,7 @@ describe('getFoodCardItem', () => {
     const item = getFoodCardItem({
       ...baseFood,
       nutritionFacts: { caloriesKcal: 100, micronutrients: {}, proteinG: 0 },
-    });
+    }, tagsById);
 
     expect(item.details).toEqual([
       { id: 'summary', text: '100 kcal · 0 g protein' },
@@ -59,7 +62,7 @@ describe('getFoodCardItem', () => {
   });
 
   it('creates a favorite indicator with the card test-ID prefix', () => {
-    const item = getFoodCardItem({ ...baseFood, isFavorite: true });
+    const item = getFoodCardItem({ ...baseFood, isFavorite: true }, tagsById);
     const accessory = item.accessory?.('pantry-food-item');
 
     expect(accessory).toMatchObject({

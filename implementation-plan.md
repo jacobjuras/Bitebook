@@ -90,10 +90,13 @@ This plan tracks implementation in dependency order. Completed work remains chec
 - [x] Update Meal metadata and ingredients with optimistic concurrency.
 - [x] Delete an owned Meal conditionally.
 
-## 7. Profile and NutritionGoal backend API
+## 7. Profile, Tag, and NutritionGoal backend API
 
 **Stack:** Lambda backend (`@bitebook/api`) and API Gateway routes (`@bitebook/infra`)
 
+- [x] Create and list first-class user-owned Tags independently from Foods and Meals.
+- [x] Edit Tag names and optional color metadata without changing stable item references.
+- [x] Enforce case-insensitive unique Tag names with transactional reservation records.
 - [x] Get the authenticated user's profile.
 - [x] Replace the authenticated user's profile while preserving its creation time.
 - [x] Create effective-dated NutritionGoals with one goal per date.
@@ -166,11 +169,13 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 
 - [x] Load Foods from the authenticated API.
 - [x] Load Meals from the authenticated API.
+- [x] Load the user's durable Tags independently from Foods and Meals.
 - [x] Connect Pantry empty states to live Foods and Meals.
 - [x] Build the Food list with search and Recent, Name, and Calories sorting.
-- [x] Share tag and favorite metadata across Foods and Meals.
+- [x] Share favorite state across Foods and Meals and attach durable Tags by stable ID.
 - [x] Display Food and Meal favorites and support Favorites/custom-tag filtering.
-- [x] Build manual Food creation, including favorite and custom-tag fields.
+- [x] Build manual Food creation, including favorite fields and durable Tag creation.
+- [ ] Build Tag management in the Me tab, including creation, renaming, and color editing.
 - [ ] Build Food details and metadata editing, including favorites and tags.
 - [ ] Build the Food deletion interface.
 - [x] Build the Meal list with search and sorting.

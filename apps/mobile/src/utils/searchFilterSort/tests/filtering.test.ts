@@ -1,24 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterItems, getAvailableTags } from '../filtering.js';
+import { filterItems } from '../filtering.js';
 
+const fruitTagId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const snackTagId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const breakfastTagId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const items = [
   {
     id: 'apple',
     isFavorite: true,
     name: 'Green Apple',
-    tags: ['fruit', 'snack'],
+    tagIds: [fruitTagId, snackTagId],
   },
   {
     id: 'banana',
     name: 'Banana',
-    tags: ['fruit'],
+    tagIds: [fruitTagId],
   },
   {
     id: 'yogurt',
     isFavorite: true,
     name: 'Greek Yogurt',
-    tags: ['breakfast', 'snack'],
+    tagIds: [breakfastTagId, snackTagId],
   },
   {
     id: 'chicken',
@@ -27,11 +30,11 @@ const items = [
 ];
 
 describe('filterItems', () => {
-  it('combines normalized search, Favorites, and every selected tag', () => {
+  it('combines normalized search, Favorites, and every selected Tag ID', () => {
     expect(filterItems(items, {
       favorites: true,
       search: '  APP  ',
-      tags: ['fruit', 'snack'],
+      tagIds: [fruitTagId, snackTagId],
     })).toEqual([items[0]]);
   });
 
@@ -39,17 +42,7 @@ describe('filterItems', () => {
     expect(filterItems(items, {
       favorites: false,
       search: '',
-      tags: [],
+      tagIds: [],
     })).toEqual(items);
-  });
-});
-
-describe('getAvailableTags', () => {
-  it('returns unique tags in display order', () => {
-    expect(getAvailableTags(items)).toEqual([
-      'breakfast',
-      'fruit',
-      'snack',
-    ]);
   });
 });

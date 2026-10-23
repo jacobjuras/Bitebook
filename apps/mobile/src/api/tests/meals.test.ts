@@ -22,7 +22,7 @@ const meals = [
     ],
     name: 'Chicken bowl',
     isFavorite: true,
-    tags: ['high-protein'],
+    tagIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
     updatedAt: '2026-10-20T12:00:00.000Z',
     userId: 'user-123',
   },

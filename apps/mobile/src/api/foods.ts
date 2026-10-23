@@ -1,12 +1,13 @@
 import { foodSchema, type Food } from '@bitebook/domain';
 
-import type { FoodFormValues } from '~/models';
 import { authenticatedApiRequest } from './apiClient';
 
-type FoodUpdate = Partial<Pick<
+type FoodCreateInput = Pick<
   Food,
-  'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize' | 'tags'
->>;
+  'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize' | 'tagIds'
+>;
+
+type FoodUpdate = Partial<FoodCreateInput>;
 
 function parseFood(value: unknown): Food {
   if (!value || typeof value !== 'object') return foodSchema.parse(value);
@@ -27,7 +28,7 @@ export async function listFoods(): Promise<Food[]> {
 }
 
 /** Creates and validates one Food for the authenticated user. */
-export async function createFood(input: FoodFormValues): Promise<Food> {
+export async function createFood(input: FoodCreateInput): Promise<Food> {
   const response = await authenticatedApiRequest('foods', {
     body: JSON.stringify(input),
     headers: { 'content-type': 'application/json' },

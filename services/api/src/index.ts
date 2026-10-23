@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { DeleteCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
+import {
+  DeleteCommand,
+  TransactWriteCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { foodSchema, mealSchema, type Food } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
@@ -8,7 +12,7 @@ import type {
 } from 'aws-lambda';
 
 import { documentClient } from './dynamodb.js';
-import { getFood, listFoods, parseStoredFood } from './foodReads.js';
+import { getFood, listFoods } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
 import { createMeal, deleteMeal, updateMeal } from './mealWrites.js';
@@ -19,13 +23,14 @@ import {
   replaceFutureNutritionGoal,
 } from './nutritionGoals.js';
 import { getUserProfile, putUserProfile } from './userProfiles.js';
+import { createTag, getTagConditionChecks, listTags, updateTag } from './tags.js';
 
 const createFoodInputSchema = foodSchema.pick({
   isFavorite: true,
   name: true,
   nutritionFacts: true,
   servingSize: true,
-  tags: true,
+  tagIds: true,
 });
 const updateFoodInputSchema = createFoodInputSchema
   .partial()
@@ -84,43 +89,52 @@ async function updateFood(
     return jsonResponse(400, { message: 'Invalid food' });
   }
 
-  const fields = Object.entries({
+  const currentFood = await getFood(tableName, userId, id.data, true);
+  if (!currentFood) {
+    return jsonResponse(404, { message: 'Food not found' });
+  }
+  const updatedFood = foodSchema.parse({
+    ...currentFood,
     ...input.data,
     updatedAt: new Date().toISOString(),
   });
-  const expressionAttributeNames = Object.fromEntries(
-    fields.map(([name], index) => [`#field${index}`, name]),
-  );
-  const expressionAttributeValues = Object.fromEntries(
-    fields.map(([, value], index) => [`:value${index}`, value]),
-  );
+  const tagChecks = input.data.tagIds === undefined
+    ? []
+    : getTagConditionChecks(tableName, userId, updatedFood.tagIds);
 
   try {
-    const result = await documentClient.send(
-      new UpdateCommand({
-        ConditionExpression:
-          'attribute_exists(userId) AND attribute_exists(entityKey)',
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
-        Key: { entityKey: `FOOD#${id.data}`, userId },
-        ReturnValues: 'ALL_NEW',
-        TableName: tableName,
-        UpdateExpression: `SET ${fields
-          .map((_, index) => `#field${index} = :value${index}`)
-          .join(', ')}`,
+    await documentClient.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          ...tagChecks,
+          {
+            Put: {
+              ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+              ExpressionAttributeValues: {
+                ':expectedUpdatedAt': currentFood.updatedAt,
+              },
+              Item: { ...updatedFood, entityKey: `FOOD#${updatedFood.id}` },
+              TableName: tableName,
+            },
+          },
+        ],
       }),
     );
-
-    if (!result.Attributes) {
-      throw new Error('DynamoDB did not return the updated Food');
-    }
-    return jsonResponse(200, { food: parseStoredFood(result.Attributes) });
   } catch (error) {
-    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
-      return jsonResponse(404, { message: 'Food not found' });
+    if (error instanceof TransactionCanceledException) {
+      const failedCondition = error.CancellationReasons?.findIndex(
+        ({ Code }) => Code === 'ConditionalCheckFailed',
+      );
+      if (failedCondition !== undefined && failedCondition >= 0) {
+        return failedCondition < tagChecks.length
+          ? jsonResponse(400, { message: 'Food contains unavailable Tags' })
+          : jsonResponse(409, { message: 'Food changed; try again' });
+      }
     }
     throw error;
   }
+
+  return jsonResponse(200, { food: updatedFood });
 }
 
 /** Handles authenticated Bitebook API requests. */
@@ -137,6 +151,20 @@ export async function handler(
     throw new Error('USER_DATA_TABLE_NAME is not configured');
   }
 
+  if (event.routeKey === 'GET /tags') {
+    return jsonResponse(200, { tags: await listTags(tableName, subject) });
+  }
+  if (event.routeKey === 'POST /tags') {
+    return createTag(tableName, subject, event.body);
+  }
+  if (event.routeKey === 'PATCH /tags/{tagId}') {
+    return updateTag(
+      tableName,
+      subject,
+      event.pathParameters?.tagId,
+      event.body,
+    );
+  }
   if (event.routeKey === 'GET /nutrition-goals/effective') {
     return getEffectiveNutritionGoal(
       tableName,
@@ -246,14 +274,36 @@ export async function handler(
     userId: subject,
   });
 
-  await documentClient.send(
-    new PutCommand({
-      ConditionExpression:
-        'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
-      Item: { ...food, entityKey: `FOOD#${food.id}` },
-      TableName: tableName,
-    }),
-  );
+  const tagChecks = getTagConditionChecks(tableName, subject, food.tagIds);
+  try {
+    await documentClient.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          ...tagChecks,
+          {
+            Put: {
+              ConditionExpression:
+                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+              Item: { ...food, entityKey: `FOOD#${food.id}` },
+              TableName: tableName,
+            },
+          },
+        ],
+      }),
+    );
+  } catch (error) {
+    if (error instanceof TransactionCanceledException) {
+      const failedCondition = error.CancellationReasons?.findIndex(
+        ({ Code }) => Code === 'ConditionalCheckFailed',
+      );
+      if (failedCondition !== undefined && failedCondition >= 0) {
+        return failedCondition < tagChecks.length
+          ? jsonResponse(400, { message: 'Food contains unavailable Tags' })
+          : jsonResponse(409, { message: 'Food could not be created; try again' });
+      }
+    }
+    throw error;
+  }
 
   return jsonResponse(201, food);
 }

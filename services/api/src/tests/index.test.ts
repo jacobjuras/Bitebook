@@ -1,7 +1,9 @@
+import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
-  PutCommand,
-  UpdateCommand,
+  GetCommand,
+  QueryCommand,
+  TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { foodSchema } from '@bitebook/domain';
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
@@ -12,6 +14,7 @@ import {
   documentClientMock,
   resetDocumentClientMock,
   storedFood,
+  storedTag,
   validFoodInput,
 } from './fixtures.js';
 
@@ -27,6 +30,16 @@ function createEvent(
       authorizer: { jwt: { claims: subject ? { sub: subject } : {} } },
     },
   } as APIGatewayProxyEventV2WithJWTAuthorizer;
+}
+
+function cancelledAt(index: number, count: number): TransactionCanceledException {
+  return new TransactionCanceledException({
+    $metadata: {},
+    CancellationReasons: Array.from({ length: count }, (_, reasonIndex) => ({
+      Code: reasonIndex === index ? 'ConditionalCheckFailed' : 'None',
+    })),
+    message: 'cancelled',
+  });
 }
 
 describe('handler', () => {
@@ -61,6 +74,17 @@ describe('handler', () => {
     );
   });
 
+  it('lists durable Tags for the authenticated user', async () => {
+    documentClientMock.on(QueryCommand).resolves({
+      Items: [{ ...storedTag, entityKey: `TAG#${storedTag.id}` }],
+    });
+
+    const response = await handler(createEvent('GET /tags'));
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body ?? '')).toEqual({ tags: [storedTag] });
+  });
+
   it('creates a Food owned by the authenticated user', async () => {
     const response = await handler(createEvent(
       'POST /foods',
@@ -71,30 +95,43 @@ describe('handler', () => {
     expect(response.statusCode).toBe(201);
     expect(food).toMatchObject({ ...validFoodInput, userId: 'user-123' });
     expect(food.createdAt).toBe(food.updatedAt);
-    expect(documentClientMock.commandCalls(PutCommand)[0]?.args[0].input)
+    expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
       .toEqual({
-        ConditionExpression:
-          'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
-        Item: { ...food, entityKey: `FOOD#${food.id}` },
-        TableName: 'UserDataTable',
+        TransactItems: [
+          {
+            ConditionCheck: {
+              ConditionExpression:
+                'attribute_exists(userId) AND attribute_exists(entityKey)',
+              Key: {
+                entityKey: `TAG#${validFoodInput.tagIds[0]}`,
+                userId: 'user-123',
+              },
+              TableName: 'UserDataTable',
+            },
+          },
+          {
+            Put: {
+              ConditionExpression:
+                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+              Item: { ...food, entityKey: `FOOD#${food.id}` },
+              TableName: 'UserDataTable',
+            },
+          },
+        ],
       });
   });
 
-  it('creates normalized Food organization metadata', async () => {
+  it('rejects a Food with an unavailable Tag', async () => {
+    documentClientMock.on(TransactWriteCommand).rejects(cancelledAt(0, 2));
+
     const response = await handler(createEvent(
       'POST /foods',
-      JSON.stringify({
-        ...validFoodInput,
-        isFavorite: true,
-        tags: [' Breakfast ', 'HIGH-CARB', 'breakfast'],
-      }),
+      JSON.stringify({ ...validFoodInput, isFavorite: true }),
     ));
-    const food = foodSchema.parse(JSON.parse(response.body ?? ''));
 
-    expect(response.statusCode).toBe(201);
-    expect(food).toMatchObject({
-      isFavorite: true,
-      tags: ['breakfast', 'high-carb'],
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body ?? '')).toEqual({
+      message: 'Food contains unavailable Tags',
     });
   });
 
@@ -114,25 +151,25 @@ describe('handler', () => {
     const response = await handler(createEvent('POST /foods', body));
 
     expect(response.statusCode).toBe(400);
-    expect(documentClientMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(documentClientMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
-  it('updates mutable Food metadata', async () => {
+  it('updates mutable Food metadata with owned Tag references', async () => {
     const updatedFood = {
       ...storedFood,
       isFavorite: true,
       name: 'Rolled oats',
-      tags: ['breakfast', 'high-carb'],
+      updatedAt: '2026-10-19T07:00:00.000Z',
     };
-    documentClientMock.on(UpdateCommand).resolves({
-      Attributes: { ...updatedFood, entityKey: `FOOD#${storedFood.id}` },
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
     });
     const event = createEvent(
       'PATCH /foods/{foodId}',
       JSON.stringify({
         isFavorite: true,
         name: 'Rolled oats',
-        tags: [' Breakfast ', 'HIGH-CARB', 'breakfast'],
+        tagIds: storedFood.tagIds,
       }),
     );
     event.pathParameters = { foodId: storedFood.id };
@@ -141,20 +178,35 @@ describe('handler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body ?? '')).toEqual({ food: updatedFood });
-    expect(documentClientMock.commandCalls(UpdateCommand)[0]?.args[0].input)
-      .toMatchObject({
-        Key: { entityKey: `FOOD#${storedFood.id}`, userId: 'user-123' },
-        ReturnValues: 'ALL_NEW',
-        TableName: 'UserDataTable',
+    expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
+      .toEqual({
+        TransactItems: [
+          {
+            ConditionCheck: {
+              ConditionExpression:
+                'attribute_exists(userId) AND attribute_exists(entityKey)',
+              Key: {
+                entityKey: `TAG#${storedFood.tagIds[0]}`,
+                userId: 'user-123',
+              },
+              TableName: 'UserDataTable',
+            },
+          },
+          {
+            Put: {
+              ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+              ExpressionAttributeValues: {
+                ':expectedUpdatedAt': storedFood.updatedAt,
+              },
+              Item: {
+                ...updatedFood,
+                entityKey: `FOOD#${storedFood.id}`,
+              },
+              TableName: 'UserDataTable',
+            },
+          },
+        ],
       });
-    expect(Object.values(
-      documentClientMock.commandCalls(UpdateCommand)[0]?.args[0].input
-        .ExpressionAttributeValues ?? {},
-    )).toEqual(expect.arrayContaining([
-      true,
-      'Rolled oats',
-      ['breakfast', 'high-carb'],
-    ]));
   });
 
   it.each([
@@ -171,13 +223,10 @@ describe('handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(400);
-    expect(documentClientMock.commandCalls(UpdateCommand)).toHaveLength(0);
+    expect(documentClientMock.commandCalls(GetCommand)).toHaveLength(0);
   });
 
   it('returns not found when updating an absent Food', async () => {
-    const missing = new Error('missing');
-    missing.name = 'ConditionalCheckFailedException';
-    documentClientMock.on(UpdateCommand).rejects(missing);
     const event = createEvent(
       'PATCH /foods/{foodId}',
       JSON.stringify({ name: 'New name' }),
@@ -185,18 +234,35 @@ describe('handler', () => {
     event.pathParameters = { foodId: storedFood.id };
 
     await expect(handler(event)).resolves.toMatchObject({ statusCode: 404 });
+    expect(documentClientMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
-  it('fails when DynamoDB omits the updated Food', async () => {
+  it('rejects unavailable Tags during a Food update', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(cancelledAt(0, 2));
+    const event = createEvent(
+      'PATCH /foods/{foodId}',
+      JSON.stringify({ tagIds: storedFood.tagIds }),
+    );
+    event.pathParameters = { foodId: storedFood.id };
+
+    await expect(handler(event)).resolves.toMatchObject({ statusCode: 400 });
+  });
+
+  it('rejects a stale Food update', async () => {
+    documentClientMock.on(GetCommand).resolves({
+      Item: { ...storedFood, entityKey: `FOOD#${storedFood.id}` },
+    });
+    documentClientMock.on(TransactWriteCommand).rejects(cancelledAt(0, 1));
     const event = createEvent(
       'PATCH /foods/{foodId}',
       JSON.stringify({ name: 'New name' }),
     );
     event.pathParameters = { foodId: storedFood.id };
 
-    await expect(handler(event)).rejects.toThrow(
-      'DynamoDB did not return the updated Food',
-    );
+    await expect(handler(event)).resolves.toMatchObject({ statusCode: 409 });
   });
 
   it('deletes an existing Food', async () => {

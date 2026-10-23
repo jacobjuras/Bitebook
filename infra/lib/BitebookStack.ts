@@ -180,6 +180,8 @@ export class BitebookStack extends Stack {
       ['/nutrition-goals/{effectiveFrom}', [HttpMethod.DELETE, HttpMethod.PUT]],
       ['/nutrition-goals/effective', [HttpMethod.GET]],
       ['/profile', [HttpMethod.GET, HttpMethod.PUT]],
+      ['/tags', [HttpMethod.GET, HttpMethod.POST]],
+      ['/tags/{tagId}', [HttpMethod.PATCH]],
     ];
     for (const [path, methods] of routes) {
       api.addRoutes({

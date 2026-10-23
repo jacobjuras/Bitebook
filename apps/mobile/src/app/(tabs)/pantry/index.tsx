@@ -23,7 +23,6 @@ import type { SearchFilterSortModel } from '~/models';
 import { useThemeColors } from '~/theme';
 import {
   filterItems,
-  getAvailableTags,
   getContentState,
   getFoodCardItem,
   getMealCardItem,
@@ -32,7 +31,11 @@ import {
   sortItems,
 } from '~/utils';
 
-import { foodsQueryOptions, mealsQueryOptions } from '../../../query/pantryQueries';
+import {
+  foodsQueryOptions,
+  mealsQueryOptions,
+  tagsQueryOptions,
+} from '../../../query/pantryQueries';
 import { styles } from '../../../styles/pantry';
 
 export default function PantryScreen() {
@@ -46,24 +49,25 @@ export default function PantryScreen() {
     SortDirection.Descending,
   );
   const [filtersBySection, setFiltersBySection] = useState<
-    Record<PantrySection, { favorites: boolean; tags: string[] }>
+    Record<PantrySection, { favorites: boolean; tagIds: string[] }>
   >({
-    [PantrySection.Foods]: { favorites: false, tags: [] },
-    [PantrySection.Meals]: { favorites: false, tags: [] },
+    [PantrySection.Foods]: { favorites: false, tagIds: [] },
+    [PantrySection.Meals]: { favorites: false, tagIds: [] },
   });
   const foodsQuery = useQuery(foodsQueryOptions);
   const mealsQuery = useQuery(mealsQueryOptions);
+  const tagsQuery = useQuery(tagsQueryOptions);
   const foods = foodsQuery.data ?? [];
   const meals = mealsQuery.data ?? [];
+  const tags = tagsQuery.data ?? [];
   const foodsById = new Map(foods.map((food) => [food.id, food]));
+  const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
   const foodFilters = filtersBySection[PantrySection.Foods];
   const mealFilters = filtersBySection[PantrySection.Meals];
   const activeFilters = filtersBySection[selectedSection];
   const hasFoods = foods.length > 0;
   const hasMeals = meals.length > 0;
-  const availableTags = getAvailableTags(
-    selectedSection === PantrySection.Foods ? foods : meals,
-  );
+  const availableTags = tags;
   const visibleFoods = sortItems(
     filterItems(foods, {
       ...foodFilters,
@@ -84,18 +88,20 @@ export default function PantryScreen() {
   );
   const activeItemListProps = selectedSection === PantrySection.Foods
     ? {
-        items: visibleFoods.map(getFoodCardItem),
+        items: visibleFoods.map((food) => getFoodCardItem(food, tagsById)),
         itemTestIDPrefix: 'pantry-food',
         topPadding: 16,
       }
     : {
-        items: visibleMeals.map(getMealCardItem),
+        items: visibleMeals.map((meal) => getMealCardItem(meal, tagsById)),
         itemTestIDPrefix: 'pantry-meal',
         topPadding: 16,
       };
   const isPending = foodsQuery.isPending
+    || tagsQuery.isPending
     || (selectedSection === PantrySection.Meals && mealsQuery.isPending);
   const isError = foodsQuery.isError
+    || tagsQuery.isError
     || (selectedSection === PantrySection.Meals && mealsQuery.isError);
   const shouldAddFood = selectedSection === PantrySection.Foods || !hasFoods;
   const selectedSectionHasItems = selectedSection === PantrySection.Foods ? hasFoods : hasMeals;
@@ -117,7 +123,7 @@ export default function PantryScreen() {
   const clearFilters = () => {
     setFiltersBySection((filters) => ({
       ...filters,
-      [selectedSection]: { favorites: false, tags: [] },
+      [selectedSection]: { favorites: false, tagIds: [] },
     }));
   };
 
@@ -138,9 +144,9 @@ export default function PantryScreen() {
         ? { ...currentFilters, favorites: !currentFilters.favorites }
         : {
             ...currentFilters,
-            tags: currentFilters.tags.includes(filter.slice(4))
-              ? currentFilters.tags.filter((tag) => tag !== filter.slice(4))
-              : [...currentFilters.tags, filter.slice(4)],
+            tagIds: currentFilters.tagIds.includes(filter.slice(4))
+              ? currentFilters.tagIds.filter((tagId) => tagId !== filter.slice(4))
+              : [...currentFilters.tagIds, filter.slice(4)],
           };
 
       return { ...filters, [selectedSection]: updatedFilters };
@@ -150,6 +156,7 @@ export default function PantryScreen() {
   const retryLoading = () => {
     if (foodsQuery.isError) void foodsQuery.refetch();
     if (mealsQuery.isError) void mealsQuery.refetch();
+    if (tagsQuery.isError) void tagsQuery.refetch();
   };
 
   const noResultsState = selectedSection === PantrySection.Foods
@@ -175,9 +182,9 @@ export default function PantryScreen() {
           selected: activeFilters.favorites,
         },
         ...availableTags.map((tag) => ({
-          id: `tag:${tag}` as const,
-          label: tag,
-          selected: activeFilters.tags.includes(tag),
+          id: `tag:${tag.id}` as const,
+          label: tag.name,
+          selected: activeFilters.tagIds.includes(tag.id),
         })),
       ],
     },

@@ -13,9 +13,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   listFoods: vi.fn(),
   listMeals: vi.fn(),
+  listTags: vi.fn(),
   push: vi.fn(),
   refetchFoods: vi.fn(),
   refetchMeals: vi.fn(),
+  refetchTags: vi.fn(),
   useQuery: vi.fn(),
 }));
 
@@ -50,6 +52,11 @@ vi.mock('../../../../query/pantryQueries.js', () => ({
     queryKey: ['meals'],
     staleTime: Infinity,
   },
+  tagsQueryOptions: {
+    queryFn: mocks.listTags,
+    queryKey: ['tags'],
+    staleTime: Infinity,
+  },
 }));
 vi.mock('~/theme', () => ({
   useThemeColors: () => ({
@@ -67,6 +74,14 @@ vi.mock('~/theme', () => ({
 }));
 
 import PantryScreen from '../../../../app/(tabs)/pantry/index.js';
+import { tagFixtures } from '~/tests/fixtures/tags';
+
+const tags = [
+  tagFixtures.highProtein,
+  tagFixtures.savory,
+  tagFixtures.breakfast,
+  tagFixtures.unused,
+];
 
 const foods: Food[] = [
   {
@@ -76,7 +91,7 @@ const foods: Food[] = [
     name: 'Chicken breast',
     nutritionFacts: { caloriesKcal: 165, micronutrients: {}, proteinG: 31 },
     servingSize: { amount: 100, unit: 'g' as const },
-    tags: ['high-protein', 'savory'],
+    tagIds: [tags[0].id, tags[1].id],
     updatedAt: '2026-10-20T12:00:00.000Z',
     userId: 'user-123',
   },
@@ -87,7 +102,7 @@ const foods: Food[] = [
     name: 'Greek yogurt',
     nutritionFacts: { caloriesKcal: 100, micronutrients: {} },
     servingSize: { amount: 1, unit: 'item' as const },
-    tags: ['breakfast', 'high-protein'],
+    tagIds: [tags[2].id, tags[0].id],
     updatedAt: '2026-10-20T13:00:00.000Z',
     userId: 'user-123',
   },
@@ -101,7 +116,7 @@ const meals = [
       { foodId: foods[0].id, quantity: { amount: 100, unit: 'g' as const } },
     ],
     name: 'Chicken bowl',
-    tags: ['high-protein', 'savory'],
+    tagIds: [tags[0].id, tags[1].id],
     updatedAt: '2026-10-20T14:00:00.000Z',
     userId: 'user-123',
   },
@@ -114,7 +129,7 @@ const meals = [
     ],
     isFavorite: true,
     name: 'Chicken and yogurt',
-    tags: ['breakfast', 'high-protein'],
+    tagIds: [tags[2].id, tags[0].id],
     updatedAt: '2026-10-20T15:00:00.000Z',
     userId: 'user-123',
   },
@@ -129,15 +144,20 @@ type QueryResult<T> = {
 async function renderPantry({
   foodsResult = { data: foods, isError: false, isPending: false },
   mealsResult = { data: [], isError: false, isPending: false },
+  tagsResult = { data: tags, isError: false, isPending: false },
 }: {
   foodsResult?: QueryResult<typeof foods>;
   mealsResult?: QueryResult<typeof meals>;
+  tagsResult?: QueryResult<typeof tags>;
 } = {}) {
   mocks.useQuery.mockImplementation(({ queryKey }: { queryKey: string[] }) => {
     if (queryKey[0] === 'foods') {
       return { ...foodsResult, refetch: mocks.refetchFoods };
     }
-    return { ...mealsResult, refetch: mocks.refetchMeals };
+    if (queryKey[0] === 'meals') {
+      return { ...mealsResult, refetch: mocks.refetchMeals };
+    }
+    return { ...tagsResult, refetch: mocks.refetchTags };
   });
   await render(createElement(PantryScreen));
 }
@@ -172,6 +192,11 @@ describe('Pantry screen', () => {
     expect(mocks.useQuery).toHaveBeenCalledWith({
       queryFn: mocks.listMeals,
       queryKey: ['meals'],
+      staleTime: Infinity,
+    });
+    expect(mocks.useQuery).toHaveBeenCalledWith({
+      queryFn: mocks.listTags,
+      queryKey: ['tags'],
       staleTime: Infinity,
     });
     expect(screen.getByTestId('pantry-loading-indicator')).toBeTruthy();
@@ -220,6 +245,21 @@ describe('Pantry screen', () => {
     expect(mocks.refetchFoods).not.toHaveBeenCalled();
   });
 
+  it('renders the error state and retries a failed Tag query', async () => {
+    await renderPantry({
+      tagsResult: { isError: true, isPending: false },
+    });
+
+    expect(screen.getByTestId('pantry-error-message')).toHaveTextContent(
+      'Unable to load your pantry',
+    );
+    await fireEvent.press(screen.getByTestId('pantry-retry-button'));
+
+    expect(mocks.refetchTags).toHaveBeenCalledOnce();
+    expect(mocks.refetchFoods).not.toHaveBeenCalled();
+    expect(mocks.refetchMeals).not.toHaveBeenCalled();
+  });
+
   it('renders the empty Foods state and navigates to Food creation', async () => {
     await renderPantry({
       foodsResult: { data: [], isError: false, isPending: false },
@@ -244,6 +284,14 @@ describe('Pantry screen', () => {
     expect(screen.getByTestId('pantry-food-controls')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-search-input')).toBeTruthy();
     expect(screen.getByTestId('pantry-food-filter-sort-button')).toBeTruthy();
+    const filterActions = screen.getByTestId(
+      'pantry-food-filter-sort-menu',
+    ).props.actions[0].subactions;
+    expect(filterActions).toContainEqual({
+      id: `tag:${tags[3].id}`,
+      state: 'off',
+      title: 'unused',
+    });
     expect(screen.queryByTestId('pantry-food-sort-direction-button')).toBeNull();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}-card`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[0].id}-card-title`)).toHaveTextContent(
@@ -256,10 +304,10 @@ describe('Pantry screen', () => {
       `pantry-food-${foods[0].id}-favorite-indicator`,
     )).toBeNull();
     expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-chip-high-protein`,
+      `pantry-food-${foods[0].id}-chip-${tags[0].id}`,
     )).toHaveTextContent('high-protein');
     expect(screen.getByTestId(
-      `pantry-food-${foods[0].id}-chip-savory`,
+      `pantry-food-${foods[0].id}-chip-${tags[1].id}`,
     )).toHaveTextContent('savory');
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-card`)).toBeTruthy();
     expect(screen.getByTestId(`pantry-food-${foods[1].id}-card-title`)).toHaveTextContent(
@@ -321,7 +369,7 @@ describe('Pantry screen', () => {
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[1].id}`]);
 
     await fireEvent(filterSortMenu, 'pressAction', {
-      nativeEvent: { event: 'tag:high-protein' },
+      nativeEvent: { event: `tag:${tags[0].id}` },
     });
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[1].id}`]);
 
@@ -329,7 +377,7 @@ describe('Pantry screen', () => {
       nativeEvent: { event: 'favorites' },
     });
     await fireEvent(filterSortMenu, 'pressAction', {
-      nativeEvent: { event: 'tag:savory' },
+      nativeEvent: { event: `tag:${tags[1].id}` },
     });
     expect(renderedFoodCardIds()).toEqual([`pantry-food-${foods[0].id}`]);
   });
@@ -489,7 +537,7 @@ describe('Pantry screen', () => {
       screen.getByTestId(`pantry-meal-${meals[1].id}-ingredient-count`),
     ).toHaveTextContent('2 ingredients');
     expect(screen.getByTestId(
-      `pantry-meal-${meals[0].id}-chip-savory`,
+      `pantry-meal-${meals[0].id}-chip-${tags[1].id}`,
     )).toHaveTextContent('savory');
     expect(screen.queryByTestId(
       `pantry-meal-${meals[0].id}-favorite-indicator`,
@@ -538,7 +586,7 @@ describe('Pantry screen', () => {
     expect(renderedMealCardIds()).toEqual([`pantry-meal-${meals[1].id}`]);
 
     await fireEvent(filterSortMenu, 'pressAction', {
-      nativeEvent: { event: 'tag:high-protein' },
+      nativeEvent: { event: `tag:${tags[0].id}` },
     });
     expect(renderedMealCardIds()).toEqual([`pantry-meal-${meals[1].id}`]);
 

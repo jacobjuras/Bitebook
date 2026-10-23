@@ -6,4 +6,5 @@ export * from './mealEntry.js';
 export * from './nutrition.js';
 export * from './nutritionGoal.js';
 export * from './quantity.js';
+export * from './tag.js';
 export * from './userProfile.js';

@@ -11,10 +11,12 @@ import { mockClient } from 'aws-sdk-client-mock';
 
 export const documentClientMock = mockClient(DynamoDBDocumentClient);
 
+export const tagId = 'a62cb6cb-b601-45e9-a6e8-99b05fdbf71d';
 export const validFoodInput = {
   name: 'Oats',
   nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
   servingSize: { amount: 40, unit: 'g' as const },
+  tagIds: [tagId],
 };
 
 export const storedFood = {
@@ -34,6 +36,7 @@ export const mealInput = {
     },
   ],
   name: 'Breakfast',
+  tagIds: [tagId],
 };
 
 export const storedMeal = {
@@ -41,6 +44,16 @@ export const storedMeal = {
   createdAt: '2026-10-19T05:00:00.000Z',
   id: '1d78fb29-f8ce-47a3-9ab4-38e0dc705832',
   updatedAt: '2026-10-19T05:00:00.000Z',
+  userId: 'user-123',
+};
+
+export const storedTag = {
+  color: '#1A2B3C',
+  createdAt: '2026-10-19T05:30:00.000Z',
+  id: tagId,
+  name: 'protein',
+  normalizedName: 'protein',
+  updatedAt: '2026-10-19T05:30:00.000Z',
   userId: 'user-123',
 };
 
