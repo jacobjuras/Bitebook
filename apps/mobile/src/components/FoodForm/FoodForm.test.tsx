@@ -164,7 +164,7 @@ describe('FoodForm', () => {
     expect(screen.queryByTestId('food-form-show-tag-input-button')).toBeNull();
     expect(screen.queryByTestId('food-form-add-tag-button')).toBeNull();
 
-    await fireEvent.press(screen.getByTestId('food-form-cancel-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'blur');
 
     expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
     expect(screen.queryByTestId('food-form-tag-input')).toBeNull();
@@ -175,6 +175,8 @@ describe('FoodForm', () => {
     expect(StyleSheet.flatten(
       screen.getByTestId('food-form-tag-input').props.style,
     )).toMatchObject({ width: 76 });
+    await fireEvent.press(screen.getByTestId('food-form-cancel-tag-button'));
+    expect(screen.getByTestId('food-form-show-tag-input-button')).toBeTruthy();
   });
 
   it('renders staged new Tags with a dashed border', async () => {
@@ -197,8 +199,7 @@ describe('FoodForm', () => {
     expect(screen.queryByTestId('food-form-new-tag-high-protein')).toBeNull();
   });
 
-  it('suggests matching existing Tags and rejects creating a duplicate name', async () => {
-    const dismissKeyboard = vi.spyOn(Keyboard, 'dismiss');
+  it('suggests matching existing Tags and attaches an exact name match', async () => {
     const { fiber, protein } = tagFixtures;
     const onSubmit = vi.fn();
     await render(
@@ -221,16 +222,7 @@ describe('FoodForm', () => {
 
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Protein ');
     await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    expect(dismissKeyboard).toHaveBeenCalledOnce();
-    dismissKeyboard.mockRestore();
-    expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
-      'This tag already exists. Select it above.',
-    );
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input-container').props.style,
-    )).toMatchObject({ borderColor: 'danger' });
-
-    await fireEvent.press(screen.getByTestId(`food-form-available-tag-${protein.id}`));
+    expect(screen.queryByTestId('food-form-tag-error')).toBeNull();
     expect(StyleSheet.flatten(
       screen.getByTestId(`food-form-selected-tag-${protein.id}`).props.style,
     )).toMatchObject({ backgroundColor: 'accent-subtle' });
@@ -268,15 +260,23 @@ describe('FoodForm', () => {
   });
 
   it('rejects the reserved favorite tag and negative optional nutrition', async () => {
+    const dismissKeyboard = vi.spyOn(Keyboard, 'dismiss');
     const onSubmit = vi.fn();
     await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={onSubmit} />);
 
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'favorite');
     await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
+    expect(dismissKeyboard).toHaveBeenCalledOnce();
+    dismissKeyboard.mockRestore();
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'blur');
+    expect(screen.getByTestId('food-form-tag-input-container')).toBeTruthy();
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
       'Favorite is reserved for the favorite toggle',
     );
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input-container').props.style,
+    )).toMatchObject({ borderColor: 'danger' });
 
     await fireEvent.changeText(screen.getByTestId('food-form-name-input'), 'Oats');
     await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '1');

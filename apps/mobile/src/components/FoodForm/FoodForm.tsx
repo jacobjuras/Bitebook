@@ -8,7 +8,7 @@ import {
   type Tag,
   type Unit,
 } from '@bitebook/domain';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -62,6 +62,7 @@ export function FoodForm({
   onSubmit,
 }: FoodFormProps) {
   const colors = useThemeColors();
+  const preserveTagEditorOnBlurRef = useRef(false);
   const [name, setName] = useState('');
   const [servingAmount, setServingAmount] = useState('');
   const [servingUnit, setServingUnit] = useState<Unit>('g');
@@ -98,6 +99,7 @@ export function FoodForm({
   const selectableTags = matchingTags.length > 0 ? matchingTags : unselectedTags;
 
   function showTagError(message: string) {
+    preserveTagEditorOnBlurRef.current = true;
     Keyboard.dismiss();
     setTagError(message);
   }
@@ -114,10 +116,19 @@ export function FoodForm({
   }
 
   function cancelTag() {
+    preserveTagEditorOnBlurRef.current = false;
     setTagInput('');
     setTagInputWidth(TAG_INPUT_CHIP_MIN_WIDTH);
     setTagError(undefined);
     setIsAddingTag(false);
+  }
+
+  function handleTagInputBlur() {
+    if (preserveTagEditorOnBlurRef.current) {
+      preserveTagEditorOnBlurRef.current = false;
+      return;
+    }
+    cancelTag();
   }
 
   function selectExistingTag(tag: Tag) {
@@ -139,9 +150,11 @@ export function FoodForm({
       (tag) => tag.normalizedName === normalizedName,
     );
     if (existingTag) {
-      showTagError(selectedTagIds.includes(existingTag.id)
-        ? 'Tag already added'
-        : 'This tag already exists. Select it above.');
+      if (selectedTagIds.includes(existingTag.id)) {
+        showTagError('Tag already added');
+      } else {
+        selectExistingTag(existingTag);
+      }
       return;
     }
     if (newTags.some((tag) => normalizeTagName(tag.name) === normalizedName)) {
@@ -480,6 +493,7 @@ export function FoodForm({
                     setTagInput(value);
                     setTagError(undefined);
                   }}
+                  onBlur={handleTagInputBlur}
                   onSubmitEditing={addNewTag}
                   placeholder="Tag name"
                   returnKeyType="done"
