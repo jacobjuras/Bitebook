@@ -145,7 +145,7 @@ export class BitebookPipelineStack extends Stack {
       },
       commands: [
         'npm ci',
-        'npm run test:deployed --workspace @bitebook/integration-tests',
+        'npm test integ-tests',
       ],
       envFromCfnOutputs: {
         BITEBOOK_API_URL: beta.applicationStack.apiUrl,

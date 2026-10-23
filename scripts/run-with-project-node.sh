@@ -7,9 +7,20 @@ required_node_version="$(tr -d '[:space:]' < "$repository_root/.nvmrc")"
 nvm_script="${NVM_DIR:-$HOME/.nvm}/nvm.sh"
 
 current_node_version="$(node -p 'process.versions.node')"
+required_node_major="${required_node_version%%.*}"
+current_node_major="${current_node_version%%.*}"
 
-if [[ "$current_node_version" == "$required_node_version" ]]; then
+if [[ "$current_node_version" == "$required_node_version" ]] \
+  || [[ -n "${CODEBUILD_BUILD_ID:-}" && "$current_node_major" == "$required_node_major" ]]; then
   exec "$@"
+fi
+
+if [[ -n "${CODEBUILD_BUILD_ID:-}" ]]; then
+  printf 'CodeBuild requires Node %s.x but found %s. Check runtime-versions.\n' \
+    "$required_node_major" \
+    "$current_node_version" \
+    >&2
+  exit 1
 fi
 
 if [[ -s "$nvm_script" ]]; then

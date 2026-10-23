@@ -58,10 +58,11 @@ npm test app
 npm test domain
 npm test api
 npm test integ
+npm test integ-tests
 npm test infra
 ```
 
-`app` and `mobile` both select the `@bitebook/mobile` suite.
+`app` and `mobile` both select the `@bitebook/mobile` suite. `integ` runs the local integration harness tests; `integ-tests` discovers Beta resources and runs the deployed API suite.
 
 Run the Expo project checks:
 

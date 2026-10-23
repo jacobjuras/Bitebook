@@ -19,12 +19,15 @@ case "$suite" in
   integ)
     exec npm test --workspace @bitebook/integration-tests
     ;;
+  integ-tests)
+    exec bash "$script_directory/run-deployed-integration-tests.sh"
+    ;;
   infra)
     exec npm test --workspace @bitebook/infra
     ;;
   *)
     printf 'Unknown test suite: %s\n' "$suite" >&2
-    printf 'Choose one of: all, app, mobile, domain, api, integration, infra\n' >&2
+    printf 'Choose one of: all, app, mobile, domain, api, integ, integ-tests, infra\n' >&2
     exit 2
     ;;
 esac

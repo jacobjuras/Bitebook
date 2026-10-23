@@ -4,15 +4,22 @@ This package tests Bitebook through its deployed API Gateway endpoint. Ordinary 
 
 ## Run against a deployed stage
 
-Set the deployed API and temporary-user resource identifiers exported by the target Bitebook CloudFormation stack, then run the deployed suite:
+Run the deployed Beta suite from the repository root:
 
 ```bash
-BITEBOOK_API_URL="https://example.execute-api.us-east-1.amazonaws.com" \
-BITEBOOK_USER_POOL_ID="us-east-1_example" \
-BITEBOOK_USER_POOL_CLIENT_ID="exampleclientid" \
-BITEBOOK_USER_DATA_TABLE_NAME="Bitebook-Beta-UserDataTable" \
-  npm run test:deployed --workspace @bitebook/integration-tests
+npm test integ-tests
 ```
+
+The launcher defaults to the `bitebook-beta-conduit` AWS profile, `us-west-2`, and the `Bitebook-Beta` stack. Override them only when targeting another compatible environment:
+
+```bash
+AWS_PROFILE="another-profile" \
+AWS_REGION="us-west-2" \
+BITEBOOK_STACK_NAME="Bitebook-Beta" \
+  npm test integ-tests
+```
+
+The launcher discovers the API, User Pool, app client, and DynamoDB table from CloudFormation. CodeBuild supplies those values directly and does not use a local profile.
 
 The authenticated suite creates a temporary Cognito user, exercises only that user’s DynamoDB partition through the deployed API, and deletes both the partition data and user during teardown.
 
