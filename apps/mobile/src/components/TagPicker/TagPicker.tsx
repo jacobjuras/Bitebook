@@ -1,15 +1,12 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { normalizeTagName, type Tag } from '@bitebook/domain';
 import { useRef, useState } from 'react';
-import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 
 import {
-  TAG_INPUT_CHIP_MAX_WIDTH,
-  TAG_INPUT_CHIP_MIN_WIDTH,
   TAG_PICKER_MAX_TAGS,
   TagChipVariant,
 } from '~/constants';
-import type { TagPickerValue } from '~/models';
+import type { TagInputChipModel, TagPickerValue } from '~/models';
 import { useThemeColors } from '~/theme';
 import {
   getSelectableTags,
@@ -20,6 +17,7 @@ import {
 
 import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
 import { TagChip } from '../TagChip/TagChip';
+import { TagInputChip } from '../TagInputChip/TagInputChip';
 import { styles } from './styles';
 
 /** Selects existing Tags and stages new Tags for an atomic item submission. */
@@ -40,7 +38,6 @@ export function TagPicker({
   const preserveEditorOnBlurRef = useRef(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [tagInput, setTagInput] = useState('');
-  const [tagInputWidth, setTagInputWidth] = useState(TAG_INPUT_CHIP_MIN_WIDTH);
   const [tagError, setTagError] = useState<string>();
   const selectedTags = getSelectedTags(availableTags, value.tagIds);
   const selectableTags = getSelectableTags(
@@ -64,7 +61,6 @@ export function TagPicker({
   function cancelTag() {
     preserveEditorOnBlurRef.current = false;
     setTagInput('');
-    setTagInputWidth(TAG_INPUT_CHIP_MIN_WIDTH);
     setTagError(undefined);
     setIsAddingTag(false);
   }
@@ -117,6 +113,18 @@ export function TagPicker({
     onChange({ newTags: [], tagIds: [] });
     setTagError(undefined);
   }
+
+  const tagInputModel: TagInputChipModel = {
+    isInvalid: tagError !== undefined,
+    onBlur: handleTagInputBlur,
+    onCancel: cancelTag,
+    onChange: (input) => {
+      setTagInput(input);
+      setTagError(undefined);
+    },
+    onSubmit: addNewTag,
+    value: tagInput,
+  };
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-tag-picker`}>
@@ -192,69 +200,7 @@ export function TagPicker({
             <Text style={{ color: colors.textPrimary }}>+ Tag</Text>
           </Pressable>
         ) : (
-          <View
-            style={[
-              styles.tagInputChip,
-              {
-                backgroundColor: colors.background,
-                borderColor: tagError ? colors.danger : colors.border,
-              },
-            ]}
-            testID={`${testIDPrefix}-tag-input-container`}
-          >
-            <Text
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              onLayout={({ nativeEvent }) => {
-                setTagInputWidth(Math.min(
-                  TAG_INPUT_CHIP_MAX_WIDTH,
-                  Math.max(
-                    TAG_INPUT_CHIP_MIN_WIDTH,
-                    Math.ceil(nativeEvent.layout.width) + 4,
-                  ),
-                ));
-              }}
-              pointerEvents="none"
-              style={styles.tagInputMeasurement}
-              testID={`${testIDPrefix}-tag-input-measurement`}
-            >
-              {tagInput || 'Tag name'}
-            </Text>
-            <TextInput
-              accessibilityLabel="Optional tag"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-              maxLength={30}
-              onBlur={handleTagInputBlur}
-              onChangeText={(input) => {
-                setTagInput(input);
-                setTagError(undefined);
-              }}
-              onSubmitEditing={addNewTag}
-              placeholder="Tag name"
-              returnKeyType="done"
-              style={[
-                styles.tagChipInput,
-                { color: colors.textPrimary, width: tagInputWidth },
-              ]}
-              testID={`${testIDPrefix}-tag-input`}
-              value={tagInput}
-            />
-            <Pressable
-              accessibilityLabel="Cancel tag entry"
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={cancelTag}
-              style={({ pressed }) => [
-                styles.cancelTagButton,
-                pressed && styles.pressed,
-              ]}
-              testID={`${testIDPrefix}-cancel-tag-button`}
-            >
-              <Ionicons color={colors.textSecondary} name="close" size={14} />
-            </Pressable>
-          </View>
+          <TagInputChip model={tagInputModel} testIDPrefix={testIDPrefix} />
         )}
         {value.tagIds.length + value.newTags.length > 0 ? (
           <ClearAllButton

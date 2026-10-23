@@ -45,17 +45,9 @@ async function openInput() {
 }
 
 describe('TagPicker', () => {
-  it('opens a dynamic chip input and resets it on blur', async () => {
+  it('opens Tag input and resets it on blur', async () => {
     await render(<ControlledTagPicker />);
     const input = await openInput();
-    expect(input.props).toMatchObject({ autoFocus: true, returnKeyType: 'done' });
-    expect(StyleSheet.flatten(input.props.style)).toMatchObject({ fontSize: 14, width: 76 });
-    await fireEvent(
-      screen.getByTestId('picker-tag-input-measurement', { includeHiddenElements: true }),
-      'layout',
-      { nativeEvent: { layout: { width: 120 } } },
-    );
-    expect(StyleSheet.flatten(input.props.style)).toMatchObject({ width: 124 });
     await fireEvent.changeText(input, 'draft');
     await fireEvent(input, 'blur');
     expect(screen.queryByTestId('picker-tag-input')).toBeNull();
