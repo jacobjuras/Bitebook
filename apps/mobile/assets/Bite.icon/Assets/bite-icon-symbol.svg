@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <mask id="bite-symbol-mask" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+    <rect width="1024" height="1024" fill="black"/>
+    <path d="M402 249C402 207.579 368.421 174 327 174C285.579 174 252 207.579 252 249V775C252 816.421 285.579 850 327 850C368.421 850 402 816.421 402 775V249Z" fill="white"/>
+    <path d="M536 850C682.908 850 802 730.908 802 584C802 437.092 682.908 318 536 318C389.092 318 270 437.092 270 584C270 730.908 389.092 850 536 850Z" fill="white"/>
+    <path d="M536 696C597.856 696 648 645.856 648 584C648 522.144 597.856 472 536 472C474.144 472 424 522.144 424 584C424 645.856 474.144 696 536 696Z" fill="black"/>
+    <path d="M676 379C701.405 379 722 358.405 722 333C722 307.595 701.405 287 676 287C650.595 287 630 307.595 630 333C630 358.405 650.595 379 676 379Z" fill="black"/>
+    <path d="M727.5 444C755.39 444 778 421.39 778 393.5C778 365.61 755.39 343 727.5 343C699.61 343 677 365.61 677 393.5C677 421.39 699.61 444 727.5 444Z" fill="black"/>
+    <path d="M789.5 495C817.39 495 840 472.39 840 444.5C840 416.61 817.39 394 789.5 394C761.61 394 739 416.61 739 444.5C739 472.39 761.61 495 789.5 495Z" fill="black"/>
+    <path d="M887 480C913.51 480 935 458.51 935 432C935 405.49 913.51 384 887 384C860.49 384 839 405.49 839 432C839 458.51 860.49 480 887 480Z" fill="black"/>
+  </mask>
+  <rect width="1024" height="1024" fill="url(#bite-gradient)" mask="url(#bite-symbol-mask)"/>
+  <defs>
+    <linearGradient id="bite-gradient" x1="260" y1="210" x2="760" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2994FF"/>
+      <stop offset="1" stop-color="#0066DC"/>
+    </linearGradient>
+  </defs>
+</svg>
