@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -92,9 +93,14 @@ export function FoodForm({
     : unselectedTags;
   const selectableTags = matchingTags.length > 0 ? matchingTags : unselectedTags;
 
+  function showTagError(message: string) {
+    Keyboard.dismiss();
+    setTagError(message);
+  }
+
   function hasTagCapacity() {
     if (selectedTagIds.length + newTags.length < 10) return true;
-    setTagError('Foods can have up to 10 tags');
+    showTagError('Foods can have up to 10 tags');
     return false;
   }
 
@@ -120,7 +126,7 @@ export function FoodForm({
     const normalizedName = normalizeTagName(name);
     if (!normalizedName) return;
     if (normalizedName === 'favorite' || normalizedName === 'favorites') {
-      setTagError('Favorite is reserved for the favorite toggle');
+      showTagError('Favorite is reserved for the favorite toggle');
       return;
     }
 
@@ -128,13 +134,13 @@ export function FoodForm({
       (tag) => tag.normalizedName === normalizedName,
     );
     if (existingTag) {
-      setTagError(selectedTagIds.includes(existingTag.id)
+      showTagError(selectedTagIds.includes(existingTag.id)
         ? 'Tag already added'
         : 'This tag already exists. Select it above.');
       return;
     }
     if (newTags.some((tag) => normalizeTagName(tag.name) === normalizedName)) {
-      setTagError('Tag already added');
+      showTagError('Tag already added');
       return;
     }
     if (!hasTagCapacity()) return;

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { StyleSheet } from 'react-native';
+import { Keyboard, StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
@@ -163,6 +163,7 @@ describe('FoodForm', () => {
   });
 
   it('suggests matching existing Tags and rejects creating a duplicate name', async () => {
+    const dismissKeyboard = vi.spyOn(Keyboard, 'dismiss');
     const { fiber, protein } = tagFixtures;
     const onSubmit = vi.fn();
     await render(
@@ -185,6 +186,8 @@ describe('FoodForm', () => {
 
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Protein ');
     await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    expect(dismissKeyboard).toHaveBeenCalledOnce();
+    dismissKeyboard.mockRestore();
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
       'This tag already exists. Select it above.',
     );
