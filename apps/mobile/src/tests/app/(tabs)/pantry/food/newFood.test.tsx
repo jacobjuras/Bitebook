@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   back: vi.fn(),
   createFood: vi.fn(),
-  createTag: vi.fn(),
   ensureQueryData: vi.fn(),
   invalidateQueries: vi.fn(),
 }));
@@ -22,9 +21,6 @@ vi.mock('expo-router', () => ({
 }));
 vi.mock('../../../../../api/foods.js', () => ({
   createFood: mocks.createFood,
-}));
-vi.mock('../../../../../api/tags.js', () => ({
-  createTag: mocks.createTag,
 }));
 vi.mock('../../../../../query/pantryQueries.js', () => ({
   tagsQueryOptions: { queryKey: ['tags'] },
@@ -63,9 +59,8 @@ const createdFood: Food = {
 beforeEach(() => vi.clearAllMocks());
 
 describe('New Food route', () => {
-  it('resolves Tags, creates missing Tags, saves the Food, and returns', async () => {
+  it('submits existing and new Tags with the Food in one request', async () => {
     mocks.ensureQueryData.mockResolvedValue([proteinTag]);
-    mocks.createTag.mockResolvedValue(fiberTag);
     mocks.createFood.mockResolvedValue(createdFood);
     mocks.invalidateQueries.mockResolvedValue(undefined);
     await render(<NewFoodScreen />);
@@ -75,13 +70,14 @@ describe('New Food route', () => {
     });
 
     expect(mocks.ensureQueryData).toHaveBeenCalledWith({ queryKey: ['tags'] });
-    expect(mocks.createTag).toHaveBeenCalledWith({ name: 'fiber' });
+    expect(mocks.createFood).toHaveBeenCalledOnce();
     expect(mocks.createFood).toHaveBeenCalledWith({
       isFavorite: true,
       name: 'Oats',
+      newTags: [{ name: 'fiber' }],
       nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
       servingSize: { amount: 40, unit: 'g' },
-      tagIds: [proteinTag.id, fiberTag.id],
+      tagIds: [proteinTag.id],
     });
     expect(mocks.invalidateQueries).toHaveBeenNthCalledWith(1, {
       queryKey: ['tags'],
@@ -92,7 +88,7 @@ describe('New Food route', () => {
     expect(mocks.back).toHaveBeenCalledOnce();
   });
 
-  it('does not refresh Tags when every selected Tag already exists', async () => {
+  it('does not refresh Tags when every entered Tag already exists', async () => {
     mocks.ensureQueryData.mockResolvedValue([proteinTag]);
     mocks.createFood.mockResolvedValue(createdFood);
     mocks.invalidateQueries.mockResolvedValue(undefined);
@@ -105,7 +101,10 @@ describe('New Food route', () => {
       });
     });
 
-    expect(mocks.createTag).not.toHaveBeenCalled();
+    expect(mocks.createFood).toHaveBeenCalledWith(expect.objectContaining({
+      tagIds: [proteinTag.id],
+    }));
+    expect(mocks.createFood.mock.calls[0]?.[0]).not.toHaveProperty('newTags');
     expect(mocks.invalidateQueries).toHaveBeenCalledOnce();
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['foods'] });
   });
@@ -125,7 +124,6 @@ describe('New Food route', () => {
     });
 
     expect(mocks.ensureQueryData).not.toHaveBeenCalled();
-    expect(mocks.createTag).not.toHaveBeenCalled();
     expect(mocks.createFood).toHaveBeenCalledWith({
       isFavorite: false,
       name: 'Oats',
@@ -134,7 +132,7 @@ describe('New Food route', () => {
     });
   });
 
-  it('shows an error and remains on the form after creation fails', async () => {
+  it('shows an error and remains on the form after atomic creation fails', async () => {
     mocks.ensureQueryData.mockResolvedValue([proteinTag, fiberTag]);
     mocks.createFood.mockRejectedValue(new Error('unavailable'));
     await render(<NewFoodScreen />);

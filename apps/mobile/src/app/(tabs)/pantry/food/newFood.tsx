@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { createFood } from '../../../../api/foods';
-import { createTag } from '../../../../api/tags';
 import { tagsQueryOptions } from '../../../../query/pantryQueries';
 import { FoodForm } from '~/components';
 import type { FoodFormValues } from '~/models';
@@ -20,7 +19,7 @@ export default function NewFoodScreen() {
     setError(undefined);
     try {
       const tagIds: string[] = [];
-      let createdTag = false;
+      const newTags: { name: string }[] = [];
 
       if (tagNames && tagNames.length > 0) {
         const existingTags = await queryClient.ensureQueryData(tagsQueryOptions);
@@ -28,21 +27,21 @@ export default function NewFoodScreen() {
           existingTags.map((tag) => [tag.normalizedName, tag]),
         );
         for (const name of tagNames) {
-          let tag = tagsByName.get(normalizeTagName(name));
-          if (!tag) {
-            tag = await createTag({ name });
-            tagsByName.set(tag.normalizedName, tag);
-            createdTag = true;
+          const tag = tagsByName.get(normalizeTagName(name));
+          if (tag) {
+            tagIds.push(tag.id);
+          } else {
+            newTags.push({ name });
           }
-          tagIds.push(tag.id);
         }
       }
 
       await createFood({
         ...food,
+        ...(newTags.length > 0 ? { newTags } : {}),
         ...(tagIds.length > 0 ? { tagIds } : {}),
       });
-      if (createdTag) {
+      if (newTags.length > 0) {
         await queryClient.invalidateQueries({ queryKey: ['tags'] });
       }
       await queryClient.invalidateQueries({ queryKey: ['foods'] });

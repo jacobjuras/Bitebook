@@ -11,6 +11,7 @@ describe('domain public API', () => {
         'calendarMealSchema',
         'convertQuantity',
         'findEffectiveNutritionGoal',
+        'foodCreateInputSchema',
         'foodSchema',
         'getMeasurementFamily',
         'groupCalendarMeals',

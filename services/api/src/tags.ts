@@ -21,6 +21,51 @@ function tagNameEntityKey(name: string): string {
   return `TAG_NAME#${name}`;
 }
 
+/** Creates a validated Tag record with server-owned identity and timestamps. */
+export function createTagRecord(
+  userId: string,
+  input: Pick<Tag, 'color' | 'name'>,
+  timestamp: string,
+): Tag {
+  return tagSchema.parse({
+    ...input,
+    createdAt: timestamp,
+    id: randomUUID(),
+    normalizedName: normalizeTagName(input.name),
+    updatedAt: timestamp,
+    userId,
+  });
+}
+
+/** Builds the two transactional writes that persist a Tag and reserve its name. */
+export function getCreateTagTransactItems(
+  tableName: string,
+  tag: Tag,
+) {
+  return [
+    {
+      Put: {
+        ConditionExpression:
+          'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+        Item: { ...tag, entityKey: `TAG#${tag.id}` },
+        TableName: tableName,
+      },
+    },
+    {
+      Put: {
+        ConditionExpression:
+          'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
+        Item: {
+          entityKey: tagNameEntityKey(tag.normalizedName),
+          tagId: tag.id,
+          userId: tag.userId,
+        },
+        TableName: tableName,
+      },
+    },
+  ];
+}
+
 /** Builds transactional checks that require every Tag to belong to the user. */
 export function getTagConditionChecks(
   tableName: string,
@@ -89,40 +134,12 @@ export async function createTag(
   }
 
   const timestamp = new Date().toISOString();
-  const tag = tagSchema.parse({
-    ...input.data,
-    createdAt: timestamp,
-    id: randomUUID(),
-    normalizedName: normalizeTagName(input.data.name),
-    updatedAt: timestamp,
-    userId,
-  });
+  const tag = createTagRecord(userId, input.data, timestamp);
 
   try {
     await documentClient.send(
       new TransactWriteCommand({
-        TransactItems: [
-          {
-            Put: {
-              ConditionExpression:
-                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
-              Item: { ...tag, entityKey: `TAG#${tag.id}` },
-              TableName: tableName,
-            },
-          },
-          {
-            Put: {
-              ConditionExpression:
-                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
-              Item: {
-                entityKey: tagNameEntityKey(tag.normalizedName),
-                tagId: tag.id,
-                userId,
-              },
-              TableName: tableName,
-            },
-          },
-        ],
+        TransactItems: getCreateTagTransactItems(tableName, tag),
       }),
     );
   } catch (error) {
