@@ -1,4 +1,11 @@
-import { CfnParameter, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import {
+  ArnFormat,
+  CfnParameter,
+  Duration,
+  RemovalPolicy,
+  Stack,
+  type StackProps,
+} from 'aws-cdk-lib';
 import { BuildSpec, CfnProject, LinuxBuildImage, Project } from 'aws-cdk-lib/aws-codebuild';
 import {
   CfnPipeline,
@@ -142,12 +149,58 @@ export class BitebookPipelineStack extends Stack {
       ],
       envFromCfnOutputs: {
         BITEBOOK_API_URL: beta.applicationStack.apiUrl,
+        BITEBOOK_USER_DATA_TABLE_NAME: beta.applicationStack.userDataTableName,
+        BITEBOOK_USER_POOL_CLIENT_ID: beta.applicationStack.userPoolClientId,
+        BITEBOOK_USER_POOL_ID: beta.applicationStack.userPoolId,
       },
       input: source,
       logging: { cloudWatch: { logGroup: buildLogGroup } },
       partialBuildSpec: BuildSpec.fromObject({
         phases: { install: { 'runtime-versions': { nodejs: 24 } } },
       }),
+      // @secure_recommendation: Limit deployed tests to temporary users and their isolated data cleanup.
+      rolePolicyStatements: [
+        new PolicyStatement({
+          actions: [
+            'cognito-idp:AdminCreateUser',
+            'cognito-idp:AdminDeleteUser',
+            'cognito-idp:AdminSetUserPassword',
+          ],
+          conditions: {
+            StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+          },
+          resources: [this.formatArn({
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            resource: 'userpool',
+            resourceName: '*',
+            service: 'cognito-idp',
+          })],
+        }),
+        new PolicyStatement({
+          actions: ['dynamodb:Query', 'dynamodb:TransactWriteItems'],
+          conditions: {
+            StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+          },
+          resources: [this.formatArn({
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            resource: 'table',
+            resourceName: '*',
+            service: 'dynamodb',
+          })],
+        }),
+        new PolicyStatement({
+          actions: ['kms:Decrypt'],
+          conditions: {
+            StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+          },
+          resources: [this.formatArn({
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            resource: 'key',
+            resourceName: '*',
+            service: 'kms',
+          })],
+        }),
+      ],
       timeout: Duration.minutes(10),
     });
     const mobileUiTests = new CodeBuildStep('MobileUiTests', {

@@ -91,7 +91,59 @@ describe('BitebookPipelineStack', () => {
     const renderedPipeline = JSON.stringify(pipelines);
     expect(renderedPipeline).toContain('DeployedApiTests');
     expect(renderedPipeline).toContain('BITEBOOK_API_URL');
+    expect(renderedPipeline).toContain('BITEBOOK_USER_DATA_TABLE_NAME');
+    expect(renderedPipeline).toContain('BITEBOOK_USER_POOL_CLIENT_ID');
+    expect(renderedPipeline).toContain('BITEBOOK_USER_POOL_ID');
     expect(renderedPipeline).toContain('.ApiUrl}');
+    expect(renderedPipeline).toContain('.UserDataTableName}');
+    expect(renderedPipeline).toContain('.UserPoolClientId}');
+    expect(renderedPipeline).toContain('.UserPoolId}');
+  });
+
+
+  it('limits deployed test access to tagged Beta resources', () => {
+    const policies = Object.values(template.findResources('AWS::IAM::Policy'));
+    const deployedTestPolicy = policies.find((policy) =>
+      JSON.stringify(policy).includes('DeployedApiTestsRole'),
+    );
+
+    expect(deployedTestPolicy).toMatchObject({
+      Properties: {
+        PolicyDocument: {
+          Statement: expect.arrayContaining([
+            expect.objectContaining({
+              Action: [
+                'cognito-idp:AdminCreateUser',
+                'cognito-idp:AdminDeleteUser',
+                'cognito-idp:AdminSetUserPassword',
+              ],
+              Condition: {
+                StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+              },
+              Effect: 'Allow',
+            }),
+            expect.objectContaining({
+              Action: ['dynamodb:Query', 'dynamodb:TransactWriteItems'],
+              Condition: {
+                StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+              },
+              Effect: 'Allow',
+            }),
+            expect.objectContaining({
+              Action: 'kms:Decrypt',
+              Condition: {
+                StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+              },
+              Effect: 'Allow',
+            }),
+          ]),
+        },
+      },
+    });
+    const policyText = JSON.stringify(deployedTestPolicy);
+    expect(policyText).toContain('userpool/*');
+    expect(policyText).toContain('table/*');
+    expect(policyText).toContain('key/*');
   });
 
   it('skips mobile UI tests until their runner is configured', () => {

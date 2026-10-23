@@ -38,6 +38,7 @@ export class BitebookApplicationStage extends Stage {
     // @secure_recommendation: Label each deployment so production and non-production resources remain distinguishable.
     this.applicationStack = new BitebookStack(this, 'Application', {
       cognitoDomainPrefix,
+      deploymentStage: label,
       stackName: `Bitebook-${label}`,
       tags: { DeploymentStage: label },
     });

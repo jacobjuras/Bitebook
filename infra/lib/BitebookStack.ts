@@ -5,6 +5,7 @@ import {
   Duration,
   RemovalPolicy,
   Stack,
+  Tags,
   type StackProps,
 } from 'aws-cdk-lib';
 import { AccessLogFormat } from 'aws-cdk-lib/aws-apigateway';
@@ -42,10 +43,14 @@ import type { Construct } from 'constructs';
 
 export interface BitebookStackProps extends StackProps {
   cognitoDomainPrefix: string;
+  deploymentStage: string;
 }
 
 export class BitebookStack extends Stack {
   readonly apiUrl: CfnOutput;
+  readonly userDataTableName: CfnOutput;
+  readonly userPoolClientId: CfnOutput;
+  readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: BitebookStackProps) {
     super(scope, id, props);
@@ -55,6 +60,7 @@ export class BitebookStack extends Stack {
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.RETAIN,
     });
+    Tags.of(userDataKey).add('DeploymentStage', props.deploymentStage);
 
     // @secure_recommendation: Preserve data through accidental deletion and support point-in-time recovery.
     const userDataTable = new Table(this, 'UserDataTable', {
@@ -69,6 +75,7 @@ export class BitebookStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
       sortKey: { name: 'entityKey', type: AttributeType.STRING },
     });
+    Tags.of(userDataTable).add('DeploymentStage', props.deploymentStage);
 
     // @secure_recommendation: Retain structured Lambda logs for security investigations.
     const apiLogGroup = new LogGroup(this, 'ApiFunctionLogGroup', {
@@ -132,6 +139,7 @@ export class BitebookStack extends Stack {
         email: { mutable: true, required: true },
       },
     });
+    Tags.of(userPool).add('DeploymentStage', props.deploymentStage);
 
     const userPoolDomain = userPool.addDomain('Domain', {
       cognitoDomain: { domainPrefix: props.cognitoDomainPrefix },
@@ -218,8 +226,13 @@ export class BitebookStack extends Stack {
     });
     new CfnOutput(this, 'CognitoRegion', { value: Aws.REGION });
     new CfnOutput(this, 'CognitoUrl', { value: userPoolDomain.baseUrl() });
-    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
-    new CfnOutput(this, 'UserPoolClientId', {
+    this.userDataTableName = new CfnOutput(this, 'UserDataTableName', {
+      value: userDataTable.tableName,
+    });
+    this.userPoolId = new CfnOutput(this, 'UserPoolId', {
+      value: userPool.userPoolId,
+    });
+    this.userPoolClientId = new CfnOutput(this, 'UserPoolClientId', {
       value: mobileAppClient.userPoolClientId,
     });
   }
