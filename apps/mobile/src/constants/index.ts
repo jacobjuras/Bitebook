@@ -5,6 +5,11 @@ export {
   foodNutrientFields,
   foodServingUnits,
 } from './food-form-constants';
+export {
+  TAG_INPUT_CHIP_MAX_WIDTH,
+  TAG_INPUT_CHIP_MIN_WIDTH,
+  TAG_PICKER_MAX_TAGS,
+} from './tag-picker-constants';
 export { mealEmptyStates, mealNoResultsState } from './meal-constants';
 export { PantrySection, pantrySectionLabels } from './pantry-constants';
 export {
