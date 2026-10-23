@@ -9,6 +9,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
+  availableTagChip: {
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   cancelTagButton: {
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -41,6 +49,10 @@ export const styles = StyleSheet.create({
   },
   linkText: { fontSize: 15, fontWeight: '500' },
   numberField: { justifyContent: 'center' },
+  newTagChip: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+  },
   optionalNutrition: { gap: 10 },
   pressed: { opacity: 0.65 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 10 },

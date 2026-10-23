@@ -6,26 +6,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   back: vi.fn(),
   createFood: vi.fn(),
-  ensureQueryData: vi.fn(),
   invalidateQueries: vi.fn(),
+  refetch: vi.fn(),
+  tagsQuery: { data: [] as unknown[], isError: false, isPending: false },
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({
-    ensureQueryData: mocks.ensureQueryData,
-    invalidateQueries: mocks.invalidateQueries,
-  }),
+  useQuery: () => mocks.tagsQuery,
+  useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
 }));
-vi.mock('expo-router', () => ({
-  useRouter: () => ({ back: mocks.back }),
-}));
-vi.mock('../../../../../api/foods.js', () => ({
-  createFood: mocks.createFood,
-}));
+vi.mock('expo-router', () => ({ useRouter: () => ({ back: mocks.back }) }));
+vi.mock('../../../../../api/foods.js', () => ({ createFood: mocks.createFood }));
 vi.mock('../../../../../query/pantryQueries.js', () => ({
   tagsQueryOptions: { queryKey: ['tags'] },
 }));
 vi.mock('~/components', () => ({
+  ContentStateView: (props: object) => createElement('ContentStateView', {
+    ...props,
+    testID: 'content-state',
+  }),
   FoodForm: (props: object) => createElement('FoodForm', {
     ...props,
     testID: 'food-form',
@@ -33,52 +32,54 @@ vi.mock('~/components', () => ({
 }));
 
 import NewFoodScreen from '../../../../../app/(tabs)/pantry/food/newFood.js';
+import { ContentStateKind } from '~/constants';
 import { tagFixtures } from '~/tests/fixtures/tags';
 
-const proteinTag = tagFixtures.protein;
-const fiberTag = tagFixtures.fiber;
+const { fiber, protein } = tagFixtures;
 const foodInput = {
   isFavorite: true,
   name: 'Oats',
+  newTags: [{ name: 'fiber' }],
   nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
   servingSize: { amount: 40, unit: 'g' as const },
-  tagNames: ['protein', 'fiber'],
+  tagIds: [protein.id],
 };
 const createdFood: Food = {
   createdAt: '2026-10-22T12:00:00.000Z',
   id: '11111111-1111-4111-8111-111111111111',
-  isFavorite: foodInput.isFavorite,
-  name: foodInput.name,
+  isFavorite: true,
+  name: 'Oats',
   nutritionFacts: foodInput.nutritionFacts,
   servingSize: foodInput.servingSize,
-  tagIds: [proteinTag.id, fiberTag.id],
+  tagIds: [protein.id, fiber.id],
   updatedAt: '2026-10-22T12:00:00.000Z',
   userId: 'user-123',
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  Object.assign(mocks.tagsQuery, {
+    data: [protein, fiber],
+    isError: false,
+    isPending: false,
+    refetch: mocks.refetch,
+  });
+});
 
 describe('New Food route', () => {
-  it('submits existing and new Tags with the Food in one request', async () => {
-    mocks.ensureQueryData.mockResolvedValue([proteinTag]);
+  it('loads available Tags and submits the atomic form values unchanged', async () => {
     mocks.createFood.mockResolvedValue(createdFood);
     mocks.invalidateQueries.mockResolvedValue(undefined);
     await render(<NewFoodScreen />);
 
+    expect(screen.getByTestId('food-form').props.availableTags)
+      .toEqual([protein, fiber]);
     await act(async () => {
       await screen.getByTestId('food-form').props.onSubmit(foodInput);
     });
 
-    expect(mocks.ensureQueryData).toHaveBeenCalledWith({ queryKey: ['tags'] });
     expect(mocks.createFood).toHaveBeenCalledOnce();
-    expect(mocks.createFood).toHaveBeenCalledWith({
-      isFavorite: true,
-      name: 'Oats',
-      newTags: [{ name: 'fiber' }],
-      nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
-      servingSize: { amount: 40, unit: 'g' },
-      tagIds: [proteinTag.id],
-    });
+    expect(mocks.createFood).toHaveBeenCalledWith(foodInput);
     expect(mocks.invalidateQueries).toHaveBeenNthCalledWith(1, {
       queryKey: ['tags'],
     });
@@ -88,8 +89,7 @@ describe('New Food route', () => {
     expect(mocks.back).toHaveBeenCalledOnce();
   });
 
-  it('does not refresh Tags when every entered Tag already exists', async () => {
-    mocks.ensureQueryData.mockResolvedValue([proteinTag]);
+  it('refreshes only Foods when no new Tag was created', async () => {
     mocks.createFood.mockResolvedValue(createdFood);
     mocks.invalidateQueries.mockResolvedValue(undefined);
     await render(<NewFoodScreen />);
@@ -97,43 +97,15 @@ describe('New Food route', () => {
     await act(async () => {
       await screen.getByTestId('food-form').props.onSubmit({
         ...foodInput,
-        tagNames: ['protein'],
+        newTags: undefined,
       });
     });
 
-    expect(mocks.createFood).toHaveBeenCalledWith(expect.objectContaining({
-      tagIds: [proteinTag.id],
-    }));
-    expect(mocks.createFood.mock.calls[0]?.[0]).not.toHaveProperty('newTags');
     expect(mocks.invalidateQueries).toHaveBeenCalledOnce();
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['foods'] });
   });
 
-  it('does not load Tags when creating an untagged Food', async () => {
-    mocks.createFood.mockResolvedValue(createdFood);
-    mocks.invalidateQueries.mockResolvedValue(undefined);
-    await render(<NewFoodScreen />);
-
-    await act(async () => {
-      await screen.getByTestId('food-form').props.onSubmit({
-        isFavorite: false,
-        name: 'Oats',
-        nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
-        servingSize: { amount: 40, unit: 'g' },
-      });
-    });
-
-    expect(mocks.ensureQueryData).not.toHaveBeenCalled();
-    expect(mocks.createFood).toHaveBeenCalledWith({
-      isFavorite: false,
-      name: 'Oats',
-      nutritionFacts: { caloriesKcal: 150, micronutrients: {} },
-      servingSize: { amount: 40, unit: 'g' },
-    });
-  });
-
   it('shows an error and remains on the form after atomic creation fails', async () => {
-    mocks.ensureQueryData.mockResolvedValue([proteinTag, fiberTag]);
     mocks.createFood.mockRejectedValue(new Error('unavailable'));
     await render(<NewFoodScreen />);
 
@@ -147,5 +119,27 @@ describe('New Food route', () => {
     expect(screen.getByTestId('food-form').props.isSubmitting).toBe(false);
     expect(mocks.invalidateQueries).not.toHaveBeenCalled();
     expect(mocks.back).not.toHaveBeenCalled();
+  });
+
+  it('waits for the Tag registry before rendering the form', async () => {
+    Object.assign(mocks.tagsQuery, { data: undefined, isPending: true });
+    await render(<NewFoodScreen />);
+
+    expect(screen.getByTestId('content-state').props.state)
+      .toEqual({ kind: ContentStateKind.Loading });
+    expect(screen.queryByTestId('food-form')).toBeNull();
+  });
+
+  it('offers a retry when the Tag registry cannot load', async () => {
+    Object.assign(mocks.tagsQuery, { data: undefined, isError: true });
+    await render(<NewFoodScreen />);
+
+    const state = screen.getByTestId('content-state').props.state;
+    expect(state).toMatchObject({
+      kind: ContentStateKind.Error,
+      message: 'Unable to load Tags.',
+    });
+    state.onRetry();
+    expect(mocks.refetch).toHaveBeenCalledOnce();
   });
 });

@@ -175,7 +175,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [x] Share favorite state across Foods and Meals and attach durable Tags by stable ID.
 - [x] Display Food and Meal favorites and support Favorites/custom-tag filtering.
 - [x] Build manual Food creation, including favorite fields and atomic durable Tag creation.
-- [ ] Add existing Tag selection to Food creation.
+- [x] Add existing Tag selection to Food creation.
 - [ ] Build Tag management in the Me tab, including creation, renaming, and color editing.
 - [ ] Build Food details and metadata editing, including favorites and tags.
 - [ ] Build the Food deletion interface.
