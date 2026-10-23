@@ -77,7 +77,7 @@ describe('FoodForm', () => {
 
     expect(screen.getByTestId('food-form-nutrition-heading'))
       .toHaveTextContent('NUTRITION');
-    expect(screen.getByTestId('food-form-tag-heading')).toHaveTextContent('TAG');
+    expect(screen.getByTestId('food-form-tag-heading')).toHaveTextContent('TAGS');
     expect(screen.getByTestId('food-form-favorite-label'))
       .toHaveTextContent('Add to favorites');
     expect(screen.getByTestId('food-form-favorite-switch').props)
@@ -186,7 +186,7 @@ describe('FoodForm', () => {
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Protein ');
     await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
-      'This Tag already exists. Select it above.',
+      'This tag already exists. Select it above.',
     );
     expect(StyleSheet.flatten(
       screen.getByTestId('food-form-tag-input-container').props.style,
@@ -230,6 +230,21 @@ describe('FoodForm', () => {
     expect(screen.getByTestId('food-form-error')).toHaveTextContent(
       'Nutrition values must be zero or greater',
     );
+  });
+
+  it('does not open Tag entry after ten Tags have been added', async () => {
+    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
+
+    for (let index = 0; index < 10; index += 1) {
+      await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
+      await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), `tag-${index}`);
+      await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    }
+    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
+
+    expect(screen.queryByTestId('food-form-tag-editor')).toBeNull();
+    expect(screen.getByTestId('food-form-tag-error'))
+      .toHaveTextContent('Foods can have up to 10 tags');
   });
 
   it('disables saving and displays progress while submitting', async () => {
