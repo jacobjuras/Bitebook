@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { FoodFormValues } from '~/models';
 const mocks = vi.hoisted(() => ({
   authenticatedApiRequest: vi.fn(),
 }));
@@ -8,7 +9,7 @@ vi.mock('../apiClient.js', () => ({
   authenticatedApiRequest: mocks.authenticatedApiRequest,
 }));
 
-import { listFoods, updateFood } from '../foods.js';
+import { createFood, listFoods, updateFood } from '../foods.js';
 
 const foods = [
   {
@@ -89,6 +90,40 @@ describe('Foods API', () => {
     );
 
     await expect(listFoods()).rejects.toThrow();
+  });
+
+  it('creates and validates a Food', async () => {
+    mocks.authenticatedApiRequest.mockResolvedValue(
+      new Response(JSON.stringify(foods[0])),
+    );
+    const input: FoodFormValues = {
+      isFavorite: true,
+      name: 'Chicken breast',
+      nutritionFacts: {
+        caloriesKcal: 165,
+        micronutrients: {},
+        proteinG: 31,
+      },
+      servingSize: { amount: 100, unit: 'g' },
+      tags: ['high-protein'],
+    };
+
+    await expect(createFood(input)).resolves.toEqual(foods[0]);
+    expect(mocks.authenticatedApiRequest).toHaveBeenCalledWith('foods', {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+  });
+
+  it('rejects an invalid Food creation response', async () => {
+    mocks.authenticatedApiRequest.mockResolvedValue(new Response('{}'));
+
+    await expect(createFood({
+      name: 'Invalid response',
+      nutritionFacts: { caloriesKcal: 100, micronutrients: {} },
+      servingSize: { amount: 1, unit: 'item' },
+    })).rejects.toThrow();
   });
 
   it('updates Food organization metadata', async () => {

@@ -1,5 +1,6 @@
 import { foodSchema, type Food } from '@bitebook/domain';
 
+import type { FoodFormValues } from '~/models';
 import { authenticatedApiRequest } from './apiClient';
 
 type FoodUpdate = Partial<Pick<
@@ -23,6 +24,16 @@ export async function listFoods(): Promise<Food[]> {
   }
   if (!Array.isArray(body.foods)) return foodSchema.array().parse(body.foods);
   return body.foods.map(parseFood);
+}
+
+/** Creates and validates one Food for the authenticated user. */
+export async function createFood(input: FoodFormValues): Promise<Food> {
+  const response = await authenticatedApiRequest('foods', {
+    body: JSON.stringify(input),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  });
+  return parseFood(await response.json());
 }
 
 /** Updates mutable metadata for one authenticated user's Food. */
