@@ -44,8 +44,12 @@ describe('FoodForm', () => {
     expect(screen.getByTestId('food-form-title')).toHaveTextContent('Add food');
     expect(screen.getByTestId('food-form-scroll-view').props)
       .toMatchObject({ contentInsetAdjustmentBehavior: 'automatic' });
-    expect(screen.getByTestId('food-form-name-input').props)
-      .toMatchObject({ accessibilityLabel: 'Food name, required' });
+    expect(screen.getByTestId('food-form-name-input').props).toMatchObject({
+      accessibilityLabel: 'Food name, required',
+      onSubmitEditing: expect.any(Function),
+      returnKeyType: 'next',
+      submitBehavior: 'submit',
+    });
     expect(screen.getByTestId('food-form-serving-amount-input').props)
       .toMatchObject({ accessibilityLabel: 'Serving amount, required' });
     expect(screen.getByTestId('food-form-calories-input').props)

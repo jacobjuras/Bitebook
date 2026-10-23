@@ -7,7 +7,7 @@ import {
   type Tag,
   type Unit,
 } from '@bitebook/domain';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -18,6 +18,7 @@ import {
   Text,
   TextInput,
   View,
+  type TextInputInstance,
 } from 'react-native';
 
 import {
@@ -57,6 +58,7 @@ export function FoodForm({
   onSubmit,
 }: FoodFormProps) {
   const colors = useThemeColors();
+  const servingAmountInputRef = useRef<TextInputInstance>(null);
   const [name, setName] = useState('');
   const [servingAmount, setServingAmount] = useState('');
   const [servingUnit, setServingUnit] = useState<Unit>('g');
@@ -147,7 +149,10 @@ export function FoodForm({
             autoCapitalize="words"
             maxLength={100}
             onChangeText={setName}
+            onSubmitEditing={() => servingAmountInputRef.current?.focus()}
             placeholder="Food name"
+            returnKeyType="next"
+            submitBehavior="submit"
             style={[
               styles.input,
               { backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary },
@@ -161,6 +166,7 @@ export function FoodForm({
               keyboardType="decimal-pad"
               onChangeText={setServingAmount}
               placeholder="Amount"
+              ref={servingAmountInputRef}
               style={[
                 styles.input,
                 styles.flex,
