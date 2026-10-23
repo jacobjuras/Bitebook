@@ -1,12 +1,20 @@
 import { Stack } from 'expo-router';
 
+export const unstable_settings = {
+  anchor: 'index',
+};
+
 export default function PantryLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="food/newFood"
-        options={{ headerBackTitle: 'Pantry', title: 'Add food' }}
+        options={{
+          headerBackButtonDisplayMode: 'default',
+          headerBackTitle: 'Pantry',
+          title: '',
+        }}
       />
       <Stack.Screen
         name="meal/newMeal"

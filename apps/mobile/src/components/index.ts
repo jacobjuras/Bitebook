@@ -1,6 +1,7 @@
 export { AddItemButton } from './AddItemButton/AddItemButton';
 export { ContentStateView } from './ContentStateView/ContentStateView';
 export { FavoriteIndicator } from './FavoriteIndicator/FavoriteIndicator';
+export { FoodForm } from './FoodForm/FoodForm';
 export { ItemCard } from './ItemCard/ItemCard';
 export { ItemCardList } from './ItemCardList/ItemCardList';
 export { ItemListView } from './ItemListView/ItemListView';

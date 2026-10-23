@@ -18,19 +18,23 @@ vi.mock('expo-router', () => {
   return { Stack };
 });
 
-import PantryLayout from '../../../../app/(tabs)/pantry/_layout.js';
+import PantryLayout, {
+  unstable_settings,
+} from '../../../../app/(tabs)/pantry/_layout.js';
 
 describe('Pantry layout', () => {
   it('configures the Pantry index and creation routes', async () => {
     await render(<PantryLayout />);
 
+    expect(unstable_settings).toEqual({ anchor: 'index' });
     expect(screen.getByTestId('pantry-stack')).toBeTruthy();
     expect(screen.getByTestId('pantry-route-index').props.options).toEqual({
       headerShown: false,
     });
     expect(screen.getByTestId('pantry-route-food/newFood').props.options).toEqual({
+      headerBackButtonDisplayMode: 'default',
       headerBackTitle: 'Pantry',
-      title: 'Add food',
+      title: '',
     });
     expect(screen.getByTestId('pantry-route-meal/newMeal').props.options).toEqual({
       headerBackTitle: 'Pantry',

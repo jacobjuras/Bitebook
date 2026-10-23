@@ -170,7 +170,7 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [x] Build the Food list with search and Recent, Name, and Calories sorting.
 - [x] Share tag and favorite metadata across Foods and Meals.
 - [x] Display Food and Meal favorites and support Favorites/custom-tag filtering.
-- [ ] Build manual Food creation, including favorite and custom-tag fields.
+- [x] Build manual Food creation, including favorite and custom-tag fields.
 - [ ] Build Food details and metadata editing, including favorites and tags.
 - [ ] Build the Food deletion interface.
 - [x] Build the Meal list with search and sorting.
