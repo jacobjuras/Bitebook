@@ -1,15 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  activeFilterChip: {
-    alignItems: 'center',
-    borderRadius: 16,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  activeFilterText: { fontSize: 13, fontWeight: '500' },
   activeFilters: {
     alignItems: 'center',
     flexDirection: 'row',

@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuView } from '@expo/ui/community/menu';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
+import { TagChipVariant } from '~/constants';
 import type { SearchFilterSortModel } from '~/models';
 import { useThemeColors } from '~/theme';
 import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
+import { TagChip } from '../TagChip/TagChip';
 import { styles } from './styles';
 
 /** Renders reusable search, filter, and contextual sort controls for a list. */
@@ -153,24 +155,15 @@ export function SearchFilterSortControls<
         // Active filters
         <View style={styles.activeFilters} testID={`${testIDPrefix}-active-filters`}>
           {activeFilters.map(({ id, label }) => (
-            // Active filter chip
-            <Pressable
+            <TagChip
               accessibilityLabel={`Remove ${label} filter`}
-              accessibilityRole="button"
+              id={id.replaceAll(':', '-')}
               key={id}
+              label={label}
               onPress={() => onToggleFilter?.(id)}
-              style={({ pressed }) => [
-                styles.activeFilterChip,
-                { backgroundColor: colors.control },
-                pressed && styles.buttonPressed,
-              ]}
-              testID={`${testIDPrefix}-active-filter-${id.replaceAll(':', '-')}`}
-            >
-              <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>
-                {label}
-              </Text>
-              <Ionicons color={colors.textSecondary} name="close" size={14} />
-            </Pressable>
+              testIDPrefix={`${testIDPrefix}-active-filter`}
+              variant={TagChipVariant.Selected}
+            />
           ))}
           {/* Clear filters button */}
           <ClearAllButton

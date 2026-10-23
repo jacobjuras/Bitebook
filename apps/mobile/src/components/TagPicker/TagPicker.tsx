@@ -7,6 +7,7 @@ import {
   TAG_INPUT_CHIP_MAX_WIDTH,
   TAG_INPUT_CHIP_MIN_WIDTH,
   TAG_PICKER_MAX_TAGS,
+  TagChipVariant,
 } from '~/constants';
 import type { TagPickerValue } from '~/models';
 import { useThemeColors } from '~/theme';
@@ -18,6 +19,7 @@ import {
 } from '~/utils';
 
 import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
+import { TagChip } from '../TagChip/TagChip';
 import { styles } from './styles';
 
 /** Selects existing Tags and stages new Tags for an atomic item submission. */
@@ -126,10 +128,11 @@ export function TagPicker({
       </Text>
       <View style={styles.tags} testID={`${testIDPrefix}-tags`}>
         {selectedTags.map((tag) => (
-          <Pressable
+          <TagChip
             accessibilityLabel={`Remove ${tag.name} tag`}
-            accessibilityRole="button"
+            id={tag.id}
             key={tag.id}
+            label={tag.name}
             onPress={() => {
               onChange({
                 ...value,
@@ -137,20 +140,18 @@ export function TagPicker({
               });
               setTagError(undefined);
             }}
-            style={[styles.tagChip, { backgroundColor: colors.accentSubtle }]}
-            testID={`${testIDPrefix}-selected-tag-${tag.id}`}
-          >
-            <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
-            <Ionicons color={colors.textSecondary} name="close" size={14} />
-          </Pressable>
+            testIDPrefix={`${testIDPrefix}-selected-tag`}
+            variant={TagChipVariant.Selected}
+          />
         ))}
         {value.newTags.map(({ name }) => {
           const normalizedName = normalizeTagName(name);
           return (
-            <Pressable
+            <TagChip
               accessibilityLabel={`Remove new ${name} tag`}
-              accessibilityRole="button"
+              id={normalizedName}
               key={normalizedName}
+              label={name}
               onPress={() => {
                 onChange({
                   ...value,
@@ -160,34 +161,21 @@ export function TagPicker({
                 });
                 setTagError(undefined);
               }}
-              style={[
-                styles.tagChip,
-                styles.newTagChip,
-                { borderColor: colors.accent },
-              ]}
-              testID={`${testIDPrefix}-new-tag-${normalizedName}`}
-            >
-              <Ionicons color={colors.accent} name="add" size={14} />
-              <Text style={{ color: colors.textPrimary }}>{name}</Text>
-              <Ionicons color={colors.textSecondary} name="close" size={14} />
-            </Pressable>
+              testIDPrefix={`${testIDPrefix}-new-tag`}
+              variant={TagChipVariant.Pending}
+            />
           );
         })}
         {selectableTags.map((tag) => (
-          <Pressable
+          <TagChip
             accessibilityLabel={`Select ${tag.name} tag`}
-            accessibilityRole="button"
+            id={tag.id}
             key={tag.id}
+            label={tag.name}
             onPress={() => selectExistingTag(tag)}
-            style={({ pressed }) => [
-              styles.availableTagChip,
-              { borderColor: colors.border },
-              pressed && styles.pressed,
-            ]}
-            testID={`${testIDPrefix}-available-tag-${tag.id}`}
-          >
-            <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
-          </Pressable>
+            testIDPrefix={`${testIDPrefix}-available-tag`}
+            variant={TagChipVariant.Available}
+          />
         ))}
         {!isAddingTag ? (
           <Pressable
