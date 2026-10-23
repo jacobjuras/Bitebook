@@ -1,4 +1,5 @@
 export { AddItemButton } from './AddItemButton/AddItemButton';
+export { ClearAllButton } from './ClearAllButton/ClearAllButton';
 export { ContentStateView } from './ContentStateView/ContentStateView';
 export { FavoriteIndicator } from './FavoriteIndicator/FavoriteIndicator';
 export { FoodForm } from './FoodForm/FoodForm';

@@ -29,6 +29,7 @@ import {
 import type { FoodFormValues } from '~/models';
 import { useThemeColors } from '~/theme';
 
+import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
 import { styles } from './styles';
 
 type NutrientField = (typeof foodNutrientFields)[number]['id'];
@@ -140,6 +141,12 @@ export function FoodForm({
 
     setNewTags((currentTags) => [...currentTags, { name }]);
     cancelTag();
+  }
+
+  function clearTags() {
+    setSelectedTagIds([]);
+    setNewTags([]);
+    setTagError(undefined);
   }
 
   function removeExistingTag(tagId: string) {
@@ -426,6 +433,13 @@ export function FoodForm({
               >
                 <Text style={{ color: colors.textPrimary }}>+ Tag</Text>
               </Pressable>
+            ) : null}
+            {selectedTagIds.length + newTags.length > 0 ? (
+              <ClearAllButton
+                accessibilityLabel="Clear all Food tags"
+                onPress={clearTags}
+                testID="food-form-clear-tags-button"
+              />
             ) : null}
           </View>
           {isAddingTag ? (

@@ -208,6 +208,27 @@ describe('FoodForm', () => {
     }));
   });
 
+  it('clears selected existing and staged new Tags together', async () => {
+    const { protein } = tagFixtures;
+    await render(
+      <FoodForm availableTags={[protein]} isSubmitting={false} onSubmit={vi.fn()} />,
+    );
+
+    await fireEvent.press(screen.getByTestId(`food-form-available-tag-${protein.id}`));
+    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
+    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'quick');
+    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    expect(screen.getByTestId(`food-form-selected-tag-${protein.id}`)).toBeTruthy();
+    expect(screen.getByTestId('food-form-new-tag-quick')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('food-form-clear-tags-button'));
+
+    expect(screen.queryByTestId(`food-form-selected-tag-${protein.id}`)).toBeNull();
+    expect(screen.queryByTestId('food-form-new-tag-quick')).toBeNull();
+    expect(screen.queryByTestId('food-form-clear-tags-button')).toBeNull();
+    expect(screen.getByTestId(`food-form-available-tag-${protein.id}`)).toBeTruthy();
+  });
+
   it('rejects the reserved favorite tag and negative optional nutrition', async () => {
     const onSubmit = vi.fn();
     await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={onSubmit} />);
