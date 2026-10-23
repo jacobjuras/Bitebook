@@ -9,3 +9,4 @@ export { ItemListView } from './ItemListView/ItemListView';
 export { PantrySectionControl } from './PantrySectionControl/PantrySectionControl';
 export { PlaceholderScreen } from './PlaceholderScreen/PlaceholderScreen';
 export { SearchFilterSortControls } from './SearchFilterSortControls/SearchFilterSortControls';
+export { TagPicker } from './TagPicker/TagPicker';

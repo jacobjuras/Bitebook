@@ -1,17 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuView } from '@expo/ui/community/menu';
 import {
-  normalizeTagName,
   type Micronutrient,
   type NutrientAmount,
   type NutritionFacts,
   type Tag,
   type Unit,
 } from '@bitebook/domain';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,16 +25,13 @@ import {
   foodNutrientFields,
   foodServingUnits,
 } from '~/constants';
-import type { FoodFormValues } from '~/models';
+import type { FoodFormValues, TagPickerValue } from '~/models';
 import { useThemeColors } from '~/theme';
 
-import { ClearAllButton } from '../ClearAllButton/ClearAllButton';
+import { TagPicker } from '../TagPicker/TagPicker';
 import { styles } from './styles';
 
 type NutrientField = (typeof foodNutrientFields)[number]['id'];
-
-const TAG_INPUT_CHIP_MAX_WIDTH = 240;
-const TAG_INPUT_CHIP_MIN_WIDTH = 76;
 
 type FoodFormProps = {
   availableTags: readonly Tag[];
@@ -62,7 +57,6 @@ export function FoodForm({
   onSubmit,
 }: FoodFormProps) {
   const colors = useThemeColors();
-  const preserveTagEditorOnBlurRef = useRef(false);
   const [name, setName] = useState('');
   const [servingAmount, setServingAmount] = useState('');
   const [servingUnit, setServingUnit] = useState<Unit>('g');
@@ -72,121 +66,12 @@ export function FoodForm({
     Partial<Record<Micronutrient, string>>
   >({});
   const [showMoreNutrition, setShowMoreNutrition] = useState(false);
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const [tagInput, setTagInput] = useState('');
-  const [tagInputWidth, setTagInputWidth] = useState(TAG_INPUT_CHIP_MIN_WIDTH);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [newTags, setNewTags] = useState<{ name: string }[]>([]);
+  const [tags, setTags] = useState<TagPickerValue>({ newTags: [], tagIds: [] });
   const [isFavorite, setIsFavorite] = useState(false);
   const [validationError, setValidationError] = useState<string>();
-  const [tagError, setTagError] = useState<string>();
   const selectedServingUnit = foodServingUnits.find(
     ({ id }) => id === servingUnit,
   );
-  const normalizedTagInput = normalizeTagName(tagInput);
-  const selectedTags = selectedTagIds.flatMap((tagId) => {
-    const tag = availableTags.find(({ id }) => id === tagId);
-    return tag ? [tag] : [];
-  });
-  const unselectedTags = availableTags.filter(
-    ({ id }) => !selectedTagIds.includes(id),
-  );
-  const matchingTags = normalizedTagInput
-    ? unselectedTags.filter(({ normalizedName }) =>
-      normalizedName.includes(normalizedTagInput),
-    )
-    : unselectedTags;
-  const selectableTags = matchingTags.length > 0 ? matchingTags : unselectedTags;
-
-  function showTagError(message: string) {
-    preserveTagEditorOnBlurRef.current = true;
-    Keyboard.dismiss();
-    setTagError(message);
-  }
-
-  function hasTagCapacity() {
-    if (selectedTagIds.length + newTags.length < 10) return true;
-    showTagError('Foods can have up to 10 tags');
-    return false;
-  }
-
-  function showTagInput() {
-    if (!hasTagCapacity()) return;
-    setIsAddingTag(true);
-  }
-
-  function cancelTag() {
-    preserveTagEditorOnBlurRef.current = false;
-    setTagInput('');
-    setTagInputWidth(TAG_INPUT_CHIP_MIN_WIDTH);
-    setTagError(undefined);
-    setIsAddingTag(false);
-  }
-
-  function handleTagInputBlur() {
-    if (preserveTagEditorOnBlurRef.current) {
-      preserveTagEditorOnBlurRef.current = false;
-      return;
-    }
-    cancelTag();
-  }
-
-  function selectExistingTag(tag: Tag) {
-    if (!hasTagCapacity()) return;
-    setSelectedTagIds((currentTagIds) => [...currentTagIds, tag.id]);
-    cancelTag();
-  }
-
-  function addNewTag() {
-    const name = tagInput.trim();
-    const normalizedName = normalizeTagName(name);
-    if (!normalizedName) return;
-    if (normalizedName === 'favorite' || normalizedName === 'favorites') {
-      showTagError('Favorite is reserved for the favorite toggle');
-      return;
-    }
-
-    const existingTag = availableTags.find(
-      (tag) => tag.normalizedName === normalizedName,
-    );
-    if (existingTag) {
-      if (selectedTagIds.includes(existingTag.id)) {
-        showTagError('Tag already added');
-      } else {
-        selectExistingTag(existingTag);
-      }
-      return;
-    }
-    if (newTags.some((tag) => normalizeTagName(tag.name) === normalizedName)) {
-      showTagError('Tag already added');
-      return;
-    }
-    if (!hasTagCapacity()) return;
-
-    setNewTags((currentTags) => [...currentTags, { name }]);
-    cancelTag();
-  }
-
-  function clearTags() {
-    setSelectedTagIds([]);
-    setNewTags([]);
-    setTagError(undefined);
-  }
-
-  function removeExistingTag(tagId: string) {
-    setSelectedTagIds((currentTagIds) =>
-      currentTagIds.filter((currentTagId) => currentTagId !== tagId),
-    );
-    setTagError(undefined);
-  }
-
-  function removeNewTag(name: string) {
-    const normalizedName = normalizeTagName(name);
-    setNewTags((currentTags) => currentTags.filter(
-      (tag) => normalizeTagName(tag.name) !== normalizedName,
-    ));
-    setTagError(undefined);
-  }
 
   async function submit() {
     const parsedServingAmount = parseNumber(servingAmount, true);
@@ -230,8 +115,8 @@ export function FoodForm({
         ...optionalNutrition,
       },
       servingSize: { amount: parsedServingAmount, unit: servingUnit },
-      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-      newTags: newTags.length > 0 ? newTags : undefined,
+      tagIds: tags.tagIds.length > 0 ? tags.tagIds : undefined,
+      newTags: tags.newTags.length > 0 ? tags.newTags : undefined,
     });
   }
 
@@ -381,161 +266,13 @@ export function FoodForm({
         </View>
 
         <View style={styles.section}>
-          <Text
-            style={[styles.sectionLabel, { color: colors.textSecondary }]}
-            testID="food-form-tag-heading"
-          >
-            TAGS
-          </Text>
-          <View style={styles.tags} testID="food-form-tags">
-            {selectedTags.map((tag) => (
-              <Pressable
-                accessibilityLabel={`Remove ${tag.name} tag`}
-                accessibilityRole="button"
-                key={tag.id}
-                onPress={() => removeExistingTag(tag.id)}
-                style={[styles.tagChip, { backgroundColor: colors.accentSubtle }]}
-                testID={`food-form-selected-tag-${tag.id}`}
-              >
-                <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
-                <Ionicons color={colors.textSecondary} name="close" size={14} />
-              </Pressable>
-            ))}
-            {newTags.map(({ name: tagName }) => {
-              const normalizedName = normalizeTagName(tagName);
-              return (
-                <Pressable
-                  accessibilityLabel={`Remove new ${tagName} tag`}
-                  accessibilityRole="button"
-                  key={normalizedName}
-                  onPress={() => removeNewTag(tagName)}
-                  style={[
-                    styles.tagChip,
-                    styles.newTagChip,
-                    { borderColor: colors.accent },
-                  ]}
-                  testID={`food-form-new-tag-${normalizedName}`}
-                >
-                  <Ionicons
-                    color={colors.accent}
-                    name="add"
-                    size={14}
-                    testID={`food-form-new-tag-${normalizedName}-indicator`}
-                  />
-                  <Text style={{ color: colors.textPrimary }}>{tagName}</Text>
-                  <Ionicons color={colors.textSecondary} name="close" size={14} />
-                </Pressable>
-              );
-            })}
-            {selectableTags.map((tag) => (
-              <Pressable
-                accessibilityLabel={`Select ${tag.name} tag`}
-                accessibilityRole="button"
-                key={tag.id}
-                onPress={() => selectExistingTag(tag)}
-                style={({ pressed }) => [
-                  styles.availableTagChip,
-                  { borderColor: colors.border },
-                  pressed && styles.pressed,
-                ]}
-                testID={`food-form-available-tag-${tag.id}`}
-              >
-                <Text style={{ color: colors.textPrimary }}>{tag.name}</Text>
-              </Pressable>
-            ))}
-            {!isAddingTag ? (
-              <Pressable
-                accessibilityLabel="Add optional tag"
-                accessibilityRole="button"
-                onPress={showTagInput}
-                style={({ pressed }) => [
-                  styles.addTagChip,
-                  { borderColor: colors.border },
-                  pressed && styles.pressed,
-                ]}
-                testID="food-form-show-tag-input-button"
-              >
-                <Text style={{ color: colors.textPrimary }}>+ Tag</Text>
-              </Pressable>
-            ) : (
-              <View
-                style={[
-                  styles.tagInputChip,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: tagError ? colors.danger : colors.border,
-                  },
-                ]}
-                testID="food-form-tag-input-container"
-              >
-                <Text
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  onLayout={({ nativeEvent }) => {
-                    setTagInputWidth(Math.min(
-                      TAG_INPUT_CHIP_MAX_WIDTH,
-                      Math.max(TAG_INPUT_CHIP_MIN_WIDTH, Math.ceil(nativeEvent.layout.width) + 4),
-                    ));
-                  }}
-                  pointerEvents="none"
-                  style={styles.tagInputMeasurement}
-                  testID="food-form-tag-input-measurement"
-                >
-                  {tagInput || 'Tag name'}
-                </Text>
-                <TextInput
-                  accessibilityLabel="Optional tag"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus
-                  maxLength={30}
-                  onChangeText={(value) => {
-                    setTagInput(value);
-                    setTagError(undefined);
-                  }}
-                  onBlur={handleTagInputBlur}
-                  onSubmitEditing={addNewTag}
-                  placeholder="Tag name"
-                  returnKeyType="done"
-                  style={[
-                    styles.tagChipInput,
-                    { color: colors.textPrimary, width: tagInputWidth },
-                  ]}
-                  testID="food-form-tag-input"
-                  value={tagInput}
-                />
-                <Pressable
-                  accessibilityLabel="Cancel tag entry"
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={cancelTag}
-                  style={({ pressed }) => [
-                    styles.cancelTagButton,
-                    pressed && styles.pressed,
-                  ]}
-                  testID="food-form-cancel-tag-button"
-                >
-                  <Ionicons
-                    color={colors.textSecondary}
-                    name="close"
-                    size={14}
-                  />
-                </Pressable>
-              </View>
-            )}
-            {selectedTagIds.length + newTags.length > 0 ? (
-              <ClearAllButton
-                accessibilityLabel="Clear all Food tags"
-                onPress={clearTags}
-                testID="food-form-clear-tags-button"
-              />
-            ) : null}
-          </View>
-          {tagError ? (
-            <Text accessibilityRole="alert" style={{ color: colors.danger }} testID="food-form-tag-error">
-              {tagError}
-            </Text>
-          ) : null}
+          <TagPicker
+            availableTags={availableTags}
+            itemName="Food"
+            onChange={setTags}
+            testIDPrefix="food-form"
+            value={tags}
+          />
           <View style={styles.favoriteRow}>
             <Text
               style={[styles.favoriteLabel, { color: colors.textPrimary }]}

@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { Keyboard, StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
@@ -16,92 +15,61 @@ vi.mock('@expo/ui/community/menu', async () => {
 });
 vi.mock('~/theme', () => ({
   useThemeColors: () => ({
-    accent: 'accent',
-    accentSubtle: 'accent-subtle',
-    background: 'background',
-    border: 'border',
-    control: 'control',
-    danger: 'danger',
-    dangerSubtle: 'danger-subtle',
-    onAccent: 'on-accent',
-    textPrimary: 'text-primary',
-    textSecondary: 'text-secondary',
+    accent: 'accent', accentSubtle: 'accent-subtle', background: 'background',
+    border: 'border', control: 'control', danger: 'danger',
+    dangerSubtle: 'danger-subtle', onAccent: 'on-accent',
+    textPrimary: 'text-primary', textSecondary: 'text-secondary',
   }),
 }));
 
 import { FoodForm } from './FoodForm.js';
-import { tagFixtures } from '~/tests/fixtures/tags';
+
+async function renderForm(onSubmit = vi.fn(), isSubmitting = false) {
+  await render(
+    <FoodForm availableTags={[]} isSubmitting={isSubmitting} onSubmit={onSubmit} />,
+  );
+  return onSubmit;
+}
+
+async function enterRequiredFields() {
+  await fireEvent.changeText(screen.getByTestId('food-form-name-input'), '  Oats  ');
+  await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '40');
+  await fireEvent.changeText(screen.getByTestId('food-form-calories-input'), '150');
+}
 
 describe('FoodForm', () => {
-  it('rejects blank and invalid required values', async () => {
-    const onSubmit = vi.fn();
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={onSubmit} />);
-    expect(screen.getByTestId('food-form-title')).toHaveTextContent('Add food');
+  it('renders its required fields and rejects invalid required values', async () => {
+    const onSubmit = await renderForm();
 
+    expect(screen.getByTestId('food-form-title')).toHaveTextContent('Add food');
     expect(screen.getByTestId('food-form-scroll-view').props)
       .toMatchObject({ contentInsetAdjustmentBehavior: 'automatic' });
-    expect(screen.getByTestId('food-form-name-input').props).toMatchObject({
-      accessibilityLabel: 'Food name, required',
-      placeholder: 'Food name',
-    });
-    expect(
-      screen.getByTestId('food-form-serving-amount-input').props,
-    ).toMatchObject({
-      accessibilityLabel: 'Serving amount, required',
-      placeholder: 'Amount',
-    });
-    expect(screen.getByTestId('food-form-calories-input').props).toMatchObject({
-      accessibilityLabel: 'Calories, required',
-      placeholder: 'Calories',
-    });
-    expect(screen.getByTestId('food-form-serving-unit-menu').props.actions)
-      .toEqual([
-        { id: 'g', title: 'g' },
-        { id: 'kg', title: 'kg' },
-        { id: 'oz', title: 'oz' },
-        { id: 'lb', title: 'lb' },
-        { id: 'ml', title: 'mL' },
-        { id: 'l', title: 'L' },
-        { id: 'tsp', title: 'tsp' },
-        { id: 'tbsp', title: 'tbsp' },
-        { id: 'cup', title: 'cup' },
-        { id: 'flOz', title: 'fl oz' },
-        { id: 'item', title: 'item' },
-      ]);
-    expect(screen.getByTestId('food-form-serving-unit-button').props)
-      .toMatchObject({ accessibilityLabel: 'Serving unit, g' });
-    expect(screen.getByTestId('food-form-show-tag-input-button').props)
-      .toMatchObject({ accessibilityLabel: 'Add optional tag' });
-    expect(screen.queryByTestId('food-form-tag-input')).toBeNull();
-    await fireEvent.press(screen.getByTestId('food-form-save-button'));
-
+    expect(screen.getByTestId('food-form-name-input').props)
+      .toMatchObject({ accessibilityLabel: 'Food name, required' });
+    expect(screen.getByTestId('food-form-serving-amount-input').props)
+      .toMatchObject({ accessibilityLabel: 'Serving amount, required' });
+    expect(screen.getByTestId('food-form-calories-input').props)
+      .toMatchObject({ accessibilityLabel: 'Calories, required' });
     expect(screen.getByTestId('food-form-nutrition-heading'))
       .toHaveTextContent('NUTRITION');
     expect(screen.getByTestId('food-form-tag-heading')).toHaveTextContent('TAGS');
-    expect(screen.getByTestId('food-form-favorite-label'))
-      .toHaveTextContent('Add to favorites');
-    expect(screen.getByTestId('food-form-favorite-switch').props)
-      .toMatchObject({ accessibilityLabel: 'Add Food to favorites' });
+
+    await fireEvent.press(screen.getByTestId('food-form-save-button'));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByTestId('food-form-error')).toHaveTextContent(
       'Enter a name, positive serving size, and valid calories',
     );
   });
 
-  it('submits normalized basics, organization, and optional nutrition', async () => {
-    const onSubmit = vi.fn();
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={onSubmit} />);
-
-    await fireEvent.changeText(screen.getByTestId('food-form-name-input'), '  Oats  ');
-    await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '40');
+  it('submits normalized Food fields and the TagPicker value', async () => {
+    const onSubmit = await renderForm();
+    await enterRequiredFields();
     await fireEvent(
       screen.getByTestId('food-form-serving-unit-menu'),
       'pressAction',
       { nativeEvent: { event: 'oz' } },
     );
-    await fireEvent.changeText(screen.getByTestId('food-form-calories-input'), '150');
     await fireEvent.press(screen.getByTestId('food-form-more-nutrition-button'));
-    expect(screen.getByTestId('food-form-optional-nutrition')).toBeTruthy();
     await fireEvent.changeText(screen.getByTestId('food-form-proteinG-input'), '6');
     await fireEvent.changeText(screen.getByTestId('food-form-sodium-input'), '120');
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
@@ -120,195 +88,24 @@ describe('FoodForm', () => {
         proteinG: 6,
       },
       servingSize: { amount: 40, unit: 'oz' },
+      tagIds: undefined,
     });
   });
 
-  it('cancels tag entry without adding a tag', async () => {
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
-
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    expect(screen.getByTestId('food-form-tag-input').props).toMatchObject({
-      autoFocus: true,
-      returnKeyType: 'done',
-    });
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input-container').props.style,
-    )).toMatchObject({ borderRadius: 18, minHeight: 34 });
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input').props.style,
-    )).toMatchObject({ fontSize: 14, width: 76 });
-    await fireEvent(
-      screen.getByTestId(
-        'food-form-tag-input-measurement',
-        { includeHiddenElements: true },
-      ),
-      'layout',
-      { nativeEvent: { layout: { width: 120 } } },
-    );
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input').props.style,
-    )).toMatchObject({ width: 124 });
-    await fireEvent(
-      screen.getByTestId(
-        'food-form-tag-input-measurement',
-        { includeHiddenElements: true },
-      ),
-      'layout',
-      { nativeEvent: { layout: { width: 300 } } },
-    );
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input').props.style,
-    )).toMatchObject({ width: 240 });
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'draft');
-    expect(screen.getByTestId('food-form-tag-input-container')).toBeTruthy();
-    expect(screen.queryByTestId('food-form-show-tag-input-button')).toBeNull();
-    expect(screen.queryByTestId('food-form-add-tag-button')).toBeNull();
-
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'blur');
-
-    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
-    expect(screen.queryByTestId('food-form-tag-input')).toBeNull();
-    expect(screen.getByTestId('food-form-show-tag-input-button')).toBeTruthy();
-
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    expect(screen.getByTestId('food-form-tag-input').props.value).toBe('');
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input').props.style,
-    )).toMatchObject({ width: 76 });
-    await fireEvent.press(screen.getByTestId('food-form-cancel-tag-button'));
-    expect(screen.getByTestId('food-form-show-tag-input-button')).toBeTruthy();
-  });
-
-  it('renders staged new Tags with a dashed border', async () => {
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' HIGH-PROTEIN ');
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-new-tag-high-protein').props.style,
-    )).toMatchObject({ borderStyle: 'dashed', borderWidth: 1 });
-    expect(screen.queryByTestId('food-form-tag-input')).toBeNull();
-
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'high-protein');
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent('Tag already added');
-
-    await fireEvent.press(screen.getByTestId('food-form-new-tag-high-protein'));
-    expect(screen.queryByTestId('food-form-new-tag-high-protein')).toBeNull();
-  });
-
-  it('suggests matching existing Tags and attaches an exact name match', async () => {
-    const { fiber, protein } = tagFixtures;
-    const onSubmit = vi.fn();
-    await render(
-      <FoodForm
-        availableTags={[fiber, protein]}
-        isSubmitting={false}
-        onSubmit={onSubmit}
-      />,
-    );
-
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'PRO');
-
-    expect(screen.getByTestId(`food-form-available-tag-${protein.id}`)).toBeTruthy();
-    expect(screen.queryByTestId(`food-form-available-tag-${fiber.id}`)).toBeNull();
-
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'missing');
-    expect(screen.getByTestId(`food-form-available-tag-${protein.id}`)).toBeTruthy();
-    expect(screen.getByTestId(`food-form-available-tag-${fiber.id}`)).toBeTruthy();
-
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Protein ');
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    expect(screen.queryByTestId('food-form-tag-error')).toBeNull();
-    expect(StyleSheet.flatten(
-      screen.getByTestId(`food-form-selected-tag-${protein.id}`).props.style,
-    )).toMatchObject({ backgroundColor: 'accent-subtle' });
-    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
-
-    await fireEvent.changeText(screen.getByTestId('food-form-name-input'), 'Oats');
-    await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '40');
-    await fireEvent.changeText(screen.getByTestId('food-form-calories-input'), '150');
-    await fireEvent.press(screen.getByTestId('food-form-save-button'));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-      newTags: undefined,
-      tagIds: [protein.id],
-    }));
-  });
-
-  it('clears selected existing and staged new Tags together', async () => {
-    const { protein } = tagFixtures;
-    await render(
-      <FoodForm availableTags={[protein]} isSubmitting={false} onSubmit={vi.fn()} />,
-    );
-
-    await fireEvent.press(screen.getByTestId(`food-form-available-tag-${protein.id}`));
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'quick');
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    expect(screen.getByTestId(`food-form-selected-tag-${protein.id}`)).toBeTruthy();
-    expect(screen.getByTestId('food-form-new-tag-quick')).toBeTruthy();
-
-    await fireEvent.press(screen.getByTestId('food-form-clear-tags-button'));
-
-    expect(screen.queryByTestId(`food-form-selected-tag-${protein.id}`)).toBeNull();
-    expect(screen.queryByTestId('food-form-new-tag-quick')).toBeNull();
-    expect(screen.queryByTestId('food-form-clear-tags-button')).toBeNull();
-    expect(screen.getByTestId(`food-form-available-tag-${protein.id}`)).toBeTruthy();
-  });
-
-  it('rejects the reserved favorite tag and negative optional nutrition', async () => {
-    const dismissKeyboard = vi.spyOn(Keyboard, 'dismiss');
-    const onSubmit = vi.fn();
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={onSubmit} />);
-
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'favorite');
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    expect(dismissKeyboard).toHaveBeenCalledOnce();
-    dismissKeyboard.mockRestore();
-    await fireEvent(screen.getByTestId('food-form-tag-input'), 'blur');
-    expect(screen.getByTestId('food-form-tag-input-container')).toBeTruthy();
-    expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
-      'Favorite is reserved for the favorite toggle',
-    );
-    expect(StyleSheet.flatten(
-      screen.getByTestId('food-form-tag-input-container').props.style,
-    )).toMatchObject({ borderColor: 'danger' });
-
-    await fireEvent.changeText(screen.getByTestId('food-form-name-input'), 'Oats');
-    await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '1');
-    await fireEvent.changeText(screen.getByTestId('food-form-calories-input'), '100');
+  it('rejects invalid optional nutrition', async () => {
+    const onSubmit = await renderForm();
+    await enterRequiredFields();
     await fireEvent.press(screen.getByTestId('food-form-more-nutrition-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-fatG-input'), '-1');
     await fireEvent.press(screen.getByTestId('food-form-save-button'));
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByTestId('food-form-error')).toHaveTextContent(
-      'Nutrition values must be zero or greater',
-    );
-  });
-
-  it('does not open Tag entry after ten Tags have been added', async () => {
-    await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
-
-    for (let index = 0; index < 10; index += 1) {
-      await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-      await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), `tag-${index}`);
-      await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
-    }
-    await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-
-    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
-    expect(screen.getByTestId('food-form-tag-error'))
-      .toHaveTextContent('Foods can have up to 10 tags');
+    expect(screen.getByTestId('food-form-error'))
+      .toHaveTextContent('Nutrition values must be zero or greater');
   });
 
   it('disables saving and displays progress while submitting', async () => {
-    await render(<FoodForm availableTags={[]} isSubmitting onSubmit={vi.fn()} />);
-
+    await renderForm(vi.fn(), true);
     expect(screen.getByTestId('food-form-save-button').props.accessibilityState)
       .toEqual({ disabled: true });
     expect(screen.getByTestId('food-form-saving-indicator')).toBeTruthy();

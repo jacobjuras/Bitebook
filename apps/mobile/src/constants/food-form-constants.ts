@@ -1,3 +1,4 @@
+
 import type { Micronutrient, NutritionFacts, Unit } from '@bitebook/domain';
 
 export const foodServingUnits: readonly { id: Unit; label: string }[] = [
