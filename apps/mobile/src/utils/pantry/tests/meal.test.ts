@@ -6,8 +6,11 @@ vi.mock('~/components', () => ({
 }));
 
 import { FavoriteIndicator } from '~/components';
+import { tagFixtures } from '~/tests/fixtures/tags';
 import { getMealCardItem, getSortableMeal } from '../meal.js';
 
+const tags = [tagFixtures.breakfast, tagFixtures.highProtein];
+const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 const baseFood: Food = {
   createdAt: '2026-10-20T12:00:00.000Z',
   id: '11111111-1111-4111-8111-111111111111',
@@ -17,13 +20,12 @@ const baseFood: Food = {
   updatedAt: '2026-10-20T12:00:00.000Z',
   userId: 'user-123',
 };
-
 const baseMeal: Meal = {
   createdAt: '2026-10-20T14:00:00.000Z',
   id: '33333333-3333-4333-8333-333333333333',
   ingredients: [
     {
-      foodId: '11111111-1111-4111-8111-111111111111',
+      foodId: baseFood.id,
       quantity: { amount: 100, unit: 'g' },
     },
   ],
@@ -34,7 +36,7 @@ const baseMeal: Meal = {
 
 describe('getMealCardItem', () => {
   it('maps Meal identity and the singular ingredient count', () => {
-    expect(getMealCardItem(baseMeal)).toEqual({
+    expect(getMealCardItem(baseMeal, tagsById)).toEqual({
       accessory: undefined,
       chips: undefined,
       details: [{ id: 'ingredient-count', text: '1 ingredient' }],
@@ -43,17 +45,17 @@ describe('getMealCardItem', () => {
     });
   });
 
-  it('maps Meal tags and favorite state into card organization', () => {
+  it('maps resolved Tags and favorite state into card organization', () => {
     const item = getMealCardItem({
       ...baseMeal,
       isFavorite: true,
-      tags: ['breakfast', 'high-protein'],
-    });
+      tagIds: tags.map(({ id }) => id),
+    }, tagsById);
     const accessory = item.accessory?.('pantry-meal-item');
 
     expect(item.chips).toEqual([
-      { id: 'breakfast', label: 'breakfast' },
-      { id: 'high-protein', label: 'high-protein' },
+      { id: tags[0].id, label: 'breakfast' },
+      { id: tags[1].id, label: 'high-protein' },
     ]);
     expect(accessory).toMatchObject({
       props: { testIDPrefix: 'pantry-meal-item' },
@@ -71,7 +73,7 @@ describe('getMealCardItem', () => {
           quantity: { amount: 1, unit: 'item' },
         },
       ],
-    });
+    }, tagsById);
 
     expect(item.details).toEqual([
       { id: 'ingredient-count', text: '2 ingredients' },

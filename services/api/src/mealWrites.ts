@@ -8,17 +8,21 @@ import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { documentClient } from './dynamodb.js';
 import { jsonResponse } from './http.js';
 import { getMeal } from './mealReads.js';
+import { getTagConditionChecks } from './tags.js';
 
-const createMealInputSchema = mealSchema.pick({
+const mealInputFieldsSchema = mealSchema.pick({
   ingredients: true,
   isFavorite: true,
   name: true,
-  tags: true,
+  tagIds: true,
 });
-const updateMealInputSchema = createMealInputSchema
+const createMealInputSchema = mealInputFieldsSchema.refine(
+  ({ ingredients, tagIds }) => ingredients.length + (tagIds?.length ?? 0) <= 99,
+  'A Meal can have at most 99 combined Food and Tag references',
+);
+const updateMealInputSchema = mealInputFieldsSchema
   .partial()
   .refine((input) => Object.keys(input).length > 0);
-
 
 /** Creates a Meal only when every referenced Food belongs to the user. */
 export async function createMeal(
@@ -59,6 +63,7 @@ export async function createMeal(
               TableName: tableName,
             },
           })),
+          ...getTagConditionChecks(tableName, userId, meal.tagIds),
           {
             Put: {
               ConditionExpression:
@@ -76,9 +81,16 @@ export async function createMeal(
         ({ Code }) => Code === 'ConditionalCheckFailed',
       );
       if (failedCondition !== undefined && failedCondition >= 0) {
-        return failedCondition < meal.ingredients.length
-          ? jsonResponse(400, { message: 'Meal contains unavailable Foods' })
-          : jsonResponse(409, { message: 'Meal could not be created; try again' });
+        if (failedCondition < meal.ingredients.length) {
+          return jsonResponse(400, { message: 'Meal contains unavailable Foods' });
+        }
+        if (
+          failedCondition
+          < meal.ingredients.length + (meal.tagIds?.length ?? 0)
+        ) {
+          return jsonResponse(400, { message: 'Meal contains unavailable Tags' });
+        }
+        return jsonResponse(409, { message: 'Meal could not be created; try again' });
       }
     }
     throw error;
@@ -120,6 +132,11 @@ export async function updateMeal(
     ...input.data,
     updatedAt: new Date().toISOString(),
   });
+  if (
+    updatedMeal.ingredients.length + (updatedMeal.tagIds?.length ?? 0) > 99
+  ) {
+    return jsonResponse(400, { message: 'Invalid meal' });
+  }
   const ingredientChecks = input.data.ingredients?.map(({ foodId }) => ({
     ConditionCheck: {
       ConditionExpression:
@@ -128,12 +145,16 @@ export async function updateMeal(
       TableName: tableName,
     },
   })) ?? [];
+  const tagChecks = input.data.tagIds === undefined
+    ? []
+    : getTagConditionChecks(tableName, userId, updatedMeal.tagIds);
 
   try {
     await documentClient.send(
       new TransactWriteCommand({
         TransactItems: [
           ...ingredientChecks,
+          ...tagChecks,
           {
             Put: {
               ConditionExpression: 'updatedAt = :expectedUpdatedAt',
@@ -153,9 +174,13 @@ export async function updateMeal(
         ({ Code }) => Code === 'ConditionalCheckFailed',
       );
       if (failedCondition !== undefined && failedCondition >= 0) {
-        return failedCondition < ingredientChecks.length
-          ? jsonResponse(400, { message: 'Meal contains unavailable Foods' })
-          : jsonResponse(409, { message: 'Meal changed; try again' });
+        if (failedCondition < ingredientChecks.length) {
+          return jsonResponse(400, { message: 'Meal contains unavailable Foods' });
+        }
+        if (failedCondition < ingredientChecks.length + tagChecks.length) {
+          return jsonResponse(400, { message: 'Meal contains unavailable Tags' });
+        }
+        return jsonResponse(409, { message: 'Meal changed; try again' });
       }
     }
     throw error;

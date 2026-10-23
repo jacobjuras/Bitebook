@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
   listFoods: vi.fn(),
   listMeals: vi.fn(),
+  listTags: vi.fn(),
   query: vi.fn(() => Promise.resolve()),
   status: 'loading',
 }));
@@ -63,6 +64,11 @@ vi.mock('../../query/pantryQueries.js', () => ({
     queryKey: ['meals'],
     staleTime: Infinity,
   },
+  tagsQueryOptions: {
+    queryFn: mocks.listTags,
+    queryKey: ['tags'],
+    staleTime: Infinity,
+  },
 }));
 vi.mock('../../auth/AuthProvider.js', async () => {
   const { createElement } = await vi.importActual<typeof import('react')>('react');
@@ -107,7 +113,7 @@ describe('root layout', () => {
     [AuthStatus.Loading, true, false, 0, 0],
     [AuthStatus.NewPasswordRequired, true, false, 0, 0],
     [AuthStatus.SignedOut, true, false, 1, 0],
-    [AuthStatus.SignedIn, false, true, 0, 2],
+    [AuthStatus.SignedIn, false, true, 0, 3],
   ])(
     'configures guarded routes for %s',
     async (status, signedOutGuard, signedInGuard, clearCalls, preloadCalls) => {
@@ -143,6 +149,11 @@ describe('root layout', () => {
       queryKey: ['meals'],
       staleTime: Infinity,
     });
+    expect(mocks.query).toHaveBeenNthCalledWith(3, {
+      queryFn: mocks.listTags,
+      queryKey: ['tags'],
+      staleTime: Infinity,
+    });
   });
 
   it('keeps authenticated routes available when startup loading fails', async () => {
@@ -151,6 +162,6 @@ describe('root layout', () => {
     await renderRootLayout(AuthStatus.SignedIn);
 
     expect(screen.getByTestId('root-(tabs)-guard').props.guard).toBe(true);
-    expect(mocks.query).toHaveBeenCalledTimes(2);
+    expect(mocks.query).toHaveBeenCalledTimes(3);
   });
 });

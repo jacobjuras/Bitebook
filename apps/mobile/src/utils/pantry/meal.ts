@@ -2,15 +2,19 @@ import {
   scaleNutritionFacts,
   type Food,
   type Meal,
+  type Tag,
 } from '@bitebook/domain';
 
 import type { ItemCardModel, SortableItem } from '~/models';
 
 import { getItemCardOrganization } from './itemCard';
 
-export function getMealCardItem(meal: Meal): ItemCardModel {
+export function getMealCardItem(
+  meal: Meal,
+  tagsById: ReadonlyMap<string, Tag>,
+): ItemCardModel {
   return {
-    ...getItemCardOrganization(meal),
+    ...getItemCardOrganization(meal, tagsById),
     details: [
       {
         id: 'ingredient-count',

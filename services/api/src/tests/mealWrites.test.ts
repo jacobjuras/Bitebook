@@ -12,6 +12,7 @@ import {
   mealInput,
   resetDocumentClientMock,
   storedMeal,
+  tagId,
 } from './fixtures.js';
 
 function cancelledAt(index: number, count: number): TransactionCanceledException {
@@ -53,6 +54,14 @@ describe('mealWrites', () => {
             },
           })),
           {
+            ConditionCheck: {
+              ConditionExpression:
+                'attribute_exists(userId) AND attribute_exists(entityKey)',
+              Key: { entityKey: `TAG#${tagId}`, userId: 'user-123' },
+              TableName: 'table',
+            },
+          },
+          {
             Put: {
               ConditionExpression:
                 'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
@@ -64,21 +73,20 @@ describe('mealWrites', () => {
       });
   });
 
-  it('creates normalized Meal organization metadata', async () => {
+  it('creates Meal organization metadata with stable Tag references', async () => {
     const response = await createMeal(
       'table',
       'user-123',
       JSON.stringify({
         ...mealInput,
         isFavorite: true,
-        tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
       }),
     );
 
     expect(response.statusCode).toBe(201);
     expect(JSON.parse(response.body ?? '')).toMatchObject({
       isFavorite: true,
-      tags: ['breakfast', 'high-protein'],
+      tagIds: [tagId],
     });
   });
 
@@ -86,7 +94,7 @@ describe('mealWrites', () => {
     undefined,
     '{',
     JSON.stringify({ name: 'Breakfast', ingredients: [] }),
-    JSON.stringify({ ...mealInput, tags: ['favorite'] }),
+    JSON.stringify({ ...mealInput, tagIds: ['not-a-uuid'] }),
   ])(
     'rejects invalid create body %s',
     async (body) => {
@@ -97,11 +105,14 @@ describe('mealWrites', () => {
     },
   );
 
-  it('distinguishes an unavailable Food from a Meal ID collision', async () => {
+  it('distinguishes unavailable references from a Meal ID collision', async () => {
     documentClientMock.on(TransactWriteCommand)
-      .rejectsOnce(cancelledAt(0, 3))
-      .rejectsOnce(cancelledAt(2, 3));
+      .rejectsOnce(cancelledAt(0, 4))
+      .rejectsOnce(cancelledAt(2, 4))
+      .rejectsOnce(cancelledAt(3, 4));
 
+    await expect(createMeal('table', 'user-123', JSON.stringify(mealInput)))
+      .resolves.toMatchObject({ statusCode: 400 });
     await expect(createMeal('table', 'user-123', JSON.stringify(mealInput)))
       .resolves.toMatchObject({ statusCode: 400 });
     await expect(createMeal('table', 'user-123', JSON.stringify(mealInput)))
@@ -120,7 +131,7 @@ describe('mealWrites', () => {
       JSON.stringify({
         isFavorite: true,
         name: 'Weekend breakfast',
-        tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
+        tagIds: [tagId],
       }),
     );
     const meal = JSON.parse(response.body ?? '');
@@ -129,22 +140,32 @@ describe('mealWrites', () => {
     expect(meal).toMatchObject({
       isFavorite: true,
       name: 'Weekend breakfast',
-      tags: ['breakfast', 'high-protein'],
+      tagIds: [tagId],
     });
     expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
       .toMatchObject({ ConsistentRead: true });
     expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)
       .toEqual({
-        TransactItems: [{
-          Put: {
-            ConditionExpression: 'updatedAt = :expectedUpdatedAt',
-            ExpressionAttributeValues: {
-              ':expectedUpdatedAt': storedMeal.updatedAt,
+        TransactItems: [
+          {
+            ConditionCheck: {
+              ConditionExpression:
+                'attribute_exists(userId) AND attribute_exists(entityKey)',
+              Key: { entityKey: `TAG#${tagId}`, userId: 'user-123' },
+              TableName: 'table',
             },
-            Item: { ...meal, entityKey: `MEAL#${storedMeal.id}` },
-            TableName: 'table',
           },
-        }],
+          {
+            Put: {
+              ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+              ExpressionAttributeValues: {
+                ':expectedUpdatedAt': storedMeal.updatedAt,
+              },
+              Item: { ...meal, entityKey: `MEAL#${storedMeal.id}` },
+              TableName: 'table',
+            },
+          },
+        ],
       });
   });
 

@@ -22,25 +22,30 @@ describe('mealSchema', () => {
     expect(mealSchema.parse(validMeal)).toEqual(validMeal);
   });
 
-  it('normalizes optional Meal organization metadata', () => {
+  it('deduplicates optional Meal Tag references', () => {
+    const firstTagId = '123e4567-e89b-42d3-a456-426614174010';
+    const secondTagId = '123e4567-e89b-42d3-a456-426614174011';
+
     expect(mealSchema.parse({
       ...validMeal,
       isFavorite: true,
-      tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
+      tagIds: [firstTagId, secondTagId, firstTagId],
     })).toEqual({
       ...validMeal,
       isFavorite: true,
-      tags: ['breakfast', 'high-protein'],
+      tagIds: [firstTagId, secondTagId],
     });
   });
 
   it.each([
-    { ...validMeal, tags: ['favorite'] },
+    { ...validMeal, tagIds: ['not-a-uuid'] },
     {
       ...validMeal,
-      tags: Array.from({ length: 11 }, (_, index) => `tag-${index}`),
+      tagIds: Array.from(
+        { length: 11 },
+        (_, index) => `00000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+      ),
     },
-    { ...validMeal, tags: [''] },
     { ...validMeal, isFavorite: 'yes' },
   ])('rejects invalid Meal organization metadata: %o', (meal) => {
     expect(mealSchema.safeParse(meal).success).toBe(false);

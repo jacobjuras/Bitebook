@@ -1,3 +1,4 @@
+import type { Tag } from '@bitebook/domain';
 import { createElement } from 'react';
 
 import { FavoriteIndicator } from '~/components';
@@ -7,16 +8,22 @@ function renderFavoriteIndicator(testIDPrefix: string) {
   return createElement(FavoriteIndicator, { testIDPrefix });
 }
 
-/** Maps shared Pantry-item organization metadata into card presentation. */
-export function getItemCardOrganization({
-  isFavorite,
-  tags,
-}: {
-  isFavorite?: boolean;
-  tags?: readonly string[];
-}): Pick<ItemCardModel, 'accessory' | 'chips'> {
+/** Maps Pantry organization metadata and Tag references into card presentation. */
+export function getItemCardOrganization(
+  {
+    isFavorite,
+    tagIds,
+  }: {
+    isFavorite?: boolean;
+    tagIds?: readonly string[];
+  },
+  tagsById: ReadonlyMap<string, Tag>,
+): Pick<ItemCardModel, 'accessory' | 'chips'> {
   return {
     accessory: isFavorite === true ? renderFavoriteIndicator : undefined,
-    chips: tags?.map((tag) => ({ id: tag, label: tag })),
+    chips: tagIds?.flatMap((tagId) => {
+      const tag = tagsById.get(tagId);
+      return tag ? [{ id: tag.id, label: tag.name }] : [];
+    }),
   };
 }

@@ -138,7 +138,7 @@ export function FoodForm({ error, isSubmitting, onSubmit }: FoodFormProps) {
         ...optionalNutrition,
       },
       servingSize: { amount: parsedServingAmount, unit: servingUnit },
-      tags: tags.length > 0 ? tags : undefined,
+      tagNames: tags.length > 0 ? tags : undefined,
     });
   }
 

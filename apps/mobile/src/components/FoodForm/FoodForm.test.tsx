@@ -116,7 +116,7 @@ describe('FoodForm', () => {
         proteinG: 6,
       },
       servingSize: { amount: 40, unit: 'oz' },
-      tags: ['breakfast'],
+      tagNames: ['breakfast'],
     });
   });
 

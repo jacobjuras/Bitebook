@@ -30,24 +30,32 @@ describe('foodSchema', () => {
     expect(foodSchema.safeParse(food).success).toBe(false);
   });
 
-  it('normalizes optional Food organization metadata', () => {
+  it('deduplicates optional Food Tag references', () => {
+    const firstTagId = '123e4567-e89b-42d3-a456-426614174010';
+    const secondTagId = '123e4567-e89b-42d3-a456-426614174011';
+
     expect(foodSchema.parse({
       ...validFood,
       isFavorite: true,
       lastLoggedAt: '2026-10-20T01:00:00Z',
-      tags: [' Fruit ', 'HIGH-CARB', 'fruit'],
+      tagIds: [firstTagId, secondTagId, firstTagId],
     })).toEqual({
       ...validFood,
       isFavorite: true,
       lastLoggedAt: '2026-10-20T01:00:00Z',
-      tags: ['fruit', 'high-carb'],
+      tagIds: [firstTagId, secondTagId],
     });
   });
 
   it.each([
-    { ...validFood, tags: ['favorite'] },
-    { ...validFood, tags: Array.from({ length: 11 }, (_, index) => `tag-${index}`) },
-    { ...validFood, tags: [''] },
+    { ...validFood, tagIds: ['not-a-uuid'] },
+    {
+      ...validFood,
+      tagIds: Array.from(
+        { length: 11 },
+        (_, index) => `00000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+      ),
+    },
     { ...validFood, lastLoggedAt: 'yesterday' },
   ])('rejects invalid Food organization metadata: %o', (food) => {
     expect(foodSchema.safeParse(food).success).toBe(false);

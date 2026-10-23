@@ -2,5 +2,7 @@ import type { Food } from '@bitebook/domain';
 
 export type FoodFormValues = Pick<
   Food,
-  'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize' | 'tags'
->;
+  'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize'
+> & {
+  tagNames?: string[];
+};

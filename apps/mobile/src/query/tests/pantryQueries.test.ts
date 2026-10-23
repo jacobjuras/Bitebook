@@ -4,12 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   listFoods: vi.fn(),
   listMeals: vi.fn(),
+  listTags: vi.fn(),
 }));
 
 vi.mock('../../api/foods.js', () => ({ listFoods: mocks.listFoods }));
 vi.mock('../../api/meals.js', () => ({ listMeals: mocks.listMeals }));
+vi.mock('../../api/tags.js', () => ({ listTags: mocks.listTags }));
 
-import { foodsQueryOptions, mealsQueryOptions } from '../pantryQueries.js';
+import {
+  foodsQueryOptions,
+  mealsQueryOptions,
+  tagsQueryOptions,
+} from '../pantryQueries.js';
 
 let queryClient: QueryClient;
 
@@ -33,21 +39,26 @@ describe('Pantry query caching', () => {
     expect(mocks.listFoods).toHaveBeenCalledOnce();
   });
 
-  it('keeps preloaded Food and Meal data in independent cache entries', async () => {
+  it('keeps preloaded Food, Meal, and Tag data in independent cache entries', async () => {
     const foods: never[] = [];
     const meals: never[] = [];
+    const tags: never[] = [];
     mocks.listFoods.mockResolvedValue(foods);
     mocks.listMeals.mockResolvedValue(meals);
+    mocks.listTags.mockResolvedValue(tags);
 
     await Promise.all([
       queryClient.query(foodsQueryOptions),
       queryClient.query(mealsQueryOptions),
+      queryClient.query(tagsQueryOptions),
     ]);
 
     expect(queryClient.getQueryData(['foods'])).toBe(foods);
     expect(queryClient.getQueryData(['meals'])).toBe(meals);
+    expect(queryClient.getQueryData(['tags'])).toBe(tags);
     expect(mocks.listFoods).toHaveBeenCalledOnce();
     expect(mocks.listMeals).toHaveBeenCalledOnce();
+    expect(mocks.listTags).toHaveBeenCalledOnce();
   });
 
   it('fetches Foods again after explicit invalidation', async () => {
