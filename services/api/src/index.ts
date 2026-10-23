@@ -1,17 +1,16 @@
-import { randomUUID } from 'node:crypto';
-
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
   TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { foodSchema, mealSchema, type Food } from '@bitebook/domain';
+import { foodSchema, mealSchema } from '@bitebook/domain';
 import type {
   APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda';
 
 import { documentClient } from './dynamodb.js';
+import { createFood } from './foodWrites.js';
 import { getFood, listFoods } from './foodReads.js';
 import { jsonResponse } from './http.js';
 import { getMeal, listMeals } from './mealReads.js';
@@ -25,16 +24,13 @@ import {
 import { getUserProfile, putUserProfile } from './userProfiles.js';
 import { createTag, getTagConditionChecks, listTags, updateTag } from './tags.js';
 
-const createFoodInputSchema = foodSchema.pick({
+const updateFoodInputSchema = foodSchema.pick({
   isFavorite: true,
   name: true,
   nutritionFacts: true,
   servingSize: true,
   tagIds: true,
-});
-const updateFoodInputSchema = createFoodInputSchema
-  .partial()
-  .refine((input) => Object.keys(input).length > 0);
+}).partial().refine((input) => Object.keys(input).length > 0);
 
 /** Deletes one Food from an authenticated user's partition. */
 async function deleteFood(
@@ -249,61 +245,8 @@ export async function handler(
       event.body,
     );
   }
-  if (event.routeKey !== 'POST /foods') {
-    return jsonResponse(404, { message: 'Not found' });
+  if (event.routeKey === 'POST /foods') {
+    return createFood(tableName, subject, event.body);
   }
-
-  let requestBody: unknown;
-  try {
-    requestBody = JSON.parse(event.body ?? '');
-  } catch {
-    return jsonResponse(400, { message: 'Invalid food' });
-  }
-
-  const input = createFoodInputSchema.safeParse(requestBody);
-  if (!input.success) {
-    return jsonResponse(400, { message: 'Invalid food' });
-  }
-
-  const timestamp = new Date().toISOString();
-  const food: Food = foodSchema.parse({
-    ...input.data,
-    createdAt: timestamp,
-    id: randomUUID(),
-    updatedAt: timestamp,
-    userId: subject,
-  });
-
-  const tagChecks = getTagConditionChecks(tableName, subject, food.tagIds);
-  try {
-    await documentClient.send(
-      new TransactWriteCommand({
-        TransactItems: [
-          ...tagChecks,
-          {
-            Put: {
-              ConditionExpression:
-                'attribute_not_exists(userId) AND attribute_not_exists(entityKey)',
-              Item: { ...food, entityKey: `FOOD#${food.id}` },
-              TableName: tableName,
-            },
-          },
-        ],
-      }),
-    );
-  } catch (error) {
-    if (error instanceof TransactionCanceledException) {
-      const failedCondition = error.CancellationReasons?.findIndex(
-        ({ Code }) => Code === 'ConditionalCheckFailed',
-      );
-      if (failedCondition !== undefined && failedCondition >= 0) {
-        return failedCondition < tagChecks.length
-          ? jsonResponse(400, { message: 'Food contains unavailable Tags' })
-          : jsonResponse(409, { message: 'Food could not be created; try again' });
-      }
-    }
-    throw error;
-  }
-
-  return jsonResponse(201, food);
+  return jsonResponse(404, { message: 'Not found' });
 }

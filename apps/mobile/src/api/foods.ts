@@ -1,13 +1,15 @@
-import { foodSchema, type Food } from '@bitebook/domain';
+import {
+  foodSchema,
+  type Food,
+  type FoodCreateInput,
+} from '@bitebook/domain';
 
 import { authenticatedApiRequest } from './apiClient';
 
-type FoodCreateInput = Pick<
+type FoodUpdate = Partial<Pick<
   Food,
   'isFavorite' | 'name' | 'nutritionFacts' | 'servingSize' | 'tagIds'
->;
-
-type FoodUpdate = Partial<FoodCreateInput>;
+>>;
 
 function parseFood(value: unknown): Food {
   if (!value || typeof value !== 'object') return foodSchema.parse(value);

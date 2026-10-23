@@ -1,6 +1,7 @@
 export * from './authentication-constants.js';
 export * from './calendarMeal.js';
 export * from './food.js';
+export * from './foodCreate.js';
 export * from './meal.js';
 export * from './mealEntry.js';
 export * from './nutrition.js';

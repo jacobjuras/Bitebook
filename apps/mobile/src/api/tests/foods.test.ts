@@ -98,6 +98,7 @@ describe('Foods API', () => {
     const input = {
       isFavorite: true,
       name: 'Chicken breast',
+      newTags: [{ color: '#abcdef', name: 'high protein' }],
       nutritionFacts: {
         caloriesKcal: 165,
         micronutrients: {},
