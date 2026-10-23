@@ -19,9 +19,8 @@ export const styles = StyleSheet.create({
   },
   cancelTagButton: {
     alignItems: 'center',
-    alignSelf: 'stretch',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
   },
   content: { gap: 32, padding: 20, paddingBottom: 40 },
   error: { borderRadius: 10, padding: 12 },
@@ -67,14 +66,6 @@ export const styles = StyleSheet.create({
   screen: { flex: 1 },
   section: { gap: 14 },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  tagButton: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 56,
-    paddingHorizontal: 16,
-  },
   tagChip: {
     alignItems: 'center',
     borderRadius: 16,
@@ -83,18 +74,22 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  tagInput: {
-    flex: 1,
-    fontSize: 16,
-    paddingLeft: 14,
-    paddingVertical: 12,
+  tagChipInput: {
+    fontSize: 14,
+    padding: 0,
   },
-  tagInputContainer: {
+  tagInputChip: {
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    minHeight: 56,
+    minHeight: 34,
+    paddingLeft: 10,
+  },
+  tagInputMeasurement: {
+    fontSize: 14,
+    opacity: 0,
+    position: 'absolute',
   },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   title: { fontSize: 34, fontWeight: '700' },

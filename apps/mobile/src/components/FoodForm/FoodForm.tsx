@@ -35,6 +35,9 @@ import { styles } from './styles';
 
 type NutrientField = (typeof foodNutrientFields)[number]['id'];
 
+const TAG_INPUT_CHIP_MAX_WIDTH = 240;
+const TAG_INPUT_CHIP_MIN_WIDTH = 76;
+
 type FoodFormProps = {
   availableTags: readonly Tag[];
   error?: string;
@@ -70,6 +73,7 @@ export function FoodForm({
   const [showMoreNutrition, setShowMoreNutrition] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [tagInputWidth, setTagInputWidth] = useState(TAG_INPUT_CHIP_MIN_WIDTH);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTags, setNewTags] = useState<{ name: string }[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -111,6 +115,7 @@ export function FoodForm({
 
   function cancelTag() {
     setTagInput('');
+    setTagInputWidth(TAG_INPUT_CHIP_MIN_WIDTH);
     setTagError(undefined);
     setIsAddingTag(false);
   }
@@ -439,21 +444,10 @@ export function FoodForm({
               >
                 <Text style={{ color: colors.textPrimary }}>+ Tag</Text>
               </Pressable>
-            ) : null}
-            {selectedTagIds.length + newTags.length > 0 ? (
-              <ClearAllButton
-                accessibilityLabel="Clear all Food tags"
-                onPress={clearTags}
-                testID="food-form-clear-tags-button"
-              />
-            ) : null}
-          </View>
-          {isAddingTag ? (
-            <View style={styles.row} testID="food-form-tag-editor">
+            ) : (
               <View
                 style={[
-                  styles.tagInputContainer,
-                  styles.flex,
+                  styles.tagInputChip,
                   {
                     backgroundColor: colors.background,
                     borderColor: tagError ? colors.danger : colors.border,
@@ -461,6 +455,21 @@ export function FoodForm({
                 ]}
                 testID="food-form-tag-input-container"
               >
+                <Text
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  onLayout={({ nativeEvent }) => {
+                    setTagInputWidth(Math.min(
+                      TAG_INPUT_CHIP_MAX_WIDTH,
+                      Math.max(TAG_INPUT_CHIP_MIN_WIDTH, Math.ceil(nativeEvent.layout.width) + 4),
+                    ));
+                  }}
+                  pointerEvents="none"
+                  style={styles.tagInputMeasurement}
+                  testID="food-form-tag-input-measurement"
+                >
+                  {tagInput || 'Tag name'}
+                </Text>
                 <TextInput
                   accessibilityLabel="Optional tag"
                   autoCapitalize="none"
@@ -474,7 +483,10 @@ export function FoodForm({
                   onSubmitEditing={addNewTag}
                   placeholder="Tag name"
                   returnKeyType="done"
-                  style={[styles.tagInput, { color: colors.textPrimary }]}
+                  style={[
+                    styles.tagChipInput,
+                    { color: colors.textPrimary, width: tagInputWidth },
+                  ]}
                   testID="food-form-tag-input"
                   value={tagInput}
                 />
@@ -491,25 +503,20 @@ export function FoodForm({
                 >
                   <Ionicons
                     color={colors.textSecondary}
-                    name="close-circle"
-                    size={20}
+                    name="close"
+                    size={14}
                   />
                 </Pressable>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={addNewTag}
-                style={({ pressed }) => [
-                  styles.tagButton,
-                  { borderColor: colors.border },
-                  pressed && styles.pressed,
-                ]}
-                testID="food-form-add-tag-button"
-              >
-                <Text style={{ color: colors.accent }}>Add</Text>
-              </Pressable>
-            </View>
-          ) : null}
+            )}
+            {selectedTagIds.length + newTags.length > 0 ? (
+              <ClearAllButton
+                accessibilityLabel="Clear all Food tags"
+                onPress={clearTags}
+                testID="food-form-clear-tags-button"
+              />
+            ) : null}
+          </View>
           {tagError ? (
             <Text accessibilityRole="alert" style={{ color: colors.danger }} testID="food-form-tag-error">
               {tagError}
