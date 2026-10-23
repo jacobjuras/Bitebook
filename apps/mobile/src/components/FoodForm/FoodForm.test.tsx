@@ -106,7 +106,7 @@ describe('FoodForm', () => {
     await fireEvent.changeText(screen.getByTestId('food-form-sodium-input'), '120');
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Breakfast ');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     await fireEvent(screen.getByTestId('food-form-favorite-switch'), 'valueChange', true);
     await fireEvent.press(screen.getByTestId('food-form-save-button'));
 
@@ -127,26 +127,61 @@ describe('FoodForm', () => {
     await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
 
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
-    expect(screen.getByTestId('food-form-tag-input').props.autoFocus).toBe(true);
+    expect(screen.getByTestId('food-form-tag-input').props).toMatchObject({
+      autoFocus: true,
+      returnKeyType: 'done',
+    });
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input-container').props.style,
+    )).toMatchObject({ borderRadius: 18, minHeight: 34 });
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input').props.style,
+    )).toMatchObject({ fontSize: 14, width: 76 });
+    await fireEvent(
+      screen.getByTestId(
+        'food-form-tag-input-measurement',
+        { includeHiddenElements: true },
+      ),
+      'layout',
+      { nativeEvent: { layout: { width: 120 } } },
+    );
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input').props.style,
+    )).toMatchObject({ width: 124 });
+    await fireEvent(
+      screen.getByTestId(
+        'food-form-tag-input-measurement',
+        { includeHiddenElements: true },
+      ),
+      'layout',
+      { nativeEvent: { layout: { width: 300 } } },
+    );
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input').props.style,
+    )).toMatchObject({ width: 240 });
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'draft');
-    expect(screen.getByTestId('food-form-tag-editor')).toBeTruthy();
+    expect(screen.getByTestId('food-form-tag-input-container')).toBeTruthy();
     expect(screen.queryByTestId('food-form-show-tag-input-button')).toBeNull();
+    expect(screen.queryByTestId('food-form-add-tag-button')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('food-form-cancel-tag-button'));
 
-    expect(screen.queryByTestId('food-form-tag-editor')).toBeNull();
+    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
     expect(screen.queryByTestId('food-form-tag-input')).toBeNull();
     expect(screen.getByTestId('food-form-show-tag-input-button')).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     expect(screen.getByTestId('food-form-tag-input').props.value).toBe('');
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-tag-input').props.style,
+    )).toMatchObject({ width: 76 });
   });
 
   it('renders staged new Tags with a dashed border', async () => {
     await render(<FoodForm availableTags={[]} isSubmitting={false} onSubmit={vi.fn()} />);
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' HIGH-PROTEIN ');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
 
     expect(StyleSheet.flatten(
       screen.getByTestId('food-form-new-tag-high-protein').props.style,
@@ -155,7 +190,7 @@ describe('FoodForm', () => {
 
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'high-protein');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent('Tag already added');
 
     await fireEvent.press(screen.getByTestId('food-form-new-tag-high-protein'));
@@ -185,7 +220,7 @@ describe('FoodForm', () => {
     expect(screen.getByTestId(`food-form-available-tag-${fiber.id}`)).toBeTruthy();
 
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), ' Protein ');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     expect(dismissKeyboard).toHaveBeenCalledOnce();
     dismissKeyboard.mockRestore();
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
@@ -199,7 +234,7 @@ describe('FoodForm', () => {
     expect(StyleSheet.flatten(
       screen.getByTestId(`food-form-selected-tag-${protein.id}`).props.style,
     )).toMatchObject({ backgroundColor: 'accent-subtle' });
-    expect(screen.queryByTestId('food-form-tag-editor')).toBeNull();
+    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
 
     await fireEvent.changeText(screen.getByTestId('food-form-name-input'), 'Oats');
     await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '40');
@@ -220,7 +255,7 @@ describe('FoodForm', () => {
     await fireEvent.press(screen.getByTestId(`food-form-available-tag-${protein.id}`));
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'quick');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     expect(screen.getByTestId(`food-form-selected-tag-${protein.id}`)).toBeTruthy();
     expect(screen.getByTestId('food-form-new-tag-quick')).toBeTruthy();
 
@@ -238,7 +273,7 @@ describe('FoodForm', () => {
 
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
     await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), 'favorite');
-    await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+    await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     expect(screen.getByTestId('food-form-tag-error')).toHaveTextContent(
       'Favorite is reserved for the favorite toggle',
     );
@@ -262,11 +297,11 @@ describe('FoodForm', () => {
     for (let index = 0; index < 10; index += 1) {
       await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
       await fireEvent.changeText(screen.getByTestId('food-form-tag-input'), `tag-${index}`);
-      await fireEvent.press(screen.getByTestId('food-form-add-tag-button'));
+      await fireEvent(screen.getByTestId('food-form-tag-input'), 'submitEditing');
     }
     await fireEvent.press(screen.getByTestId('food-form-show-tag-input-button'));
 
-    expect(screen.queryByTestId('food-form-tag-editor')).toBeNull();
+    expect(screen.queryByTestId('food-form-tag-input-container')).toBeNull();
     expect(screen.getByTestId('food-form-tag-error'))
       .toHaveTextContent('Foods can have up to 10 tags');
   });
