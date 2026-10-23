@@ -9,30 +9,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  cancelTagButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
   container: { gap: 14 },
   pressed: { opacity: 0.65 },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  tagChipInput: {
-    fontSize: 14,
-    padding: 0,
-  },
-  tagInputChip: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    minHeight: 34,
-    paddingLeft: 10,
-  },
-  tagInputMeasurement: {
-    fontSize: 14,
-    opacity: 0,
-    position: 'absolute',
-  },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

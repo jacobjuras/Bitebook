@@ -9,5 +9,6 @@ export { ItemListView } from './ItemListView/ItemListView';
 export { PantrySectionControl } from './PantrySectionControl/PantrySectionControl';
 export { PlaceholderScreen } from './PlaceholderScreen/PlaceholderScreen';
 export { SearchFilterSortControls } from './SearchFilterSortControls/SearchFilterSortControls';
-export { TagPicker } from './TagPicker/TagPicker';
 export { TagChip } from './TagChip/TagChip';
+export { TagInputChip } from './TagInputChip/TagInputChip';
+export { TagPicker } from './TagPicker/TagPicker';
