@@ -19,3 +19,4 @@ export {
   itemSortFields,
   itemSortOptions,
 } from './sorting-constants';
+export { TagChipVariant } from './tag-chip-constants';

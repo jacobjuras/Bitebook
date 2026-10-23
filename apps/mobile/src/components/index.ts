@@ -10,3 +10,4 @@ export { PantrySectionControl } from './PantrySectionControl/PantrySectionContro
 export { PlaceholderScreen } from './PlaceholderScreen/PlaceholderScreen';
 export { SearchFilterSortControls } from './SearchFilterSortControls/SearchFilterSortControls';
 export { TagPicker } from './TagPicker/TagPicker';
+export { TagChip } from './TagChip/TagChip';
