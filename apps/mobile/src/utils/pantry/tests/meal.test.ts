@@ -1,6 +1,11 @@
 import type { Food, Meal } from '@bitebook/domain';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('~/components', () => ({
+  FavoriteIndicator: 'FavoriteIndicator',
+}));
+
+import { FavoriteIndicator } from '~/components';
 import { getMealCardItem, getSortableMeal } from '../meal.js';
 
 const baseFood: Food = {
@@ -30,9 +35,29 @@ const baseMeal: Meal = {
 describe('getMealCardItem', () => {
   it('maps Meal identity and the singular ingredient count', () => {
     expect(getMealCardItem(baseMeal)).toEqual({
+      accessory: undefined,
+      chips: undefined,
       details: [{ id: 'ingredient-count', text: '1 ingredient' }],
       id: baseMeal.id,
       title: baseMeal.name,
+    });
+  });
+
+  it('maps Meal tags and favorite state into card organization', () => {
+    const item = getMealCardItem({
+      ...baseMeal,
+      isFavorite: true,
+      tags: ['breakfast', 'high-protein'],
+    });
+    const accessory = item.accessory?.('pantry-meal-item');
+
+    expect(item.chips).toEqual([
+      { id: 'breakfast', label: 'breakfast' },
+      { id: 'high-protein', label: 'high-protein' },
+    ]);
+    expect(accessory).toMatchObject({
+      props: { testIDPrefix: 'pantry-meal-item' },
+      type: FavoriteIndicator,
     });
   });
 

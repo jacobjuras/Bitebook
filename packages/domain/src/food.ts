@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import { nutritionFactsSchema } from './nutrition.js';
+import { pantryItemOrganizationSchema } from './pantryItem.js';
 import { quantitySchema } from './quantity.js';
 
 const servingSizeSchema = quantitySchema.refine(
@@ -8,29 +9,13 @@ const servingSizeSchema = quantitySchema.refine(
   'Serving size must be greater than zero',
 );
 
-const foodTagSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(1)
-  .max(30)
-  .refine((tag) => tag !== 'favorite' && tag !== 'favorites', {
-    message: 'Favorite is reserved for the Food favorite state',
-  });
-
-const foodTagsSchema = z
-  .array(foodTagSchema)
-  .max(10)
-  .transform((tags) => [...new Set(tags)]);
-
 export const foodSchema = z.strictObject({
+  ...pantryItemOrganizationSchema.shape,
   id: z.uuid(),
   userId: z.string().min(1),
   name: z.string().trim().min(1).max(100),
   servingSize: servingSizeSchema,
   nutritionFacts: nutritionFactsSchema,
-  isFavorite: z.boolean().optional(),
-  tags: foodTagsSchema.optional(),
   lastLoggedAt: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

@@ -21,6 +21,8 @@ const meals = [
       },
     ],
     name: 'Chicken bowl',
+    isFavorite: true,
+    tags: ['high-protein'],
     updatedAt: '2026-10-20T12:00:00.000Z',
     userId: 'user-123',
   },

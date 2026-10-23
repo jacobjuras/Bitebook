@@ -168,14 +168,14 @@ Temporary internal Beta and Production environments use admin-created Cognito te
 - [x] Load Meals from the authenticated API.
 - [x] Connect Pantry empty states to live Foods and Meals.
 - [x] Build the Food list with search and Recent, Name, and Calories sorting.
-- [x] Add Food favorite toggles and Favorites/custom-tag filtering.
-- [ ] Add custom tag editing to Food creation and details.
-- [ ] Build manual Food creation.
-- [ ] Build Food details and metadata editing.
+- [x] Share tag and favorite metadata across Foods and Meals.
+- [x] Display Food and Meal favorites and support Favorites/custom-tag filtering.
+- [ ] Build manual Food creation, including favorite and custom-tag fields.
+- [ ] Build Food details and metadata editing, including favorites and tags.
 - [ ] Build the Food deletion interface.
 - [x] Build the Meal list with search and sorting.
-- [ ] Build Meal creation with Food selection and quantities.
-- [ ] Build Meal details and editing.
+- [ ] Build Meal creation with Food selection, quantities, favorite, and custom-tag fields.
+- [ ] Build Meal details and metadata editing, including favorites and tags.
 - [ ] Display Meal nutrition.
 - [ ] Build the Meal deletion interface.
 

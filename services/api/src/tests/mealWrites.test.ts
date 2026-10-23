@@ -64,7 +64,30 @@ describe('mealWrites', () => {
       });
   });
 
-  it.each([undefined, '{', JSON.stringify({ name: 'Breakfast', ingredients: [] })])(
+  it('creates normalized Meal organization metadata', async () => {
+    const response = await createMeal(
+      'table',
+      'user-123',
+      JSON.stringify({
+        ...mealInput,
+        isFavorite: true,
+        tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
+      }),
+    );
+
+    expect(response.statusCode).toBe(201);
+    expect(JSON.parse(response.body ?? '')).toMatchObject({
+      isFavorite: true,
+      tags: ['breakfast', 'high-protein'],
+    });
+  });
+
+  it.each([
+    undefined,
+    '{',
+    JSON.stringify({ name: 'Breakfast', ingredients: [] }),
+    JSON.stringify({ ...mealInput, tags: ['favorite'] }),
+  ])(
     'rejects invalid create body %s',
     async (body) => {
       const response = await createMeal('table', 'user-123', body);
@@ -94,12 +117,20 @@ describe('mealWrites', () => {
       'table',
       'user-123',
       storedMeal.id,
-      JSON.stringify({ name: 'Weekend breakfast' }),
+      JSON.stringify({
+        isFavorite: true,
+        name: 'Weekend breakfast',
+        tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
+      }),
     );
     const meal = JSON.parse(response.body ?? '');
 
     expect(response.statusCode).toBe(200);
-    expect(meal.name).toBe('Weekend breakfast');
+    expect(meal).toMatchObject({
+      isFavorite: true,
+      name: 'Weekend breakfast',
+      tags: ['breakfast', 'high-protein'],
+    });
     expect(documentClientMock.commandCalls(GetCommand)[0]?.args[0].input)
       .toMatchObject({ ConsistentRead: true });
     expect(documentClientMock.commandCalls(TransactWriteCommand)[0]?.args[0].input)

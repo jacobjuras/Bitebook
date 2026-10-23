@@ -101,6 +101,7 @@ const meals = [
       { foodId: foods[0].id, quantity: { amount: 100, unit: 'g' as const } },
     ],
     name: 'Chicken bowl',
+    tags: ['high-protein', 'savory'],
     updatedAt: '2026-10-20T14:00:00.000Z',
     userId: 'user-123',
   },
@@ -111,7 +112,9 @@ const meals = [
       { foodId: foods[0].id, quantity: { amount: 100, unit: 'g' as const } },
       { foodId: foods[1].id, quantity: { amount: 1, unit: 'item' as const } },
     ],
+    isFavorite: true,
     name: 'Chicken and yogurt',
+    tags: ['breakfast', 'high-protein'],
     updatedAt: '2026-10-20T15:00:00.000Z',
     userId: 'user-123',
   },
@@ -485,6 +488,15 @@ describe('Pantry screen', () => {
     expect(
       screen.getByTestId(`pantry-meal-${meals[1].id}-ingredient-count`),
     ).toHaveTextContent('2 ingredients');
+    expect(screen.getByTestId(
+      `pantry-meal-${meals[0].id}-chip-savory`,
+    )).toHaveTextContent('savory');
+    expect(screen.queryByTestId(
+      `pantry-meal-${meals[0].id}-favorite-indicator`,
+    )).toBeNull();
+    expect(screen.getByTestId(
+      `pantry-meal-${meals[1].id}-favorite-indicator`,
+    )).toBeTruthy();
     const addMealButton = screen.getByTestId('pantry-meal-add-button');
     expect(addMealButton).toHaveTextContent('Add meal');
     await fireEvent.press(addMealButton);
@@ -511,6 +523,39 @@ describe('Pantry screen', () => {
     );
     expect(screen.getByTestId('pantry-no-results-description'))
       .toHaveTextContent('Try a different search');
+  });
+
+  it('combines Meal favorite and tag filters independently from Foods', async () => {
+    await renderPantry({
+      mealsResult: { data: meals, isError: false, isPending: false },
+    });
+    await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
+    const filterSortMenu = screen.getByTestId('pantry-meal-filter-sort-menu');
+
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'favorites' },
+    });
+    expect(renderedMealCardIds()).toEqual([`pantry-meal-${meals[1].id}`]);
+
+    await fireEvent(filterSortMenu, 'pressAction', {
+      nativeEvent: { event: 'tag:high-protein' },
+    });
+    expect(renderedMealCardIds()).toEqual([`pantry-meal-${meals[1].id}`]);
+
+    await fireEvent.press(screen.getByTestId('pantry-foods-tab'));
+    expect(renderedFoodCardIds()).toEqual([
+      `pantry-food-${foods[0].id}`,
+      `pantry-food-${foods[1].id}`,
+    ]);
+
+    await fireEvent.press(screen.getByTestId('pantry-meals-tab'));
+    expect(renderedMealCardIds()).toEqual([`pantry-meal-${meals[1].id}`]);
+
+    await fireEvent.press(screen.getByTestId('pantry-meal-clear-filters-button'));
+    expect(renderedMealCardIds()).toEqual([
+      `pantry-meal-${meals[1].id}`,
+      `pantry-meal-${meals[0].id}`,
+    ]);
   });
 
   it('sorts Meals by recent, calories, and name', async () => {

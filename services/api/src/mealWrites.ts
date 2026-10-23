@@ -11,7 +11,9 @@ import { getMeal } from './mealReads.js';
 
 const createMealInputSchema = mealSchema.pick({
   ingredients: true,
+  isFavorite: true,
   name: true,
+  tags: true,
 });
 const updateMealInputSchema = createMealInputSchema
   .partial()

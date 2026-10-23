@@ -6,8 +6,11 @@ import {
 
 import type { ItemCardModel, SortableItem } from '~/models';
 
+import { getItemCardOrganization } from './itemCard';
+
 export function getMealCardItem(meal: Meal): ItemCardModel {
   return {
+    ...getItemCardOrganization(meal),
     details: [
       {
         id: 'ingredient-count',

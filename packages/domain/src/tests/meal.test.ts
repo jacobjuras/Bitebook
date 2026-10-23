@@ -22,6 +22,30 @@ describe('mealSchema', () => {
     expect(mealSchema.parse(validMeal)).toEqual(validMeal);
   });
 
+  it('normalizes optional Meal organization metadata', () => {
+    expect(mealSchema.parse({
+      ...validMeal,
+      isFavorite: true,
+      tags: [' Breakfast ', 'HIGH-PROTEIN', 'breakfast'],
+    })).toEqual({
+      ...validMeal,
+      isFavorite: true,
+      tags: ['breakfast', 'high-protein'],
+    });
+  });
+
+  it.each([
+    { ...validMeal, tags: ['favorite'] },
+    {
+      ...validMeal,
+      tags: Array.from({ length: 11 }, (_, index) => `tag-${index}`),
+    },
+    { ...validMeal, tags: [''] },
+    { ...validMeal, isFavorite: 'yes' },
+  ])('rejects invalid Meal organization metadata: %o', (meal) => {
+    expect(mealSchema.safeParse(meal).success).toBe(false);
+  });
+
   it('requires at least one ingredient', () => {
     expect(
       mealSchema.safeParse({ ...validMeal, ingredients: [] }).success,
