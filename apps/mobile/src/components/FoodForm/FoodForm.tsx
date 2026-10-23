@@ -97,6 +97,11 @@ export function FoodForm({
     return false;
   }
 
+  function showTagInput() {
+    if (!hasTagCapacity()) return;
+    setIsAddingTag(true);
+  }
+
   function cancelTag() {
     setTagInput('');
     setTagError(undefined);
@@ -411,7 +416,7 @@ export function FoodForm({
               <Pressable
                 accessibilityLabel="Add optional tag"
                 accessibilityRole="button"
-                onPress={() => setIsAddingTag(true)}
+                onPress={showTagInput}
                 style={({ pressed }) => [
                   styles.addTagChip,
                   { borderColor: colors.border },
