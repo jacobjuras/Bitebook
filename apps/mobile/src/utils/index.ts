@@ -1,6 +1,6 @@
 export { getContentState } from './pantry/contentState';
 export { getFoodCardItem, getSortableFood } from './pantry/food';
-export { getMealCardItem } from './pantry/meal';
+export { getMealCardItem, getSortableMeal } from './pantry/meal';
 export {
   filterItems,
   getAvailableTags,
