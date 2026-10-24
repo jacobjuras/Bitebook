@@ -53,6 +53,7 @@ async function deleteUserPartition(
   let exclusiveStartKey: Record<string, unknown> | undefined;
   do {
     const page = await client.send(new QueryCommand({
+      ConsistentRead: true,
       ExclusiveStartKey: exclusiveStartKey,
       ExpressionAttributeValues: { ':userId': userId },
       KeyConditionExpression: 'userId = :userId',

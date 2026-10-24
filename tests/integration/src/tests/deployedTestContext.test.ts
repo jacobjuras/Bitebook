@@ -43,11 +43,15 @@ afterEach(() => {
 });
 
 describe('deployed test context', () => {
-  it('authenticates requests and cleans every paginated partition item', async () => {
-    const keys = Array.from({ length: 101 }, (_, index) => ({
-      entityKey: `ITEM#${index}`,
-      userId: 'user-123',
-    }));
+  it('cleans every paginated item, including Tags and name reservations', async () => {
+    const keys = [
+      { entityKey: 'TAG#tag-1', userId: 'user-123' },
+      { entityKey: 'TAG_NAME#protein', userId: 'user-123' },
+      ...Array.from({ length: 99 }, (_, index) => ({
+        entityKey: `ITEM#${index}`,
+        userId: 'user-123',
+      })),
+    ];
     dynamodbMock.on(QueryCommand)
       .resolvesOnce({
         Items: keys.slice(0, 60),
@@ -65,11 +69,31 @@ describe('deployed test context', () => {
     expect(result.body).toEqual({ foods: [] });
     expect(cognitoMock.commandCalls(AdminCreateUserCommand)).toHaveLength(1);
     expect(cognitoMock.commandCalls(AdminDeleteUserCommand)).toHaveLength(1);
-    expect(dynamodbMock.commandCalls(QueryCommand)).toHaveLength(2);
+    const queryCalls = dynamodbMock.commandCalls(QueryCommand);
+    expect(queryCalls).toHaveLength(2);
+    expect(queryCalls.map(({ args }) => args[0].input.ConsistentRead))
+      .toEqual([true, true]);
     const cleanupCalls = dynamodbMock.commandCalls(TransactWriteCommand);
     expect(cleanupCalls).toHaveLength(2);
     expect(cleanupCalls[0]?.args[0].input.TransactItems).toHaveLength(100);
     expect(cleanupCalls[1]?.args[0].input.TransactItems).toHaveLength(1);
+    const deletedItems = cleanupCalls.flatMap(
+      ({ args }) => args[0].input.TransactItems ?? [],
+    );
+    expect(deletedItems).toEqual(expect.arrayContaining([
+      {
+        Delete: {
+          Key: { entityKey: 'TAG#tag-1', userId: 'user-123' },
+          TableName: 'UserDataTable',
+        },
+      },
+      {
+        Delete: {
+          Key: { entityKey: 'TAG_NAME#protein', userId: 'user-123' },
+          TableName: 'UserDataTable',
+        },
+      },
+    ]));
     expect(fetch).toHaveBeenCalledWith(
       new URL('foods', 'https://example.execute-api.us-west-2.amazonaws.com'),
       expect.objectContaining({
