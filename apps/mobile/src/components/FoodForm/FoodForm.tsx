@@ -50,6 +50,18 @@ function parseNumber(value: string, mustBePositive = false) {
     : undefined;
 }
 
+function isNameInvalid(value: string) {
+  return value.trim().length === 0;
+}
+
+function isServingAmountInvalid(value: string) {
+  return parseNumber(value, true) === undefined;
+}
+
+function isCaloriesInvalid(value: string) {
+  return parseNumber(value) === undefined;
+}
+
 function normalizeServingAmount(value: string) {
   const withoutLeadingZeros = value.replace(/^0+(?=\d)/, '');
   return Number(withoutLeadingZeros) === 0 ? '' : withoutLeadingZeros;
@@ -63,7 +75,9 @@ export function FoodForm({
   onSubmit,
 }: FoodFormProps) {
   const colors = useThemeColors();
-  const servingAmountInputRef = useRef<TextInputInstance>(null);
+  const caloriesTextInputRef = useRef<TextInputInstance>(null);
+  const nameTextInputRef = useRef<TextInputInstance>(null);
+  const servingAmountTextInputRef = useRef<TextInputInstance>(null);
   const [name, setName] = useState('');
   const [servingAmount, setServingAmount] = useState('');
   const [servingUnit, setServingUnit] = useState<Unit>('g');
@@ -75,10 +89,18 @@ export function FoodForm({
   const [showMoreNutrition, setShowMoreNutrition] = useState(false);
   const [tags, setTags] = useState<TagPickerValue>({ newTags: [], tagIds: [] });
   const [isFavorite, setIsFavorite] = useState(false);
+  const [hasNameError, setHasNameError] = useState(false);
+  const [hasServingAmountError, setHasServingAmountError] = useState(false);
+  const [hasCaloriesError, setHasCaloriesError] = useState(false);
   const [validationError, setValidationError] = useState<string>();
   const selectedServingUnit = foodServingUnits.find(
     ({ id }) => id === servingUnit,
   );
+
+  function blurServingAmount() {
+    setHasServingAmountError(isServingAmountInvalid(servingAmount));
+    setServingAmount(normalizeServingAmount(servingAmount));
+  }
 
   async function submit() {
     const parsedServingAmount = parseNumber(servingAmount, true);
@@ -88,8 +110,18 @@ export function FoodForm({
       ...foodMicronutrientFields.map(({ id }) => micronutrients[id]),
     ].some((value) => value !== undefined && parseNumber(value) === undefined);
 
-    if (!name.trim() || parsedServingAmount === undefined || parsedCalories === undefined) {
-      setValidationError('Enter a name, positive serving size, and valid calories');
+    const nameInvalid = isNameInvalid(name);
+    const servingAmountInvalid = parsedServingAmount === undefined;
+    const caloriesInvalid = parsedCalories === undefined;
+    setHasNameError(nameInvalid);
+    setHasServingAmountError(servingAmountInvalid);
+    setHasCaloriesError(caloriesInvalid);
+
+    if (nameInvalid || servingAmountInvalid || caloriesInvalid) {
+      setValidationError(undefined);
+      if (nameInvalid) nameTextInputRef.current?.focus();
+      else if (servingAmountInvalid) servingAmountTextInputRef.current?.focus();
+      else caloriesTextInputRef.current?.focus();
       return;
     }
     if (invalidOptionalNutrition) {
@@ -149,56 +181,88 @@ export function FoodForm({
         </Text>
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>BASICS</Text>
-          <TextInput
-            accessibilityLabel="Food name, required"
-            autoCapitalize="words"
-            maxLength={100}
-            onChangeText={setName}
-            onSubmitEditing={() => servingAmountInputRef.current?.focus()}
-            placeholder="Food name"
-            returnKeyType="next"
-            submitBehavior="submit"
-            style={[
-              styles.input,
-              { backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary },
-            ]}
-            testID="food-form-name-input"
-            value={name}
-          />
-          <View style={styles.row}>
+          <View style={styles.field}>
             <TextInput
-              accessibilityLabel="Serving amount, required"
-              keyboardType="decimal-pad"
-              onBlur={() => setServingAmount(normalizeServingAmount(servingAmount))}
-              onChangeText={setServingAmount}
-              placeholder="Amount"
-              ref={servingAmountInputRef}
+              accessibilityLabel="Food name, required"
+              autoCapitalize="words"
+              maxLength={100}
+              onBlur={() => setHasNameError(isNameInvalid(name))}
+              onChangeText={setName}
+              onSubmitEditing={() => servingAmountTextInputRef.current?.focus()}
+              placeholder="Food name"
+              ref={nameTextInputRef}
+              returnKeyType="next"
+              submitBehavior="submit"
               style={[
                 styles.input,
-                styles.flex,
-                { backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary },
+                {
+                  backgroundColor: colors.background,
+                  borderColor: hasNameError ? colors.danger : colors.border,
+                  color: colors.textPrimary,
+                },
               ]}
-              testID="food-form-serving-amount-input"
-              value={servingAmount}
+              testID="food-form-name-input"
+              value={name}
             />
-            <MenuView
-              actions={foodServingUnits.map(({ id, label }) => ({ id, title: label }))}
-              onPressAction={({ nativeEvent }) => setServingUnit(nativeEvent.event as Unit)}
-              testID="food-form-serving-unit-menu"
-            >
-              <View
-                accessibilityLabel={`Serving unit, ${selectedServingUnit?.label}`}
-                accessibilityRole="button"
-                style={[
-                  styles.unitButton,
-                  { backgroundColor: colors.background, borderColor: colors.border },
-                ]}
-                testID="food-form-serving-unit-button"
+            {hasNameError ? (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.fieldError, { color: colors.danger }]}
+                testID="food-form-name-error"
               >
-                <Text style={{ color: colors.textPrimary }}>{selectedServingUnit?.label}</Text>
-                <Ionicons color={colors.textSecondary} name="chevron-down" size={16} />
-              </View>
-            </MenuView>
+                Enter a food name
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.field}>
+            <View style={styles.row}>
+              <TextInput
+                accessibilityLabel="Serving amount, required"
+                keyboardType="decimal-pad"
+                onBlur={blurServingAmount}
+                onChangeText={setServingAmount}
+                placeholder="Amount"
+                ref={servingAmountTextInputRef}
+                style={[
+                  styles.input,
+                  styles.flex,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: hasServingAmountError ? colors.danger : colors.border,
+                    color: colors.textPrimary,
+                  },
+                ]}
+                testID="food-form-serving-amount-input"
+                value={servingAmount}
+              />
+              <MenuView
+                actions={foodServingUnits.map(({ id, label }) => ({ id, title: label }))}
+                onPressAction={({ nativeEvent }) => setServingUnit(nativeEvent.event as Unit)}
+                testID="food-form-serving-unit-menu"
+              >
+                <View
+                  accessibilityLabel={`Serving unit, ${selectedServingUnit?.label}`}
+                  accessibilityRole="button"
+                  style={[
+                    styles.unitButton,
+                    { backgroundColor: colors.background, borderColor: colors.border },
+                  ]}
+                  testID="food-form-serving-unit-button"
+                >
+                  <Text style={{ color: colors.textPrimary }}>{selectedServingUnit?.label}</Text>
+                  <Ionicons color={colors.textSecondary} name="chevron-down" size={16} />
+                </View>
+              </MenuView>
+            </View>
+            {hasServingAmountError ? (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.fieldError, { color: colors.danger }]}
+                testID="food-form-serving-amount-error"
+              >
+                Enter a serving amount greater than 0
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -209,20 +273,37 @@ export function FoodForm({
           >
             NUTRITION
           </Text>
-          <View style={styles.numberField}>
-            <TextInput
-              accessibilityLabel="Calories, required"
-              keyboardType="decimal-pad"
-              onChangeText={setCalories}
-              placeholder="Calories"
-              style={[
-                styles.input,
-                { backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary },
-              ]}
-              testID="food-form-calories-input"
-              value={calories}
-            />
-            <Text style={[styles.unitLabel, { color: colors.textSecondary }]}>kcal</Text>
+          <View style={styles.field}>
+            <View style={styles.numberField}>
+              <TextInput
+                accessibilityLabel="Calories, required"
+                keyboardType="decimal-pad"
+                onBlur={() => setHasCaloriesError(isCaloriesInvalid(calories))}
+                onChangeText={setCalories}
+                placeholder="Calories"
+                ref={caloriesTextInputRef}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: hasCaloriesError ? colors.danger : colors.border,
+                    color: colors.textPrimary,
+                  },
+                ]}
+                testID="food-form-calories-input"
+                value={calories}
+              />
+              <Text style={[styles.unitLabel, { color: colors.textSecondary }]}>kcal</Text>
+            </View>
+            {hasCaloriesError ? (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.fieldError, { color: colors.danger }]}
+                testID="food-form-calories-error"
+              >
+                Enter calories of 0 or greater
+              </Text>
+            ) : null}
           </View>
           {showMoreNutrition ? (
             <View style={styles.optionalNutrition} testID="food-form-optional-nutrition">

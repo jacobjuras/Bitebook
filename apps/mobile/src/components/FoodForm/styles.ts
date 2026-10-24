@@ -9,6 +9,8 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  field: { gap: 6 },
+  fieldError: { fontSize: 13 },
   flex: { flex: 1 },
   input: {
     borderRadius: 10,
