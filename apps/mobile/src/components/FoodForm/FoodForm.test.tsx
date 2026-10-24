@@ -65,6 +65,33 @@ describe('FoodForm', () => {
     );
   });
 
+  it('normalizes the serving amount after editing', async () => {
+    await renderForm();
+
+    for (const [entered, displayed] of [
+      ['00040', '40'],
+      ['0', ''],
+      ['000', ''],
+      ['00.0', ''],
+      ['00.5', '0.5'],
+      ['0.5', '0.5'],
+    ]) {
+      await fireEvent.changeText(
+        screen.getByTestId('food-form-serving-amount-input'),
+        entered,
+      );
+      expect(screen.getByTestId('food-form-serving-amount-input').props.value)
+        .toBe(entered);
+
+      await fireEvent(
+        screen.getByTestId('food-form-serving-amount-input'),
+        'blur',
+      );
+      expect(screen.getByTestId('food-form-serving-amount-input').props.value)
+        .toBe(displayed);
+    }
+  });
+
   it('submits normalized Food fields and the TagPicker value', async () => {
     const onSubmit = await renderForm();
     await enterRequiredFields();

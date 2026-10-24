@@ -50,6 +50,11 @@ function parseNumber(value: string, mustBePositive = false) {
     : undefined;
 }
 
+function normalizeServingAmount(value: string) {
+  const withoutLeadingZeros = value.replace(/^0+(?=\d)/, '');
+  return Number(withoutLeadingZeros) === 0 ? '' : withoutLeadingZeros;
+}
+
 /** Collects and validates the complete manual Food input. */
 export function FoodForm({
   availableTags,
@@ -164,6 +169,7 @@ export function FoodForm({
             <TextInput
               accessibilityLabel="Serving amount, required"
               keyboardType="decimal-pad"
+              onBlur={() => setServingAmount(normalizeServingAmount(servingAmount))}
               onChangeText={setServingAmount}
               placeholder="Amount"
               ref={servingAmountInputRef}
