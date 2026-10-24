@@ -24,6 +24,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          cache: npm
+          node-version-file: .nvmrc
+
       - name: Test pipeline change isolation guard
         run: npm run test:pipeline-isolation
 
@@ -35,12 +41,6 @@ jobs:
           set -euo pipefail
           git diff --name-only "$BASE_SHA...$HEAD_SHA" \
             | bash scripts/check-pipeline-change-isolation.sh
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          cache: npm
-          node-version-file: .nvmrc
 
       - name: Install dependencies
         run: npm ci
@@ -65,5 +65,8 @@ jobs:
         run: npx expo export --platform android --output-dir "$RUNNER_TEMP/bitebook-android"
         working-directory: apps/mobile
 
-      - name: Synthesize Beta and Production
+      - name: Synthesize infrastructure
         run: npm run synth --workspace @bitebook/infra
+
+      - name: Verify pipeline structure snapshot
+        run: npm run check:pipeline-structure

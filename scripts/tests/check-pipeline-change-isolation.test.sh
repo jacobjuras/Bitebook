@@ -31,22 +31,26 @@ expect_fail() {
 expect_pass 'application-only change' \
   'apps/mobile/src/app.tsx' \
   'services/api/src/index.ts'
-expect_pass 'pipeline-only change' \
+expect_pass 'non-structural pipeline implementation and application change' \
+  'infra/lib/BitebookPipelineStack.ts' \
+  'infra/lib/BitebookStack.ts'
+expect_pass 'non-structural dependency and application change' \
+  'infra/package.json' \
+  'package-lock.json' \
+  'services/api/src/index.ts'
+expect_pass 'pipeline-structure-only change' \
+  'infra/pipeline-structure.json' \
   'infra/lib/BitebookApplicationStage.ts' \
   'infra/lib/BitebookPipelineStack.ts' \
   'infra/lib/tests/BitebookPipelineStack.test.ts' \
-  'scripts/run-deployed-integration-tests.sh' \
+  'scripts/pipeline-structure.mjs' \
   'README.md'
-expect_pass 'pipeline dependency change' \
-  'infra/package.json' \
-  'package-lock.json'
-expect_fail 'pipeline dependency and application code' 'services/api/src/index.ts' \
-  'infra/package.json' \
-  'services/api/src/index.ts'
-expect_fail 'pipeline and application code' 'services/api/src/index.ts' \
+expect_fail 'pipeline structure and application code' 'services/api/src/index.ts' \
+  'infra/pipeline-structure.json' \
   'infra/lib/BitebookPipelineStack.ts' \
   'services/api/src/index.ts'
-expect_fail 'pipeline and application infrastructure' 'infra/lib/BitebookStack.ts' \
+expect_fail 'pipeline structure and application infrastructure' 'infra/lib/BitebookStack.ts' \
+  'infra/pipeline-structure.json' \
   'infra/lib/BitebookPipelineStack.ts' \
   'infra/lib/BitebookStack.ts'
 

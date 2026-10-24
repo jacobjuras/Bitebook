@@ -1,0 +1,410 @@
+{
+  "LogicalId": "Pipeline9850B417",
+  "Properties": {
+    "ArtifactStore": {
+      "EncryptionKey": {
+        "Id": {
+          "Fn::GetAtt": [
+            "ArtifactKey8D84C5F0",
+            "Arn"
+          ]
+        },
+        "Type": "KMS"
+      },
+      "Location": {
+        "Ref": "ArtifactBucket7410C9EF"
+      },
+      "Type": "S3"
+    },
+    "ExecutionMode": "QUEUED",
+    "Name": "Bitebook",
+    "PipelineType": "V2",
+    "RoleArn": {
+      "Fn::GetAtt": [
+        "PipelineRoleB27FAA37",
+        "Arn"
+      ]
+    },
+    "Stages": [
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Source",
+              "Owner": "AWS",
+              "Provider": "CodeStarSourceConnection",
+              "Version": "1"
+            },
+            "Configuration": {
+              "BranchName": "main",
+              "ConnectionArn": {
+                "Ref": "GitHubConnectionArn"
+              },
+              "FullRepositoryId": "jacobjuras/Bitebook"
+            },
+            "Name": "jacobjuras_Bitebook",
+            "OutputArtifacts": [
+              {
+                "Name": "jacobjuras_Bitebook_Source"
+              }
+            ],
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineSourcejacobjurasBitebookCodePipelineActionRoleB57B150F",
+                "Arn"
+              ]
+            },
+            "RunOrder": 1
+          }
+        ],
+        "Name": "Source"
+      },
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "EnvironmentVariables": "[{\"name\":\"_PROJECT_CONFIG_HASH\",\"type\":\"PLAINTEXT\",\"value\":\"fd9d3a7bd30896a19b070caa7b53fb8d96776faad515e9544db2638b020872cd\"}]",
+              "ProjectName": {
+                "Ref": "PipelineBuildSynthCdkBuildProject6BEFA8E6"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "jacobjuras_Bitebook_Source"
+              }
+            ],
+            "Name": "Synth",
+            "OutputArtifacts": [
+              {
+                "Name": "Synth_Output"
+              }
+            ],
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 1
+          }
+        ],
+        "Name": "Build"
+      },
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "EnvironmentVariables": "[{\"name\":\"_PROJECT_CONFIG_HASH\",\"type\":\"PLAINTEXT\",\"value\":\"1a12e3bd5e92948cbf449ba195a19867fca13c5d51916eacbf614594a2f89098\"}]",
+              "ProjectName": {
+                "Ref": "PipelineUpdatePipelineSelfMutationDAA41400"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "Synth_Output"
+              }
+            ],
+            "Name": "SelfMutate",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 1
+          }
+        ],
+        "Name": "UpdatePipeline"
+      },
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ProjectName": {
+                "Ref": "PipelineAssetsFileAsset185A67CB4"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "Synth_Output"
+              }
+            ],
+            "Name": "ApiFunction_Code",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 1
+          }
+        ],
+        "Name": "Assets"
+      },
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Deploy",
+              "Owner": "AWS",
+              "Provider": "CloudFormation",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ActionMode": "CHANGE_SET_REPLACE",
+              "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+              "ChangeSetName": "PipelineChange",
+              "RoleArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":iam::492683309774:role/cdk-hnb659fds-cfn-exec-role-492683309774-us-west-2"
+                  ]
+                ]
+              },
+              "StackName": "Bitebook-Beta",
+              "TemplateConfiguration": "Synth_Output::assembly-BitebookPipeline-Beta/BitebookPipelineBetaApplicationE1127D7B.template.json.config.json",
+              "TemplatePath": "Synth_Output::assembly-BitebookPipeline-Beta/BitebookPipelineBetaApplicationE1127D7B.template.json"
+            },
+            "InputArtifacts": [
+              {
+                "Name": "Synth_Output"
+              }
+            ],
+            "Name": "Bitebook-Beta.Prepare",
+            "RoleArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":iam::492683309774:role/cdk-hnb659fds-deploy-role-492683309774-us-west-2"
+                ]
+              ]
+            },
+            "RunOrder": 1
+          },
+          {
+            "ActionTypeId": {
+              "Category": "Deploy",
+              "Owner": "AWS",
+              "Provider": "CloudFormation",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ActionMode": "CHANGE_SET_EXECUTE",
+              "ChangeSetName": "PipelineChange",
+              "StackName": "Bitebook-Beta"
+            },
+            "Name": "Bitebook-Beta.Deploy",
+            "Namespace": "BitebookPipelineBetaApplicationE1127D7B",
+            "RoleArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":iam::492683309774:role/cdk-hnb659fds-deploy-role-492683309774-us-west-2"
+                ]
+              ]
+            },
+            "RunOrder": 2
+          },
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "EnvironmentVariables": "[{\"name\":\"BITEBOOK_API_URL\",\"type\":\"PLAINTEXT\",\"value\":\"#{BitebookPipelineBetaApplicationE1127D7B.ApiUrl}\"},{\"name\":\"BITEBOOK_USER_DATA_TABLE_NAME\",\"type\":\"PLAINTEXT\",\"value\":\"#{BitebookPipelineBetaApplicationE1127D7B.UserDataTableName}\"},{\"name\":\"BITEBOOK_USER_POOL_CLIENT_ID\",\"type\":\"PLAINTEXT\",\"value\":\"#{BitebookPipelineBetaApplicationE1127D7B.UserPoolClientId}\"},{\"name\":\"BITEBOOK_USER_POOL_ID\",\"type\":\"PLAINTEXT\",\"value\":\"#{BitebookPipelineBetaApplicationE1127D7B.UserPoolId}\"}]",
+              "ProjectName": {
+                "Ref": "PipelineBetaDeployedApiTestsC245D7FB"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "jacobjuras_Bitebook_Source"
+              }
+            ],
+            "Name": "DeployedApiTests",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 3
+          },
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ProjectName": {
+                "Ref": "PipelineBetaMobileUiTests9D695EA3"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "jacobjuras_Bitebook_Source"
+              }
+            ],
+            "Name": "MobileUiTests",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 3
+          }
+        ],
+        "Name": "Beta",
+        "OnFailure": {
+          "Result": "ROLLBACK"
+        }
+      },
+      {
+        "Actions": [
+          {
+            "ActionTypeId": {
+              "Category": "Deploy",
+              "Owner": "AWS",
+              "Provider": "CloudFormation",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ActionMode": "CHANGE_SET_REPLACE",
+              "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+              "ChangeSetName": "PipelineChange",
+              "RoleArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":iam::805982516567:role/cdk-hnb659fds-cfn-exec-role-805982516567-us-west-2"
+                  ]
+                ]
+              },
+              "StackName": "Bitebook-Production",
+              "TemplateConfiguration": "Synth_Output::assembly-BitebookPipeline-Production/BitebookPipelineProductionApplication4D82F6FF.template.json.config.json",
+              "TemplatePath": "Synth_Output::assembly-BitebookPipeline-Production/BitebookPipelineProductionApplication4D82F6FF.template.json"
+            },
+            "InputArtifacts": [
+              {
+                "Name": "Synth_Output"
+              }
+            ],
+            "Name": "Bitebook-Production.Prepare",
+            "RoleArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":iam::805982516567:role/cdk-hnb659fds-deploy-role-805982516567-us-west-2"
+                ]
+              ]
+            },
+            "RunOrder": 1
+          },
+          {
+            "ActionTypeId": {
+              "Category": "Deploy",
+              "Owner": "AWS",
+              "Provider": "CloudFormation",
+              "Version": "1"
+            },
+            "Configuration": {
+              "ActionMode": "CHANGE_SET_EXECUTE",
+              "ChangeSetName": "PipelineChange",
+              "StackName": "Bitebook-Production"
+            },
+            "Name": "Bitebook-Production.Deploy",
+            "Namespace": "BitebookPipelineProductionApplication4D82F6FF",
+            "RoleArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":iam::805982516567:role/cdk-hnb659fds-deploy-role-805982516567-us-west-2"
+                ]
+              ]
+            },
+            "RunOrder": 2
+          },
+          {
+            "ActionTypeId": {
+              "Category": "Build",
+              "Owner": "AWS",
+              "Provider": "CodeBuild",
+              "Version": "1"
+            },
+            "Configuration": {
+              "EnvironmentVariables": "[{\"name\":\"BITEBOOK_API_URL\",\"type\":\"PLAINTEXT\",\"value\":\"#{BitebookPipelineProductionApplication4D82F6FF.ApiUrl}\"}]",
+              "ProjectName": {
+                "Ref": "PipelineProductionProductionSmokeTests258E397F"
+              }
+            },
+            "InputArtifacts": [
+              {
+                "Name": "jacobjuras_Bitebook_Source"
+              }
+            ],
+            "Name": "ProductionSmokeTests",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "PipelineCodeBuildActionRole226DB0CB",
+                "Arn"
+              ]
+            },
+            "RunOrder": 3
+          }
+        ],
+        "Name": "Production",
+        "OnFailure": {
+          "Result": "ROLLBACK"
+        }
+      }
+    ]
+  }
+}
