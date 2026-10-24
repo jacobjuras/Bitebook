@@ -161,6 +161,25 @@ Run only the domain tests:
 npm test --workspace @bitebook/domain
 ```
 
+## Change the deployment pipeline
+
+CodePipeline automatic rollback can return only to a successful execution from the current pipeline structure version. Bitebook therefore isolates changes to the synthesized `AWS::CodePipeline::Pipeline` declaration from application changes, while allowing non-structural infrastructure changes to ship with the application code they support.
+
+The tracked `infra/pipeline-structure.json` snapshot contains the pipeline's CloudFormation logical ID and structural properties. IAM policies, CodeBuild project configuration, and other infrastructure changes do not require a separate PR when synthesis leaves this snapshot unchanged.
+
+After changing the pipeline definition, regenerate and review the snapshot:
+
+```bash
+npm run update:pipeline-structure
+```
+
+If `infra/pipeline-structure.json` changes, include it in a pipeline-structure-only PR with only the pipeline source, supporting scripts, tests, manifests, lockfiles, workflows, and documentation it requires. Merge that PR before opening or merging dependent application changes.
+
+Pull request CI enforces both sides of this contract:
+
+- `npm run check:pipeline-structure` fails when the tracked snapshot does not match the synthesized pipeline.
+- The isolation guard fails when a changed snapshot is submitted alongside application or application-infrastructure files.
+
 ## Before committing
 
 Run the checks relevant to the changed package. For changes that can affect the full repository, run:
