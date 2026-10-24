@@ -8,21 +8,15 @@ while IFS= read -r file; do
   fi
 done
 
-pipeline_changed=false
+pipeline_structure_changed=false
 for file in "${changed_files[@]}"; do
-  case "$file" in
-    infra/bin/app.ts \
-      | infra/cdk.json \
-      | infra/package.json \
-      | infra/lib/BitebookApplicationStage.ts \
-      | infra/lib/BitebookPipelineStack.ts)
-      pipeline_changed=true
-      break
-      ;;
-  esac
+  if [[ "$file" == 'infra/pipeline-structure.json' ]]; then
+    pipeline_structure_changed=true
+    break
+  fi
 done
 
-if [[ "$pipeline_changed" == false ]]; then
+if [[ "$pipeline_structure_changed" == false ]]; then
   exit 0
 fi
 
@@ -37,13 +31,16 @@ for file in "${changed_files[@]}"; do
       | infra/lib/BitebookPipelineStack.ts \
       | infra/lib/tests/BitebookPipelineStack.test.ts \
       | infra/package.json \
+      | infra/pipeline-structure.json \
       | package.json \
       | package-lock.json \
       | scripts/check-pipeline-change-isolation.sh \
+      | scripts/pipeline-structure.mjs \
       | scripts/run-deployed-integration-tests.sh \
       | scripts/run-tests.sh \
       | scripts/run-with-project-node.sh \
-      | scripts/tests/check-pipeline-change-isolation.test.sh)
+      | scripts/tests/check-pipeline-change-isolation.test.sh \
+      | scripts/tests/pipeline-structure.test.mjs)
       ;;
     *)
       violations+=("$file")
@@ -55,8 +52,8 @@ if (( ${#violations[@]} == 0 )); then
   exit 0
 fi
 
-printf 'CodePipeline definition changes must ship without application changes.\n' >&2
+printf 'The synthesized CodePipeline declaration changed and must ship without application changes.\n' >&2
 printf 'Move these files to a separate PR:\n' >&2
 printf '  - %s\n' "${violations[@]}" >&2
-printf 'Merge the pipeline-only PR and wait for its release to succeed before merging application changes.\n' >&2
+printf 'Merge the pipeline-structure PR before merging application changes.\n' >&2
 exit 1

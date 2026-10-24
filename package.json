@@ -21,9 +21,11 @@
   },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "check:pipeline-structure": "node scripts/pipeline-structure.mjs --check",
     "mobile": "npm run start --workspace @bitebook/mobile",
     "test": "bash scripts/run-with-project-node.sh bash scripts/run-tests.sh",
-    "test:pipeline-isolation": "bash scripts/tests/check-pipeline-change-isolation.test.sh",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:pipeline-isolation": "bash scripts/tests/check-pipeline-change-isolation.test.sh && node --test scripts/tests/pipeline-structure.test.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "update:pipeline-structure": "npm run synth:pipeline --workspace @bitebook/infra && node scripts/pipeline-structure.mjs"
   }
 }
