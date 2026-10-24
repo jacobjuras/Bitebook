@@ -177,8 +177,23 @@ export class BitebookPipelineStack extends Stack {
           })],
         }),
         new PolicyStatement({
-          actions: ['dynamodb:Query', 'dynamodb:TransactWriteItems'],
+          actions: ['dynamodb:Query'],
           conditions: {
+            StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+          },
+          resources: [this.formatArn({
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            resource: 'table',
+            resourceName: '*',
+            service: 'dynamodb',
+          })],
+        }),
+        new PolicyStatement({
+          actions: ['dynamodb:DeleteItem'],
+          conditions: {
+            'ForAnyValue:StringEquals': {
+              'dynamodb:EnclosingOperation': ['TransactWriteItems'],
+            },
             StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
           },
           resources: [this.formatArn({

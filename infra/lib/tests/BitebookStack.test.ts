@@ -94,11 +94,11 @@ describe('BitebookStack', () => {
           },
           {
             Action: [
+              'dynamodb:ConditionCheckItem',
               'dynamodb:DeleteItem',
               'dynamodb:GetItem',
               'dynamodb:PutItem',
               'dynamodb:Query',
-              'dynamodb:TransactWriteItems',
               'dynamodb:UpdateItem',
             ],
             Effect: 'Allow',

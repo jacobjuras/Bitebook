@@ -123,8 +123,18 @@ describe('BitebookPipelineStack', () => {
               Effect: 'Allow',
             }),
             expect.objectContaining({
-              Action: ['dynamodb:Query', 'dynamodb:TransactWriteItems'],
+              Action: 'dynamodb:Query',
               Condition: {
+                StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
+              },
+              Effect: 'Allow',
+            }),
+            expect.objectContaining({
+              Action: 'dynamodb:DeleteItem',
+              Condition: {
+                'ForAnyValue:StringEquals': {
+                  'dynamodb:EnclosingOperation': ['TransactWriteItems'],
+                },
                 StringEquals: { 'aws:ResourceTag/DeploymentStage': 'Beta' },
               },
               Effect: 'Allow',
