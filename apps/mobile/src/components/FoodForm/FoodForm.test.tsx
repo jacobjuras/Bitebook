@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { StyleSheet } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
@@ -38,7 +39,7 @@ async function enterRequiredFields() {
 }
 
 describe('FoodForm', () => {
-  it('renders its required fields and rejects invalid required values', async () => {
+  it('shows inline required-field errors on Save and clears them when valid', async () => {
     const onSubmit = await renderForm();
 
     expect(screen.getByTestId('food-form-title')).toHaveTextContent('Add food');
@@ -57,12 +58,54 @@ describe('FoodForm', () => {
     expect(screen.getByTestId('food-form-nutrition-heading'))
       .toHaveTextContent('NUTRITION');
     expect(screen.getByTestId('food-form-tag-heading')).toHaveTextContent('TAGS');
+    expect(screen.queryByTestId('food-form-name-error')).toBeNull();
+    expect(screen.queryByTestId('food-form-serving-amount-error')).toBeNull();
+    expect(screen.queryByTestId('food-form-calories-error')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('food-form-save-button'));
+
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByTestId('food-form-error')).toHaveTextContent(
-      'Enter a name, positive serving size, and valid calories',
-    );
+    expect(screen.queryByTestId('food-form-error')).toBeNull();
+    expect(screen.getByTestId('food-form-name-error'))
+      .toHaveTextContent('Enter a food name');
+    expect(screen.getByTestId('food-form-serving-amount-error'))
+      .toHaveTextContent('Enter a serving amount greater than 0');
+    expect(screen.getByTestId('food-form-calories-error'))
+      .toHaveTextContent('Enter calories of 0 or greater');
+    expect(StyleSheet.flatten(screen.getByTestId('food-form-name-input').props.style))
+      .toMatchObject({ borderColor: 'danger' });
+    expect(StyleSheet.flatten(
+      screen.getByTestId('food-form-serving-amount-input').props.style,
+    )).toMatchObject({ borderColor: 'danger' });
+    expect(StyleSheet.flatten(screen.getByTestId('food-form-calories-input').props.style))
+      .toMatchObject({ borderColor: 'danger' });
+
+    await enterRequiredFields();
+    await fireEvent(screen.getByTestId('food-form-name-input'), 'blur');
+    await fireEvent(screen.getByTestId('food-form-serving-amount-input'), 'blur');
+    await fireEvent(screen.getByTestId('food-form-calories-input'), 'blur');
+
+    expect(screen.queryByTestId('food-form-name-error')).toBeNull();
+    expect(screen.queryByTestId('food-form-serving-amount-error')).toBeNull();
+    expect(screen.queryByTestId('food-form-calories-error')).toBeNull();
+  });
+
+  it('validates invalid required values when editing ends', async () => {
+    await renderForm();
+
+    await fireEvent.changeText(screen.getByTestId('food-form-name-input'), '   ');
+    await fireEvent(screen.getByTestId('food-form-name-input'), 'blur');
+    await fireEvent.changeText(screen.getByTestId('food-form-serving-amount-input'), '0');
+    await fireEvent(screen.getByTestId('food-form-serving-amount-input'), 'blur');
+    await fireEvent.changeText(screen.getByTestId('food-form-calories-input'), '-1');
+    await fireEvent(screen.getByTestId('food-form-calories-input'), 'blur');
+
+    expect(screen.getByTestId('food-form-name-error'))
+      .toHaveTextContent('Enter a food name');
+    expect(screen.getByTestId('food-form-serving-amount-error'))
+      .toHaveTextContent('Enter a serving amount greater than 0');
+    expect(screen.getByTestId('food-form-calories-error'))
+      .toHaveTextContent('Enter calories of 0 or greater');
   });
 
   it('normalizes the serving amount after editing', async () => {
